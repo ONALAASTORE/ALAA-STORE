@@ -7,6 +7,7 @@ import {
   MessageCircle,
   X,
 } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { Currency, Product, CartItem, ProductVariant, FilterState, StoreSettings } from './types';
 import { PRODUCTS } from './data/products';
 import { CATEGORIES, BRANDS } from './data/categories';
@@ -1066,6 +1067,7 @@ export function App() {
           </motion.div>
         )}
       </AnimatePresence>
+      <Analytics />
     </div>
   );
 }
