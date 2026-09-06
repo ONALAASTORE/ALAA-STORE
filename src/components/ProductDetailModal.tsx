@@ -21,6 +21,7 @@ import {
 import { Product, Currency, ProductVariant } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
+import { buildWhatsAppLink } from '../utils/phone';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -31,6 +32,7 @@ interface ProductDetailModalProps {
   onToggleWishlist: (productId: string) => void;
   isCompared: boolean;
   onToggleCompare: (product: Product) => void;
+  whatsappNumber?: string;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -42,6 +44,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onToggleWishlist,
   isCompared,
   onToggleCompare,
+  whatsappNumber = '+961 71 135 241',
 }) => {
   if (!product) return null;
 
@@ -147,6 +150,43 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const currentVariant = product.variants[selectedVariantIndex] || product.variants[0];
 
+  // Stock check logic (checks product.inStock, stockCount, and variant availability)
+  const isItemInStock = Boolean(
+    product.inStock && 
+    (product.stockCount === undefined || product.stockCount > 0) && 
+    (currentVariant ? currentVariant.inStock !== false : true)
+  );
+
+  // Mock calculation for estimated delivery time based on stock status
+  const estimatedDeliveryTime = useMemo(() => {
+    return isItemInStock ? 'Delivery in 1-2 business days' : 'Delivery in 5-7 business days';
+  }, [isItemInStock]);
+
+  // Formatted estimated delivery arrival dates window
+  const estimatedDeliveryDates = useMemo(() => {
+    const addBusinessDays = (startDate: Date, days: number): Date => {
+      let current = new Date(startDate);
+      let added = 0;
+      while (added < days) {
+        current.setDate(current.getDate() + 1);
+        const day = current.getDay();
+        if (day !== 0 && day !== 6) { // Skip weekends
+          added++;
+        }
+      }
+      return current;
+    };
+
+    const today = new Date();
+    const minDays = isItemInStock ? 1 : 5;
+    const maxDays = isItemInStock ? 2 : 7;
+    const minDate = addBusinessDays(today, minDays);
+    const maxDate = addBusinessDays(today, maxDays);
+
+    const formatOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return `${minDate.toLocaleDateString('en-US', formatOpts)} - ${maxDate.toLocaleDateString('en-US', formatOpts)}`;
+  }, [isItemInStock]);
+
   const handlePrevImage = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     paginate(-1);
@@ -200,10 +240,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     setShareStatus('copied');
     setTimeout(() => setShareStatus('idle'), 2500);
   };
-
-  const whatsappMessage = encodeURIComponent(
-    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n- Item: ${product.name}\n- Variant: ${currentVariant.name}\n- Price: $${currentVariant.priceUSD}\n- Qty: ${quantity}\n\nPlease let me know delivery timeframe and payment details.`
-  );
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
@@ -423,15 +459,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Quick Guarantees Card */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2 text-xs text-slate-700">
               <div className="flex items-center gap-2 font-semibold text-slate-900">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>{product.warranty}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-600">
-                <Truck className="w-4 h-4 text-emerald-600" />
-                <span>Direct dispatch • Fast nationwide delivery all Lebanon</span>
+              <div className="flex items-center gap-2 text-slate-700 font-medium">
+                <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span id="modal-guarantee-delivery-estimate">
+                  {estimatedDeliveryTime} • Lebanon Nationwide
+                </span>
               </div>
               <div className="flex items-center gap-2 text-slate-600">
-                <CreditCard className="w-4 h-4 text-amber-600" />
+                <CreditCard className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>Cash on Delivery in USD, L.L., or Whish Money</span>
               </div>
             </div>
@@ -506,7 +544,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   {product.condition}
                 </span>
                 <span className="text-slate-500">
-                  Status: <strong className="text-emerald-600">In Stock (Warehouse Lebanon)</strong>
+                  Status: <strong className={isItemInStock ? "text-emerald-600 font-bold" : "text-rose-600 font-bold"}>
+                    {isItemInStock ? "In Stock (Warehouse Lebanon)" : "Out of Stock"}
+                  </strong>
                 </span>
               </div>
 
@@ -534,6 +574,51 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Estimated Delivery Time Card (Calculated based on stock availability) */}
+              <div 
+                id="modal-delivery-estimate-card"
+                className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 text-xs transition-colors ${
+                  isItemInStock 
+                    ? 'bg-emerald-50/70 border-emerald-200/90 text-emerald-950' 
+                    : 'bg-amber-50/70 border-amber-200/90 text-amber-950'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    isItemInStock ? 'bg-emerald-600 text-white shadow-xs' : 'bg-amber-500 text-white shadow-xs'
+                  }`}>
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-slate-900">
+                        {estimatedDeliveryTime}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        isItemInStock 
+                          ? 'bg-emerald-100 text-emerald-800' 
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {isItemInStock ? 'In Stock' : 'Restocking'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {isItemInStock
+                        ? 'Ships directly via express courier across all Lebanon cities.'
+                        : 'Currently out of stock. Orders placed now will dispatch upon warehouse restock.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden sm:block text-right shrink-0">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
+                    Est. Arrival
+                  </span>
+                  <span className="text-xs font-bold text-slate-800">
+                    {estimatedDeliveryDates}
+                  </span>
+                </div>
               </div>
 
               {/* Variant Selector */}
@@ -604,13 +689,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <button
                   id="modal-add-to-cart-btn"
                   onClick={handleAddToCart}
-                  className={`py-3.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
-                    added
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
+                  disabled={!isItemInStock}
+                  className={`py-3.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-sm ${
+                    !isItemInStock
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      : added
+                        ? 'bg-emerald-600 text-white cursor-pointer'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 cursor-pointer'
                   }`}
                 >
-                  {added ? (
+                  {!isItemInStock ? (
+                    <span>Out of Stock</span>
+                  ) : added ? (
                     <>
                       <Check className="w-4 h-4" />
                       <span>Added to Cart!</span>
@@ -625,7 +715,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
                 <a
                   id="modal-whatsapp-order-btn"
-                  href={`https://wa.me/96171135241?text=${whatsappMessage}`}
+                  href={buildWhatsAppLink(
+                    whatsappNumber,
+                    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n- Item: ${product.name}\n- Variant: ${currentVariant.name}\n- Price: $${currentVariant.priceUSD}\n- Qty: ${quantity}\n- Est. Delivery: ${estimatedDeliveryTime}\n\nPlease let me know delivery timeframe and payment details.`
+                  )}
                   target="_blank"
                   rel="noreferrer"
                   className="py-3.5 px-4 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-500/20"

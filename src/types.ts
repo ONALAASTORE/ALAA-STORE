@@ -26,12 +26,18 @@ export interface Product {
   additional_images?: string[]; // Supplementary gallery images excluding primary
   basePriceUSD: number;
   originalPriceUSD?: number; // For discount display
+  promotionalPriceUSD?: number; // Promotional price in USD
+  promotionalPrice?: number; // Alternative alias for promotional price
+  salePriceUSD?: number; // Sale price in USD
+  discountPercentage?: number; // Explicit discount percentage
+  onSale?: boolean; // Flag indicating product is on sale
   variants: ProductVariant[];
   rating: number;
   reviewCount: number;
   condition: 'Brand New (Sealed)' | 'Open Box' | 'Certified Pre-Owned';
   warranty: string; // e.g., "1 Year Official Apple Warranty"
   inStock: boolean;
+  stockCount?: number;
   isFeatured?: boolean;
   isHotDeal?: boolean;
   isNewArrival?: boolean;
@@ -70,7 +76,10 @@ export interface StoreSettings {
   isTopBannerActive: boolean;
   marketingVideoUrl: string;
   marketingVideoTitle: string;
+  isMarketingVideoActive: boolean;
   exchangeRateLBP: number;
   whatsappNumber: string;
   supportEmail: string;
+  adminProfilePicture?: string;
+  adminName?: string;
 }

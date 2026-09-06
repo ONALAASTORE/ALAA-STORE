@@ -10,13 +10,21 @@ import {
   Mail,
   Store
 } from 'lucide-react';
+import { buildWhatsAppLink } from '../utils/phone';
 
 interface ContactModalProps {
   isOpen: boolean;
   onClose: () => void;
+  whatsappNumber?: string;
+  supportEmail?: string;
 }
 
-export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
+export const ContactModal: React.FC<ContactModalProps> = ({
+  isOpen,
+  onClose,
+  whatsappNumber = '+961 71 135 241',
+  supportEmail = 'alaastoreon@gmail.com',
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -54,13 +62,13 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
               <span className="text-emerald-700 text-xs font-medium">Quick order booking, price inquiries & live photos</span>
             </div>
             <a
-              href="https://wa.me/96171135241?text=Hello%20On%20Alaa%20Store%2C%20I%20need%20assistance"
+              href={buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store, I need assistance')}
               target="_blank"
               rel="noreferrer"
               className="bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-sm hover:bg-emerald-700 transition"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>+961 71 135 241</span>
+              <span>{whatsappNumber}</span>
             </a>
           </div>
 
@@ -92,7 +100,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
               <div>
                 <strong className="text-slate-900 block text-xs">Direct Phone Line</strong>
                 <p className="text-slate-600 font-medium text-[11px] mt-0.5">
-                  +961 71 135 241
+                  {whatsappNumber}
                 </p>
               </div>
             </div>
@@ -112,7 +120,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
               <div>
                 <strong className="text-slate-900 block text-xs">Direct Email</strong>
                 <p className="text-slate-600 font-medium text-[11px] mt-0.5">
-                  alaastoreon@gmail.com
+                  {supportEmail}
                 </p>
               </div>
             </div>

@@ -16,6 +16,8 @@ import { CATEGORIES } from '../data/categories';
 import { PRODUCTS } from '../data/products';
 import { LogoAvatar, Brand3DText } from './brand';
 import { SearchAutocomplete } from './SearchAutocomplete';
+import { buildWhatsAppLink } from '../utils/phone';
+import { CategoryIcon } from '../utils/categoryIcons';
 
 interface HeaderProps {
   currency: Currency;
@@ -37,6 +39,7 @@ interface HeaderProps {
   onOpenAdmin?: () => void;
   topBannerText?: string;
   isTopBannerActive?: boolean;
+  whatsappNumber?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -59,6 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdmin,
   topBannerText = 'Available delivery to all Lebanon 🚚 (Beirut, Tripoli, Saida, Bekaa)',
   isTopBannerActive = true,
+  whatsappNumber = '+961 71 135 241',
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -105,13 +109,13 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
               <a 
-                href="https://wa.me/96171135241?text=Hello%20On%20Alaa%20Store%2C%20I%20have%20an%20inquiry%20about%20a%20product" 
+                href={buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store, I have an inquiry about a product')} 
                 target="_blank" 
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-semibold transition"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
-                <span>WhatsApp: +961 71 135 241</span>
+                <span>WhatsApp: {whatsappNumber}</span>
               </a>
             </div>
           </div>
@@ -291,7 +295,13 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
                 }`}
               >
-                {cat.name}
+                <CategoryIcon
+                  nameOrId={cat.iconName || cat.id}
+                  className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                    isSelected ? 'text-white' : 'text-slate-500'
+                  }`}
+                />
+                <span>{cat.name}</span>
               </button>
             );
           })}

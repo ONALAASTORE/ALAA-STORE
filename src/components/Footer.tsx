@@ -10,17 +10,22 @@ import {
   Calculator
 } from 'lucide-react';
 import { LogoAvatar, Brand3DText } from './brand';
+import { buildWhatsAppLink } from '../utils/phone';
 
 interface FooterProps {
   onSelectCategory: (catId: string) => void;
   onOpenTradeIn: () => void;
   onOpenContact: () => void;
+  whatsappNumber?: string;
+  supportEmail?: string;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onSelectCategory,
   onOpenTradeIn,
   onOpenContact,
+  whatsappNumber = '+961 71 135 241',
+  supportEmail = 'alaastoreon@gmail.com',
 }) => {
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 mt-16">
@@ -175,11 +180,20 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>+961 71 135 241</span>
+              <a
+                href={buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store, I have a question about my order')}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-emerald-300 transition"
+              >
+                {whatsappNumber}
+              </a>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-purple-400 shrink-0" />
-              <span>alaastoreon@gmail.com</span>
+              <a href={`mailto:${supportEmail}`} className="hover:text-purple-300 transition">
+                {supportEmail}
+              </a>
             </div>
           </div>
         </div>

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { formatPrice } from '../utils/currency';
+import { buildWhatsAppLink } from '../utils/phone';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface CheckoutModalProps {
   items: CartItem[];
   currency: Currency;
   onOrderCompleted: () => void;
+  whatsappNumber?: string;
 }
 
 const LEBANON_REGIONS = [
@@ -45,6 +47,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   items,
   currency,
   onOrderCompleted,
+  whatsappNumber = '+961 71 135 241',
 }) => {
   if (!isOpen) return null;
 
@@ -147,7 +150,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
             <div className="pt-2 space-y-3">
               <a
-                href={`https://wa.me/96171135241?text=${generateWhatsAppOrderText(orderSuccess)}`}
+                href={buildWhatsAppLink(whatsappNumber, generateWhatsAppOrderText(orderSuccess))}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition"

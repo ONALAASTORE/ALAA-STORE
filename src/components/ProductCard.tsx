@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   Truck,
   Check,
-  Images
+  Images,
+  Tag
 } from 'lucide-react';
 import { Product, Currency, ProductVariant } from '../types';
 import { formatPrice } from '../utils/currency';
@@ -46,9 +47,54 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const primaryImage = productImages[0] || DEFAULT_PRODUCT_IMAGE;
   const secondaryImage = productImages.length > 1 ? productImages[1] : null;
 
+  // Availability status: 'In Stock', 'Low Stock', 'Out of Stock'
+  const isOutOfStock = !product.inStock || (product.stockCount !== undefined && product.stockCount <= 0);
+  const isLowStock = !isOutOfStock && product.stockCount !== undefined && product.stockCount > 0 && product.stockCount <= 5;
+
+  // Promotional pricing & Discount calculation (fetched directly from product object)
+  const basePrice = activeVariant.priceUSD || product.basePriceUSD;
+  const originalPrice = product.originalPriceUSD;
+  const promotionalPrice = product.promotionalPriceUSD ?? product.promotionalPrice ?? product.salePriceUSD;
+  const explicitDiscount = product.discountPercentage;
+  const isOnSale = product.onSale;
+
+  // Effective selling price: uses promotionalPrice if explicitly set and lower than basePrice
+  const effectivePrice = (promotionalPrice !== undefined && promotionalPrice < basePrice)
+    ? promotionalPrice
+    : basePrice;
+
+  // Check if product has a promotional price / discount from the product object
+  const hasPromotionalPrice = Boolean(
+    (originalPrice !== undefined && originalPrice > effectivePrice) ||
+    (promotionalPrice !== undefined && promotionalPrice < (originalPrice ?? product.basePriceUSD)) ||
+    (explicitDiscount !== undefined && explicitDiscount > 0) ||
+    isOnSale
+  );
+
+  // Calculate discount percentage if original price or explicit discount is available
+  const discountPercent = (() => {
+    if (explicitDiscount !== undefined && explicitDiscount > 0) {
+      return Math.round(explicitDiscount);
+    }
+    const higherPrice = originalPrice ?? (promotionalPrice !== undefined && promotionalPrice < product.basePriceUSD ? product.basePriceUSD : undefined);
+    if (higherPrice && higherPrice > effectivePrice) {
+      return Math.round(((higherPrice - effectivePrice) / higherPrice) * 100);
+    }
+    return null;
+  })();
+
+  // Strike-through comparison price (shows regular price when on sale/discount)
+  const strikePrice = (promotionalPrice !== undefined && promotionalPrice < basePrice)
+    ? basePrice
+    : (originalPrice !== undefined && originalPrice > effectivePrice ? originalPrice : undefined);
+
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onAddToCart(product, activeVariant);
+    if (isOutOfStock) return;
+    onAddToCart(product, {
+      ...activeVariant,
+      priceUSD: effectivePrice
+    });
     setAddedAnimation(true);
     setTimeout(() => setAddedAnimation(false), 1200);
   };
@@ -61,6 +107,41 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Badges Overlay */}
       <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start pointer-events-none">
+        {/* Availability Status Badge */}
+        {isOutOfStock ? (
+          <span className="bg-rose-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-200" />
+            Out of Stock
+          </span>
+        ) : isLowStock ? (
+          <span className="bg-amber-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+            Low Stock ({product.stockCount})
+          </span>
+        ) : (
+          <span className="bg-emerald-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+            In Stock
+          </span>
+        )}
+
+        {/* Sale / Discount Promotional Price Badge */}
+        {hasPromotionalPrice && (
+          <span 
+            id={`sale-discount-badge-${product.id}`}
+            data-testid="sale-discount-badge"
+            className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs animate-in fade-in"
+            title="Promotional Price / Discount Active"
+          >
+            <Tag className="w-2.5 h-2.5 shrink-0" />
+            <span>Sale</span>
+            {discountPercent && discountPercent > 0 && (
+              <span>-{discountPercent}%</span>
+            )}
+            <span className="sr-only">Discount</span>
+          </span>
+        )}
+
         {product.isHotDeal && (
           <span className="bg-rose-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide shadow-xs">
             Deal
@@ -72,7 +153,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </span>
         )}
         {product.freeDelivery && (
-          <span className="bg-emerald-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
+          <span className="bg-emerald-700 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
             <Truck className="w-2.5 h-2.5" />
             Free Delivery
           </span>
@@ -218,17 +299,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div>
             <div className="flex items-baseline gap-1.5">
               <span className="font-extrabold text-slate-900 text-base sm:text-lg font-display">
-                {formatPrice(activeVariant.priceUSD, currency)}
+                {formatPrice(effectivePrice, currency)}
               </span>
-              {product.originalPriceUSD && (
+              {strikePrice && (
                 <span className="text-xs text-slate-400 line-through">
-                  {formatPrice(product.originalPriceUSD, currency)}
+                  {formatPrice(strikePrice, currency)}
                 </span>
               )}
             </div>
             {currency === 'USD' && (
               <span className="text-[10px] text-slate-400 font-medium block">
-                ≈ {formatPrice(activeVariant.priceUSD, 'LBP')}
+                ≈ {formatPrice(effectivePrice, 'LBP')}
               </span>
             )}
           </div>
@@ -236,13 +317,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <button
             id={`add-cart-btn-${product.id}`}
             onClick={handleAdd}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer ${
-              addedAnimation 
-                ? 'bg-emerald-600 text-white' 
-                : 'bg-slate-900 hover:bg-blue-600 text-white'
+            disabled={isOutOfStock}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-xs ${
+              isOutOfStock
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                : addedAnimation 
+                  ? 'bg-emerald-600 text-white cursor-pointer' 
+                  : 'bg-slate-900 hover:bg-blue-600 text-white cursor-pointer'
             }`}
           >
-            {addedAnimation ? (
+            {isOutOfStock ? (
+              <span>Sold Out</span>
+            ) : addedAnimation ? (
               <>
                 <Check className="w-3.5 h-3.5" />
                 <span>Added</span>

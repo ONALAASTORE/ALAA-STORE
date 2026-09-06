@@ -14,6 +14,7 @@ import {
 import { Currency, Product } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getEmbedVideoUrl, isDirectVideoFile } from '../utils/video';
+import { buildWhatsAppLink } from '../utils/phone';
 import { Brand3DBadge } from './brand';
 
 interface HeroBannerProps {
@@ -23,6 +24,8 @@ interface HeroBannerProps {
   onSelectCategory?: (catId: string) => void;
   marketingVideoUrl?: string;
   marketingVideoTitle?: string;
+  isMarketingVideoActive?: boolean;
+  whatsappNumber?: string;
 }
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
@@ -31,10 +34,17 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   onSelectProduct,
   marketingVideoUrl,
   marketingVideoTitle,
+  isMarketingVideoActive = true,
+  whatsappNumber = '+961 71 135 241',
 }) => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const heroProduct = featuredProducts[0]; // iPhone 16 Pro Max
-  const embedUrl = marketingVideoUrl ? getEmbedVideoUrl(marketingVideoUrl) : '';
+  const isVideoVisible = Boolean(isMarketingVideoActive && marketingVideoUrl && marketingVideoUrl.trim().length > 0);
+  const embedUrl = isVideoVisible && marketingVideoUrl ? getEmbedVideoUrl(marketingVideoUrl) : '';
+  const whatsappHref = buildWhatsAppLink(
+    whatsappNumber,
+    'Hello On Alaa Store, I want to order or ask about a device'
+  );
 
   return (
     <div className="space-y-6">
@@ -91,7 +101,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 </button>
               )}
 
-              {marketingVideoUrl && (
+              {isVideoVisible && (
                 <button
                   onClick={() => setIsVideoModalOpen(true)}
                   className="bg-slate-800/90 hover:bg-slate-700 text-slate-100 font-bold text-sm px-4 py-3 rounded-xl transition flex items-center gap-2 border border-slate-700 shadow-md cursor-pointer group"
@@ -104,7 +114,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               )}
 
               <a
-                href="https://wa.me/96171135241?text=Hello%20On%20Alaa%20Store%2C%20I%20want%20to%20order%20or%20ask%20about%20a%20device"
+                href={whatsappHref}
                 target="_blank"
                 rel="noreferrer"
                 className="bg-emerald-600/90 hover:bg-emerald-600 text-white font-bold text-sm px-5 py-3 rounded-xl transition flex items-center gap-2 border border-emerald-500/30"
@@ -174,7 +184,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       </div>
 
       {/* Marketing Video Interactive Section if active */}
-      {marketingVideoUrl && (
+      {isVideoVisible && (
         <div className="space-y-4">
           {/* 3D Brand Badge Banner above Video Showcase */}
           <div className="flex justify-center sm:justify-start">
@@ -203,7 +213,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             </div>
 
             <div className="relative aspect-video max-w-4xl mx-auto rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-2xl">
-              {isDirectVideoFile(marketingVideoUrl) ? (
+              {isDirectVideoFile(marketingVideoUrl || '') ? (
                 <video 
                   src={marketingVideoUrl} 
                   controls 
@@ -224,7 +234,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       )}
 
       {/* Video Modal Player */}
-      {isVideoModalOpen && marketingVideoUrl && (
+      {isVideoModalOpen && isVideoVisible && (
         <div 
           className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
           onClick={() => setIsVideoModalOpen(false)}
@@ -247,7 +257,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             </div>
 
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-slate-800">
-              {isDirectVideoFile(marketingVideoUrl) ? (
+              {isDirectVideoFile(marketingVideoUrl || '') ? (
                 <video 
                   src={marketingVideoUrl} 
                   autoPlay 

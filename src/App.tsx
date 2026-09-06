@@ -25,6 +25,8 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Footer } from './components/Footer';
 import { ScrollToTopButton } from './components/ScrollToTopButton';
+import { getProductImages } from './utils/productImages';
+import { CategoryIcon } from './utils/categoryIcons';
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
@@ -36,9 +38,12 @@ const DEFAULT_SETTINGS: StoreSettings = {
   isTopBannerActive: true,
   marketingVideoUrl: 'https://www.youtube.com/watch?v=eDqfg_LexCQ',
   marketingVideoTitle: 'Apple iPhone 16 Pro Cinematic Showcase',
+  isMarketingVideoActive: true,
   exchangeRateLBP: 89500,
   whatsappNumber: '+961 71 135 241',
   supportEmail: 'alaastoreon@gmail.com',
+  adminProfilePicture: '',
+  adminName: 'Alaa (Store Admin)',
 };
 
 // Smooth, fluid framer-motion transition variants between views
@@ -225,6 +230,102 @@ export function App() {
       // ignore
     }
   }, [productsList]);
+
+  // Dynamic SEO Title and Meta Description Injection
+  useEffect(() => {
+    let title = 'ON ALAA STORE | Premium Electronics & Tech in Lebanon';
+    let description = 'Premium electronics and smart devices storefront for the Lebanese market with dual USD/LBP pricing, WhatsApp ordering, and fast delivery.';
+    let ogType = 'website';
+    let ogImage = '';
+
+    if (selectedProduct) {
+      title = `${selectedProduct.name} | On Alaa Store Lebanon`;
+      const cleanDesc = selectedProduct.description
+        ? selectedProduct.description.replace(/\s+/g, ' ').trim()
+        : '';
+      description = cleanDesc
+        ? `Buy ${selectedProduct.name} at On Alaa Store in Lebanon. ${cleanDesc.length > 140 ? cleanDesc.slice(0, 137) + '...' : cleanDesc}`
+        : `Buy ${selectedProduct.name} at On Alaa Store in Lebanon. Dual USD/LBP pricing, express courier delivery, and official warranty.`;
+      ogType = 'product';
+      const prodImages = getProductImages(selectedProduct);
+      ogImage = prodImages[0] || '';
+    } else if (currentRoute === 'admin') {
+      title = 'Admin Dashboard | On Alaa Store Lebanon';
+      description = 'Administrator control center for On Alaa Store. Manage product catalog, inventory, exchange rates, and store settings.';
+    } else if (currentRoute === 'admin-login') {
+      title = 'Admin Portal Login | On Alaa Store Lebanon';
+      description = 'Secure admin sign-in portal for On Alaa Store management.';
+    } else if (isCheckoutOpen) {
+      title = 'Order Checkout | On Alaa Store Lebanon';
+      description = 'Complete your electronics order with fast cash-on-delivery across all regions of Lebanon.';
+    } else if (isCartOpen) {
+      title = 'Shopping Cart | On Alaa Store Lebanon';
+      description = 'Review items in your shopping cart with dual USD and LBP conversion at On Alaa Store.';
+    } else if (isWishlistOpen) {
+      title = 'Saved Wishlist | On Alaa Store Lebanon';
+      description = 'View and manage your saved electronics and smart devices at On Alaa Store.';
+    } else if (isCompareOpen) {
+      title = 'Compare Products | On Alaa Store Lebanon';
+      description = 'Side-by-side technical comparison of smartphones, gadgets, and tech gear at On Alaa Store.';
+    } else if (isTradeInOpen) {
+      title = 'Device Trade-In Estimation | On Alaa Store Lebanon';
+      description = 'Calculate estimated trade-in value for your used smartphone, tablet, or laptop in Lebanon.';
+    } else if (isContactOpen) {
+      title = 'Contact & WhatsApp Support | On Alaa Store Lebanon';
+      description = 'Reach On Alaa Store for inquiries, WhatsApp orders, warranty service, and nationwide delivery support.';
+    } else if (filterState.searchQuery.trim()) {
+      const q = filterState.searchQuery.trim();
+      title = `Search: "${q}" | On Alaa Store Lebanon`;
+      description = `Explore search results for "${q}" with competitive USD/LBP pricing and nationwide Lebanon delivery at On Alaa Store.`;
+    } else if (filterState.category !== 'all') {
+      const catObj = CATEGORIES.find((c) => c.id === filterState.category);
+      const catName = catObj ? catObj.name : filterState.category;
+      title = `${catName} in Lebanon | On Alaa Store`;
+      description = `Shop premium ${catName} at On Alaa Store. Official warranty, fast delivery across Lebanon, and cash on delivery in USD/LBP.`;
+    } else if (filterState.brand !== 'All Brands') {
+      title = `${filterState.brand} Products in Lebanon | On Alaa Store`;
+      description = `Browse authentic ${filterState.brand} smartphones, gadgets, and tech accessories at On Alaa Store Lebanon.`;
+    }
+
+    // 1. Update Document Title
+    document.title = title;
+
+    // 2. Helper to create or update meta tags in document head
+    const setMetaTag = (attr: 'name' | 'property', key: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attr, key);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    // 3. Dynamically inject/update standard meta description
+    setMetaTag('name', 'description', description);
+
+    // 4. Update Open Graph and Twitter Card tags for social & search indexing
+    setMetaTag('property', 'og:title', title);
+    setMetaTag('property', 'og:description', description);
+    setMetaTag('property', 'og:type', ogType);
+    if (ogImage) {
+      setMetaTag('property', 'og:image', ogImage);
+    }
+    setMetaTag('name', 'twitter:title', title);
+    setMetaTag('name', 'twitter:description', description);
+  }, [
+    selectedProduct,
+    currentRoute,
+    isCheckoutOpen,
+    isCartOpen,
+    isWishlistOpen,
+    isCompareOpen,
+    isTradeInOpen,
+    isContactOpen,
+    filterState.searchQuery,
+    filterState.category,
+    filterState.brand,
+  ]);
 
   const handleOpenProductDetail = (product: Product) => {
     setSelectedProduct(product);
@@ -416,6 +517,24 @@ export function App() {
     });
   }, [productsList, filterState]);
 
+  // Runtime Performance Monitor: logs product grid render time to console for developers
+  useEffect(() => {
+    const startTime = performance.now();
+    const rafId = requestAnimationFrame(() => {
+      const renderDurationMs = (performance.now() - startTime).toFixed(2);
+      console.log(
+        `%c[Catalog Perf Monitor]%c Product grid rendered %c${filteredProducts.length} items%c in %c${renderDurationMs}ms%c (category: "${filterState.category}", brand: "${filterState.brand}", sort: "${filterState.sortBy}", query: "${filterState.searchQuery || 'none'}")`,
+        'color: #3b82f6; font-weight: bold;',
+        'color: inherit;',
+        'color: #10b981; font-weight: bold;',
+        'color: inherit;',
+        'color: #ef4444; font-weight: bold;',
+        'color: inherit;'
+      );
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [filteredProducts, filterState]);
+
   // Wishlist products
   const wishlistedProducts = useMemo(() => {
     return productsList.filter((p) => wishlistIds.includes(p.id));
@@ -499,6 +618,7 @@ export function App() {
         onOpenAdmin={handleNavigateToAdmin}
         topBannerText={storeSettings.topBannerText}
         isTopBannerActive={storeSettings.isTopBannerActive}
+        whatsappNumber={storeSettings.whatsappNumber}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 space-y-8 w-full">
@@ -510,6 +630,8 @@ export function App() {
           onSelectCategory={(catId) => setFilterState((prev) => ({ ...prev, category: catId }))}
           marketingVideoUrl={storeSettings.marketingVideoUrl}
           marketingVideoTitle={storeSettings.marketingVideoTitle}
+          isMarketingVideoActive={storeSettings.isMarketingVideoActive}
+          whatsappNumber={storeSettings.whatsappNumber}
         />
 
         {/* Filter Controls Bar */}
@@ -517,19 +639,29 @@ export function App() {
           
           {/* Category Chips Bar */}
           <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 scrollbar-none">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setFilterState((prev) => ({ ...prev, category: cat.id }))}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-                  filterState.category === cat.id
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
-              >
-                <span>{cat.name}</span>
-              </button>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const isSelected = filterState.category === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  id={`cat-chip-${cat.id}`}
+                  onClick={() => setFilterState((prev) => ({ ...prev, category: cat.id }))}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 shadow-2xs ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  <CategoryIcon
+                    nameOrId={cat.iconName || cat.id}
+                    className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                      isSelected ? 'text-white' : 'text-slate-500'
+                    }`}
+                  />
+                  <span>{cat.name}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Sort & Mobile Filter Buttons */}
@@ -838,6 +970,7 @@ export function App() {
           isCompared={comparedProducts.some((p) => p.id === selectedProduct.id)}
           onToggleCompare={handleToggleCompare}
           onAddToCart={handleAddToCart}
+          whatsappNumber={storeSettings.whatsappNumber}
         />
       )}
 
@@ -866,6 +999,7 @@ export function App() {
           handleClearCart();
           setIsCheckoutOpen(false);
         }}
+        whatsappNumber={storeSettings.whatsappNumber}
       />
 
       {/* Compare Modal */}
@@ -911,6 +1045,8 @@ export function App() {
       <ContactModal
         isOpen={isContactOpen}
         onClose={() => setIsContactOpen(false)}
+        whatsappNumber={storeSettings.whatsappNumber}
+        supportEmail={storeSettings.supportEmail}
       />
 
       {/* Footer */}
@@ -921,6 +1057,8 @@ export function App() {
         }}
         onOpenTradeIn={() => setIsTradeInOpen(true)}
         onOpenContact={() => setIsContactOpen(true)}
+        whatsappNumber={storeSettings.whatsappNumber}
+        supportEmail={storeSettings.supportEmail}
       />
 
       {/* Floating Scroll to Top Button */}

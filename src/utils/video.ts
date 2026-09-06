@@ -22,6 +22,15 @@ export function getEmbedVideoUrl(url: string): string {
 
 export function isDirectVideoFile(url: string): boolean {
   if (!url) return false;
-  const lower = url.toLowerCase();
-  return lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.ogg');
+  const lower = url.toLowerCase().trim();
+  return (
+    lower.startsWith('data:video/') ||
+    lower.startsWith('blob:') ||
+    lower.endsWith('.mp4') ||
+    lower.endsWith('.webm') ||
+    lower.endsWith('.ogg') ||
+    lower.includes('.mp4?') ||
+    lower.includes('.webm?') ||
+    lower.includes('.ogg?')
+  );
 }
