@@ -1,0 +1,10 @@
+{
+  "name": "Remix on-alaa-store",
+  "description": "Imported from GitHub: ONALAASTORE/on-alaa-store",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

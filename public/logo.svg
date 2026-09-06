@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <!-- Pure White Background -->
+  <rect width="800" height="800" fill="#FFFFFF"/>
+  
+  <g transform="translate(400, 400)">
+    <!-- Top Line: ON ALAA -->
+    <g transform="translate(0, -35)">
+      <!-- O (Play Button in Red Circle) -->
+      <g transform="translate(-255, 0)">
+        <!-- Outer Red Circle -->
+        <circle cx="0" cy="0" r="54" fill="none" stroke="#FF0000" stroke-width="22"/>
+        <!-- Inner Red Play Triangle -->
+        <path d="M -13,-24 L 20,0 L -13,24 Z" fill="#FF0000" stroke="#FF0000" stroke-width="4" stroke-linejoin="round"/>
+      </g>
+
+      <!-- N ALAA in bold rounded font -->
+      <text x="-185" y="32" 
+            font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Arial Rounded MT Bold', sans-serif" 
+            font-weight="900" 
+            font-size="118" 
+            fill="#FF0000" 
+            letter-spacing="2">
+        N ALAA
+      </text>
+    </g>
+
+    <!-- Bottom Line: STORE -->
+    <g transform="translate(0, 85)">
+      <text x="0" y="0" 
+            text-anchor="middle" 
+            font-family="system-ui, -apple-system, 'Segoe UI', Arial, sans-serif" 
+            font-weight="900" 
+            font-size="64" 
+            fill="#000000" 
+            letter-spacing="20">
+        STORE
+      </text>
+    </g>
+  </g>
+</svg>
