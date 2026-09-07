@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { History, ChevronLeft, ChevronRight, ShoppingCart, Eye, Trash2, ArrowRight } from 'lucide-react';
+import { History, ChevronLeft, ChevronRight, ShoppingCart, Eye, Trash2 } from 'lucide-react';
 import { Product, Currency } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';

@@ -16,12 +16,15 @@ import {
   Maximize2,
   LayoutGrid,
   SlidersHorizontal,
-  Images
+  Images,
+  ZoomIn
 } from 'lucide-react';
-import { Product, Currency, ProductVariant } from '../types';
+import { Product, Currency, ProductVariant, ProductReview } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
 import { buildWhatsAppLink } from '../utils/phone';
+import { ProductReviewsSection } from './ProductReviewsSection';
+import { getStoredReviews, saveStoredReviews, INITIAL_REVIEWS_SEED } from '../data/initialReviews';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -50,9 +53,52 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'specs' | 'features' | 'delivery'>('specs');
+  const [activeTab, setActiveTab] = useState<'specs' | 'features' | 'delivery' | 'reviews'>('specs');
   const [added, setAdded] = useState(false);
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
+
+  // Product Reviews local state (scoped per product, persisted in localStorage)
+  const [reviewsMap, setReviewsMap] = useState<Record<string, ProductReview[]>>(() => {
+    return getStoredReviews();
+  });
+
+  const currentProductReviews = useMemo<ProductReview[]>(() => {
+    if (!product) return [];
+    if (reviewsMap[product.id] && reviewsMap[product.id].length > 0) {
+      return reviewsMap[product.id];
+    }
+    const seed = INITIAL_REVIEWS_SEED[product.id] || INITIAL_REVIEWS_SEED.default;
+    return seed.map((r, idx) => ({
+      ...r,
+      id: `seed-${product.id}-${idx}`,
+      productId: product.id,
+    }));
+  }, [product, reviewsMap]);
+
+  const handleAddReview = (newRev: Omit<ProductReview, 'id' | 'date'>) => {
+    if (!product) return;
+    const reviewObj: ProductReview = {
+      ...newRev,
+      id: `rev-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+
+    setReviewsMap((prev) => {
+      const existing = prev[product.id] || currentProductReviews;
+      const updated = {
+        ...prev,
+        [product.id]: [reviewObj, ...existing],
+      };
+      saveStoredReviews(updated);
+      return updated;
+    });
+  };
+
+  const calculatedRating = useMemo(() => {
+    if (currentProductReviews.length === 0) return product.rating;
+    const sum = currentProductReviews.reduce((acc, r) => acc + r.rating, 0);
+    return Number((sum / currentProductReviews.length).toFixed(1));
+  }, [currentProductReviews, product.rating]);
 
   // Product image carousel iterating through the 'allImages' array
   const allImages = useMemo<string[]>(() => {
@@ -79,10 +125,44 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Reset active image when product changes
+  // Hover-to-zoom state for the main product image
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomCoords, setZoomCoords] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset active image and zoom state when product or image changes
   useEffect(() => {
     setActiveImageIndex(0);
+    setIsZoomed(false);
+    setZoomCoords({ x: 50, y: 50 });
   }, [product?.id]);
+
+  useEffect(() => {
+    setIsZoomed(false);
+    setZoomCoords({ x: 50, y: 50 });
+  }, [activeImageIndex]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setZoomCoords({ x, y });
+    if (!isZoomed) setIsZoomed(true);
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setZoomCoords({ x, y });
+    setIsZoomed(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsZoomed(false);
+  };
 
   // Seamless pagination helper with infinite loop
   const paginate = (newDirection: number) => {
@@ -303,18 +383,33 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Slider / Carousel View Mode */}
             {galleryViewMode === 'slider' ? (
               <div className="space-y-2.5">
-                {/* Main Featured Stage */}
+                {/* Main Featured Stage with Hover-to-Zoom */}
                 <div 
-                  className="relative aspect-square rounded-2xl bg-slate-50 border border-slate-200/80 p-6 flex items-center justify-center overflow-hidden group cursor-zoom-in"
+                  ref={imageContainerRef}
+                  id="main-product-image-stage"
+                  className={`relative aspect-square rounded-2xl bg-slate-50 border border-slate-200/80 p-6 flex items-center justify-center overflow-hidden group select-none transition-colors ${
+                    isZoomed ? 'cursor-crosshair bg-slate-100/80' : 'cursor-zoom-in'
+                  }`}
                   onClick={() => setIsLightboxOpen(true)}
-                  onTouchStart={handleTouchStart}
+                  onMouseMove={handleMouseMove}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                  onTouchStart={(e) => {
+                    setIsZoomed(false);
+                    handleTouchStart(e);
+                  }}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                 >
                   <img
                     src={allImages[activeImageIndex] || DEFAULT_PRODUCT_IMAGE}
                     alt={`${product.name} - View ${activeImageIndex + 1}`}
-                    className="w-full h-full object-contain object-center transition duration-300 group-hover:scale-105"
+                    className="w-full h-full object-contain object-center will-change-transform pointer-events-none"
+                    style={{
+                      transform: isZoomed ? 'scale(2.4)' : 'scale(1)',
+                      transformOrigin: `${zoomCoords.x}% ${zoomCoords.y}%`,
+                      transition: isZoomed ? 'transform 0.08s ease-out' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = DEFAULT_PRODUCT_IMAGE;
@@ -322,7 +417,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   />
 
                   {/* Badges Overlay */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
+                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-20 pointer-events-none">
                     {product.isHotDeal && (
                       <span className="bg-rose-500 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-xs">
                         Hot Deal
@@ -335,6 +430,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     )}
                   </div>
 
+                  {/* Hover-to-Zoom Visual Feedback Indicator Pill */}
+                  <div 
+                    id="zoom-indicator-pill"
+                    className={`absolute bottom-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none transition-all duration-200 ${
+                      isZoomed 
+                        ? 'bg-blue-600 text-white shadow-md scale-105' 
+                        : 'bg-white/90 backdrop-blur-xs text-slate-700 border border-slate-200 shadow-2xs opacity-0 group-hover:opacity-100'
+                    }`}
+                  >
+                    <ZoomIn className="w-3 h-3" />
+                    <span>{isZoomed ? 'Zoom 2.4x • Move cursor to inspect' : 'Hover to zoom'}</span>
+                  </div>
+
                   {/* Zoom Action Pill */}
                   <button
                     type="button"
@@ -342,7 +450,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       e.stopPropagation();
                       setIsLightboxOpen(true);
                     }}
-                    className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 flex items-center justify-center transition opacity-80 hover:opacity-100 cursor-pointer"
+                    className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 flex items-center justify-center transition opacity-80 hover:opacity-100 cursor-pointer"
                     title="Open Fullscreen Lightbox"
                   >
                     <Maximize2 className="w-3.5 h-3.5" />
@@ -354,7 +462,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={handlePrevImage}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer"
                         title="Previous Image"
                       >
                         <ChevronLeft className="w-4 h-4" />
@@ -362,7 +470,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={handleNextImage}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md border border-slate-200 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer"
                         title="Next Image"
                       >
                         <ChevronRight className="w-4 h-4" />
@@ -372,7 +480,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
                   {/* Counter Badge */}
                   {allImages.length > 1 && (
-                    <div className="absolute bottom-3 right-3 z-10 bg-slate-900/70 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
+                    <div className="absolute bottom-3 right-3 z-20 bg-slate-900/70 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">
                       {activeImageIndex + 1} / {allImages.length}
                     </div>
                   )}
@@ -535,11 +643,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
               {/* Reviews & Condition */}
               <div className="flex items-center gap-3 text-xs flex-wrap">
-                <div className="flex items-center gap-1 bg-amber-50 text-amber-900 px-2 py-1 rounded-md border border-amber-200/60 font-bold">
+                <button
+                  type="button"
+                  id="modal-rating-jump-btn"
+                  onClick={() => setActiveTab('reviews')}
+                  className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200/80 font-bold transition cursor-pointer"
+                  title="Click to view all reviews and write your own"
+                >
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{product.rating}</span>
-                  <span className="text-amber-700">({product.reviewCount} customer reviews)</span>
-                </div>
+                  <span>{calculatedRating}</span>
+                  <span className="text-amber-700">({currentProductReviews.length} reviews)</span>
+                </button>
                 <span className="bg-emerald-50 text-emerald-800 px-2 py-1 rounded-md border border-emerald-200/60 font-semibold">
                   {product.condition}
                 </span>
@@ -759,10 +873,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         {/* Tabbed Specifications & Features Section */}
         <div className="border-t border-slate-200 bg-slate-50/50 p-6 sm:p-8">
-          <div className="flex items-center gap-3 border-b border-slate-200 pb-3 mb-4">
+          <div className="flex items-center gap-3 border-b border-slate-200 pb-3 mb-4 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab('specs')}
-              className={`text-xs font-bold pb-1 cursor-pointer transition ${
+              className={`text-xs font-bold pb-1 cursor-pointer transition whitespace-nowrap ${
                 activeTab === 'specs' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -770,7 +884,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('features')}
-              className={`text-xs font-bold pb-1 cursor-pointer transition ${
+              className={`text-xs font-bold pb-1 cursor-pointer transition whitespace-nowrap ${
                 activeTab === 'features' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -778,11 +892,25 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('delivery')}
-              className={`text-xs font-bold pb-1 cursor-pointer transition ${
+              className={`text-xs font-bold pb-1 cursor-pointer transition whitespace-nowrap ${
                 activeTab === 'delivery' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               Lebanon Delivery & Warranty
+            </button>
+            <button
+              id="modal-reviews-tab-btn"
+              onClick={() => setActiveTab('reviews')}
+              className={`text-xs font-bold pb-1 cursor-pointer transition flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === 'reviews' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>Customer Reviews</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold transition-colors ${
+                activeTab === 'reviews' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {currentProductReviews.length}
+              </span>
             </button>
           </div>
 
@@ -818,6 +946,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <strong>Warranty Claims:</strong> All sealed items include official agent barcode stickers. You can claim service directly at authorized brand centers in Lebanon (e.g. Apple Authorized, CTC Samsung, Xiaomi Lebanon) or through our Jadra Warehouse Store counter.
               </p>
             </div>
+          )}
+
+          {activeTab === 'reviews' && (
+            <ProductReviewsSection
+              product={product}
+              reviews={currentProductReviews}
+              onAddReview={handleAddReview}
+            />
           )}
         </div>
 

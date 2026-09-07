@@ -3,7 +3,6 @@ import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { 
   SlidersHorizontal, 
   ArrowUpDown, 
-  Search, 
   MessageCircle,
   X,
 } from 'lucide-react';
@@ -14,6 +13,7 @@ import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
+import { RecentlyViewedSlider } from './components/RecentlyViewedSlider';
 import { PriceRangeSlider } from './components/PriceRangeSlider';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -21,6 +21,7 @@ import { CompareModal } from './components/CompareModal';
 import { TradeInModal } from './components/TradeInModal';
 import { WishlistModal } from './components/WishlistModal';
 import { ContactModal } from './components/ContactModal';
+import { EmptyProductsState } from './components/EmptyProductsState';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Footer } from './components/Footer';
@@ -32,6 +33,7 @@ const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
 const PRODUCTS_STORAGE_KEY = 'on_alaa_store_products';
 const SETTINGS_STORAGE_KEY = 'on_alaa_store_settings';
+const RECENTLY_VIEWED_STORAGE_KEY = 'on_alaa_store_recently_viewed';
 
 const DEFAULT_SETTINGS: StoreSettings = {
   topBannerText: 'Available delivery to all Lebanon 🚚 (Beirut, Tripoli, Saida, Bekaa)',
@@ -155,6 +157,22 @@ export function App() {
   const [isTradeInOpen, setIsTradeInOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+
+  // Recently Viewed products list (stored in sessionStorage, max 5 items)
+  const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
+    try {
+      const raw = sessionStorage.getItem(RECENTLY_VIEWED_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const recentlyViewedProducts = useMemo(() => {
+    return recentlyViewedIds
+      .map((id) => productsList.find((p) => p.id === id))
+      .filter((p): p is Product => Boolean(p));
+  }, [recentlyViewedIds, productsList]);
 
   // Hash route listener
   useEffect(() => {
@@ -329,6 +347,19 @@ export function App() {
 
   const handleOpenProductDetail = (product: Product) => {
     setSelectedProduct(product);
+
+    // Save to recently viewed list (max 5 items, latest first)
+    setRecentlyViewedIds((prev) => {
+      const filtered = prev.filter((id) => id !== product.id);
+      const updated = [product.id, ...filtered].slice(0, 5);
+      try {
+        sessionStorage.setItem(RECENTLY_VIEWED_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save recently viewed to sessionStorage', e);
+      }
+      return updated;
+    });
+
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('product', product.id);
@@ -907,19 +938,12 @@ export function App() {
             </div>
 
             {/* Products Grid */}
-            {filteredProducts.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
-                <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                  <Search className="w-8 h-8" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-slate-900">No products match your criteria</h3>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Try clearing some of your filters or search for another model or brand.
-                  </p>
-                </div>
-                <button
-                  onClick={() =>
+            <AnimatePresence mode="wait">
+              {filteredProducts.length === 0 ? (
+                <EmptyProductsState
+                  key="empty-state"
+                  filterState={filterState}
+                  onResetFilters={() =>
                     setFilterState({
                       searchQuery: '',
                       category: 'all',
@@ -931,26 +955,50 @@ export function App() {
                       sortBy: 'featured',
                     })
                   }
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition"
+                />
+              ) : (
+                <motion.div
+                  key="products-grid"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"
                 >
-                  Clear All Filters
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    currency={currency}
-                    isWishlisted={wishlistIds.includes(product.id)}
-                    isCompared={comparedProducts.some((p) => p.id === product.id)}
-                    onToggleWishlist={handleToggleWishlist}
-                    onToggleCompare={handleToggleCompare}
-                    onAddToCart={(p, v) => handleAddToCart(p, v, 1)}
-                    onQuickView={handleOpenProductDetail}
-                  />
-                ))}
+                  {filteredProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      currency={currency}
+                      isWishlisted={wishlistIds.includes(product.id)}
+                      isCompared={comparedProducts.some((p) => p.id === product.id)}
+                      onToggleWishlist={handleToggleWishlist}
+                      onToggleCompare={handleToggleCompare}
+                      onAddToCart={(p, v) => handleAddToCart(p, v, 1)}
+                      onQuickView={handleOpenProductDetail}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Recently Viewed Products Horizontal Slider */}
+            {recentlyViewedProducts.length > 0 && (
+              <div className="mt-12 pt-8 border-t border-slate-200/80">
+                <RecentlyViewedSlider
+                  products={recentlyViewedProducts}
+                  currency={currency}
+                  onProductClick={handleOpenProductDetail}
+                  onAddToCart={(p) => handleAddToCart(p, p.variants[0], 1)}
+                  onClear={() => {
+                    setRecentlyViewedIds([]);
+                    try {
+                      sessionStorage.removeItem(RECENTLY_VIEWED_STORAGE_KEY);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                />
               </div>
             )}
 

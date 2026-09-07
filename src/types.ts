@@ -83,3 +83,14 @@ export interface StoreSettings {
   adminProfilePicture?: string;
   adminName?: string;
 }
+
+export interface ProductReview {
+  id: string;
+  productId: string;
+  authorName: string;
+  rating: number; // 1 to 5
+  comment: string;
+  date: string;
+  city?: string;
+  verifiedBuyer?: boolean;
+}
