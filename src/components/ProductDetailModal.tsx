@@ -56,7 +56,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'specs' | 'features' | 'delivery' | 'reviews'>('specs');
   const [added, setAdded] = useState(false);
-  const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'shared'>('idle');
 
   // Extract structured variant configuration (Storage options & Color options)
   const variantConfig = useMemo(() => {
@@ -345,9 +345,36 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     const url = new URL(window.location.href);
     url.searchParams.set('product', product.id);
     const shareUrl = url.toString();
+    const shareTitle = product.name;
+    const shareText = `Check out ${product.name} on On Alaa Store! Available now with official Lebanese warranty.`;
 
+    // 1. Primary: Use the browser's native Web Share API
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        const shareData = {
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        };
+
+        if (!navigator.canShare || navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          setShareStatus('shared');
+          setTimeout(() => setShareStatus('idle'), 2500);
+          return;
+        }
+      } catch (err: unknown) {
+        // User aborted/dismissed the share sheet: do not show error or fallback
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+        console.warn('Web Share API call failed, falling back to clipboard:', err);
+      }
+    }
+
+    // 2. Fallback: Copy link to clipboard
     let copied = false;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       try {
         await navigator.clipboard.writeText(shareUrl);
         copied = true;
@@ -656,18 +683,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     type="button"
                     onClick={handleShare}
                     className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
-                      shareStatus === 'copied'
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-600'
+                      shareStatus === 'shared' || shareStatus === 'copied'
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-600 ring-2 ring-emerald-500/20'
                         : 'border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                     }`}
                     title={
-                      shareStatus === 'copied'
+                      shareStatus === 'shared'
+                        ? 'Shared successfully!'
+                        : shareStatus === 'copied'
                         ? 'Product link copied to clipboard!'
-                        : 'Share (Copy product URL)'
+                        : 'Share product via Web Share'
                     }
                     aria-label="Share product"
                   >
-                    {shareStatus === 'copied' ? (
+                    {shareStatus === 'shared' || shareStatus === 'copied' ? (
                       <Check className="w-4 h-4 text-emerald-600" />
                     ) : (
                       <Share2 className="w-4 h-4" />
@@ -1037,13 +1066,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 type="button"
                 onClick={handleShare}
                 className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs border transition flex items-center justify-center gap-2 cursor-pointer ${
-                  shareStatus === 'copied'
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 shadow-2xs'
+                  shareStatus === 'shared' || shareStatus === 'copied'
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 shadow-2xs ring-2 ring-emerald-500/20'
                     : 'border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-600 hover:border-blue-200 shadow-2xs'
                 }`}
-                title="Copy product link with ?product=ID to clipboard"
+                title="Share this product's title and URL"
               >
-                {shareStatus === 'copied' ? (
+                {shareStatus === 'shared' ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span className="font-bold text-emerald-700">Product Shared Successfully!</span>
+                  </>
+                ) : shareStatus === 'copied' ? (
                   <>
                     <Check className="w-4 h-4 text-emerald-600" />
                     <span className="font-bold text-emerald-700">Product Link Copied to Clipboard!</span>
@@ -1051,7 +1085,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 ) : (
                   <>
                     <Share2 className="w-4 h-4 text-blue-600" />
-                    <span>Share (Copy Link)</span>
+                    <span>Share Product</span>
                   </>
                 )}
               </button>
