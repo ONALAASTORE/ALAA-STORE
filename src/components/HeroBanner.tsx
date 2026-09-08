@@ -61,14 +61,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               <Brand3DBadge variant="hero" />
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.15] font-display">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.2] font-display">
               Latest Flagships & Tech <br className="hidden sm:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300">
                 At The Best Prices in Lebanon
               </span>
             </h1>
 
-            <p className="text-slate-300 text-sm sm:text-base max-w-xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-slate-300 text-xs sm:text-base max-w-xl mx-auto lg:mx-0 leading-relaxed">
               Shop authentic smartphones, MacBooks, gaming consoles, audio gear & GaN chargers. Guaranteed official agency warranties with cash on delivery across Lebanon.
             </p>
 
@@ -89,12 +89,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-2.5 sm:gap-3 pt-3">
               {heroProduct && (
                 <button
                   id="hero-buy-featured-btn"
                   onClick={() => onSelectProduct(heroProduct)}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-6 py-3 rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center gap-2 cursor-pointer"
+                  className="min-h-[48px] bg-blue-600 hover:bg-blue-500 active:scale-98 text-white font-bold text-sm px-6 py-3 rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Explore {heroProduct.name}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -104,7 +104,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               {isVideoVisible && (
                 <button
                   onClick={() => setIsVideoModalOpen(true)}
-                  className="bg-slate-800/90 hover:bg-slate-700 text-slate-100 font-bold text-sm px-4 py-3 rounded-xl transition flex items-center gap-2 border border-slate-700 shadow-md cursor-pointer group"
+                  className="min-h-[48px] bg-slate-800/90 hover:bg-slate-700 active:scale-98 text-slate-100 font-bold text-sm px-4 py-3 rounded-xl transition flex items-center justify-center gap-2 border border-slate-700 shadow-md cursor-pointer group"
                 >
                   <span className="w-6 h-6 rounded-full bg-[#FF0000] text-white flex items-center justify-center group-hover:scale-110 transition shadow-md shadow-red-600/40">
                     <Play className="w-3 h-3 fill-white ml-0.5" />
@@ -117,7 +117,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 href={whatsappHref}
                 target="_blank"
                 rel="noreferrer"
-                className="bg-emerald-600/90 hover:bg-emerald-600 text-white font-bold text-sm px-5 py-3 rounded-xl transition flex items-center gap-2 border border-emerald-500/30"
+                className="min-h-[48px] bg-emerald-600/90 hover:bg-emerald-600 active:scale-98 text-white font-bold text-sm px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 border border-emerald-500/30"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>Order via WhatsApp</span>

@@ -161,19 +161,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Action Buttons Overlay (Wishlist, Compare, Quick View) */}
-      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 sm:gap-1.5 opacity-95 sm:opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           id={`wishlist-btn-${product.id}`}
           onClick={(e) => {
             e.stopPropagation();
             onToggleWishlist(product.id);
           }}
-          className={`w-8 h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition ${
+          className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer ${
             isWishlisted 
               ? 'border-rose-300 text-rose-500 bg-rose-50' 
               : 'border-slate-200 text-slate-600 hover:text-rose-500'
           }`}
           title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          aria-label="Wishlist"
         >
           <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500' : ''}`} />
         </button>
@@ -184,12 +185,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onToggleCompare(product);
           }}
-          className={`w-8 h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition ${
+          className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer ${
             isCompared 
               ? 'border-blue-300 text-blue-600 bg-blue-50' 
               : 'border-slate-200 text-slate-600 hover:text-blue-600'
           }`}
           title={isCompared ? "Remove from comparison" : "Compare specifications"}
+          aria-label="Compare"
         >
           <ArrowLeftRight className="w-4 h-4" />
         </button>
@@ -200,8 +202,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onQuickView(product);
           }}
-          className="w-8 h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border border-slate-200 text-slate-600 hover:text-slate-900 transition"
+          className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer"
           title="Quick preview"
+          aria-label="Quick view"
         >
           <Eye className="w-4 h-4" />
         </button>
@@ -292,6 +295,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
           )}
+
+          {/* Color Swatch Dots Preview */}
+          {product.colorOptions && product.colorOptions.length > 0 && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-400 font-medium">Colors:</span>
+              <div className="flex items-center gap-1">
+                {product.colorOptions.slice(0, 5).map((col) => (
+                  <span
+                    key={col.name}
+                    className="w-2.5 h-2.5 rounded-full border border-slate-200 shadow-2xs inline-block"
+                    style={{ backgroundColor: col.hex }}
+                    title={col.name}
+                  />
+                ))}
+                {product.colorOptions.length > 5 && (
+                  <span className="text-[9px] text-slate-400 font-semibold">+{product.colorOptions.length - 5}</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Pricing & Add to Cart Action */}
@@ -318,13 +341,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             id={`add-cart-btn-${product.id}`}
             onClick={handleAdd}
             disabled={isOutOfStock}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-xs ${
+            className={`min-h-[44px] px-3.5 sm:px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-xs ${
               isOutOfStock
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                 : addedAnimation 
                   ? 'bg-emerald-600 text-white cursor-pointer' 
-                  : 'bg-slate-900 hover:bg-blue-600 text-white cursor-pointer'
+                  : 'bg-slate-900 hover:bg-blue-600 text-white cursor-pointer active:scale-95'
             }`}
+            aria-label={isOutOfStock ? "Sold out" : `Add ${product.name} to cart`}
           >
             {isOutOfStock ? (
               <span>Sold Out</span>

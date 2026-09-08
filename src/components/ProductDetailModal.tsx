@@ -23,6 +23,7 @@ import { Product, Currency, ProductVariant, ProductReview } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
 import { buildWhatsAppLink } from '../utils/phone';
+import { extractProductVariantConfig, findBestMatchingVariant } from '../utils/variantUtils';
 import { ProductReviewsSection } from './ProductReviewsSection';
 import { getStoredReviews, saveStoredReviews, INITIAL_REVIEWS_SEED } from '../data/initialReviews';
 
@@ -56,6 +57,45 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [activeTab, setActiveTab] = useState<'specs' | 'features' | 'delivery' | 'reviews'>('specs');
   const [added, setAdded] = useState(false);
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied'>('idle');
+
+  // Extract structured variant configuration (Storage options & Color options)
+  const variantConfig = useMemo(() => {
+    return extractProductVariantConfig(product);
+  }, [product]);
+
+  const [selectedStorage, setSelectedStorage] = useState<string>('');
+  const [selectedColor, setSelectedColor] = useState<string>('');
+
+  // Sync selected storage and color when product changes
+  useEffect(() => {
+    if (!product) return;
+    const firstVariant = product.variants?.[0];
+    const initialStorage = firstVariant?.storage || variantConfig.storageOptions[0]?.capacity || '';
+    const initialColor = firstVariant?.color || variantConfig.colorOptions[0]?.name || '';
+    setSelectedStorage(initialStorage);
+    setSelectedColor(initialColor);
+    setSelectedVariantIndex(0);
+  }, [product?.id]);
+
+  const handleSelectStorage = (capacity: string) => {
+    setSelectedStorage(capacity);
+    if (!product?.variants || product.variants.length === 0) return;
+    const match = findBestMatchingVariant(product.variants, capacity, selectedColor);
+    if (match) {
+      const idx = product.variants.findIndex((v) => v.id === match.id);
+      if (idx !== -1) setSelectedVariantIndex(idx);
+    }
+  };
+
+  const handleSelectColor = (colorName: string) => {
+    setSelectedColor(colorName);
+    if (!product?.variants || product.variants.length === 0) return;
+    const match = findBestMatchingVariant(product.variants, selectedStorage, colorName);
+    if (match) {
+      const idx = product.variants.findIndex((v) => v.id === match.id);
+      if (idx !== -1) setSelectedVariantIndex(idx);
+    }
+  };
 
   // Product Reviews local state (scoped per product, persisted in localStorage)
   const [reviewsMap, setReviewsMap] = useState<Record<string, ProductReview[]>>(() => {
@@ -228,7 +268,24 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     setTouchEnd(null);
   };
 
-  const currentVariant = product.variants[selectedVariantIndex] || product.variants[0];
+  const currentVariant = useMemo(() => {
+    if (!product.variants || product.variants.length === 0) {
+      return {
+        id: `${product.id}-default`,
+        name: 'Standard Option',
+        priceUSD: product.basePriceUSD || 0,
+        inStock: product.inStock ?? true,
+      };
+    }
+    return product.variants[selectedVariantIndex] || product.variants[0];
+  }, [product, selectedVariantIndex]);
+
+  const hasStructuredVariants = useMemo(() => {
+    return (
+      (variantConfig.storageOptions.length > 0 || variantConfig.colorOptions.length > 0) &&
+      product.variants.some((v) => Boolean(v.storage || v.color))
+    );
+  }, [variantConfig, product.variants]);
 
   // Stock check logic (checks product.inStock, stockCount, and variant availability)
   const isItemInStock = Boolean(
@@ -322,21 +379,22 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
       <div 
-        className="relative bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200"
+        className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[95vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           id="close-product-modal-btn"
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
+          className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
+          aria-label="Close product details"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 sm:p-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4 sm:p-8">
           
           {/* Left Column: Multi-Image Interactive Gallery */}
           <div className="md:col-span-5 space-y-3">
@@ -735,43 +793,174 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Variant Selector */}
-              {product.variants.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Select Model / Storage / Color Variant:
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {product.variants.map((v, idx) => {
-                      const isSelected = selectedVariantIndex === idx;
-                      return (
-                        <button
-                          key={v.id}
-                          id={`modal-variant-btn-${idx}`}
-                          onClick={() => setSelectedVariantIndex(idx)}
-                          className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
-                            isSelected
-                              ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20'
-                              : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {v.colorHex && (
-                              <span 
-                                className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" 
-                                style={{ backgroundColor: v.colorHex }}
-                              />
-                            )}
-                            <span className="text-xs font-semibold truncate">{v.name}</span>
-                          </div>
-                          <span className="text-xs font-bold text-slate-900 shrink-0">
-                            ${v.priceUSD}
+              {/* Structured Storage & Color Variant Selector */}
+              {hasStructuredVariants ? (
+                <div className="space-y-4 pt-1">
+                  {/* 1. Storage Capacity Memory Tiers */}
+                  {variantConfig.storageOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                          <span>Internal Storage Capacity:</span>
+                          <span className="text-blue-600 font-mono font-extrabold lowercase">
+                            {selectedStorage || currentVariant.storage || ''}
                           </span>
-                        </button>
-                      );
-                    })}
+                        </label>
+                        <span className="text-[11px] text-slate-500 font-medium">Tiered Pricing</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {variantConfig.storageOptions.map((opt) => {
+                          const isSelected = (selectedStorage || currentVariant.storage)?.toLowerCase() === opt.capacity.toLowerCase();
+                          // Calculate price for this storage with currently selected color
+                          const matchingVar = findBestMatchingVariant(product.variants, opt.capacity, selectedColor);
+                          const tierPrice = matchingVar?.priceUSD ?? opt.priceUSD;
+                          const tierInStock = matchingVar ? matchingVar.inStock : opt.inStock !== false;
+
+                          return (
+                            <button
+                              key={opt.capacity}
+                              type="button"
+                              id={`modal-storage-btn-${opt.capacity.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
+                              onClick={() => handleSelectStorage(opt.capacity)}
+                              className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between gap-1 relative cursor-pointer ${
+                                isSelected
+                                  ? 'border-blue-600 bg-blue-50/80 text-blue-950 ring-2 ring-blue-500/20 shadow-xs'
+                                  : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="font-extrabold text-xs font-mono tracking-tight text-slate-900">
+                                  {opt.capacity}
+                                </span>
+                                {isSelected && (
+                                  <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+                                    <Check className="w-2.5 h-2.5" />
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] pt-0.5">
+                                <span className="font-bold text-slate-900">
+                                  {formatPrice(tierPrice, currency)}
+                                </span>
+                                {!tierInStock && (
+                                  <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-1 py-0.2 rounded">
+                                    Restocking
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. Device Color Swatches */}
+                  {variantConfig.colorOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                          <span>Finish & Color:</span>
+                          <span className="text-slate-900 font-extrabold">
+                            {selectedColor || currentVariant.color || ''}
+                          </span>
+                        </label>
+                        <span className="text-[11px] text-slate-500 font-medium">Official Finish</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {variantConfig.colorOptions.map((cOpt) => {
+                          const isSelected = (selectedColor || currentVariant.color)?.toLowerCase() === cOpt.name.toLowerCase();
+                          const matchingVar = findBestMatchingVariant(product.variants, selectedStorage, cOpt.name);
+                          const colorInStock = matchingVar ? matchingVar.inStock : true;
+
+                          return (
+                            <button
+                              key={cOpt.name}
+                              type="button"
+                              id={`modal-color-btn-${cOpt.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
+                              onClick={() => handleSelectColor(cOpt.name)}
+                              title={`${cOpt.name} - ${colorInStock ? 'In Stock' : 'Restocking'}`}
+                              className={`group px-3 py-2 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                                isSelected
+                                  ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20 font-bold shadow-xs'
+                                  : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                              }`}
+                            >
+                              <span
+                                className={`w-4 h-4 rounded-full border border-slate-300 shrink-0 shadow-2xs transition group-hover:scale-110 ${
+                                  isSelected ? 'ring-2 ring-blue-600 ring-offset-1 scale-110' : ''
+                                }`}
+                                style={{ backgroundColor: cOpt.hex || '#383838' }}
+                              />
+                              <span className="text-xs font-medium truncate max-w-[130px]">
+                                {cOpt.name}
+                              </span>
+                              {!colorInStock && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" title="Restocking" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected SKU summary banner */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Active Selection:</span>
+                    <div className="flex items-center gap-2 font-bold text-slate-900">
+                      {currentVariant.colorHex && (
+                        <span
+                          className="w-3 h-3 rounded-full border border-slate-300"
+                          style={{ backgroundColor: currentVariant.colorHex }}
+                        />
+                      )}
+                      <span>{currentVariant.name}</span>
+                      <span className="text-blue-600 font-mono">({formatPrice(currentVariant.priceUSD, currency)})</span>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                /* Fallback for products without split storage/colors */
+                product.variants.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                      Select Model / Storage / Color Variant:
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {product.variants.map((v, idx) => {
+                        const isSelected = selectedVariantIndex === idx;
+                        return (
+                          <button
+                            key={v.id}
+                            id={`modal-variant-btn-${idx}`}
+                            onClick={() => setSelectedVariantIndex(idx)}
+                            className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
+                              isSelected
+                                ? 'border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20'
+                                : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {v.colorHex && (
+                                <span 
+                                  className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" 
+                                  style={{ backgroundColor: v.colorHex }}
+                                />
+                              )}
+                              <span className="text-xs font-semibold truncate">{v.name}</span>
+                            </div>
+                            <span className="text-xs font-bold text-slate-900 shrink-0">
+                              {formatPrice(v.priceUSD, currency)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
               )}
 
               {/* Quantity Selector */}

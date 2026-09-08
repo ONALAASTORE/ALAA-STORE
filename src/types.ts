@@ -1,5 +1,16 @@
 export type Currency = 'USD' | 'LBP';
 
+export interface StorageOption {
+  capacity: string; // e.g. "128GB", "256GB", "512GB", "1TB"
+  priceUSD: number; // specific price for this storage tier
+  inStock?: boolean;
+}
+
+export interface ColorOption {
+  name: string; // e.g. "Desert Titanium", "Midnight", "Silver"
+  hex?: string; // Hex color code for swatch preview e.g. "#CDBCA7"
+}
+
 export interface ProductVariant {
   id: string;
   name: string; // e.g. "256GB - Desert Titanium" or "128GB - Midnight"
@@ -8,6 +19,8 @@ export interface ProductVariant {
   colorHex?: string;
   priceUSD: number;
   inStock: boolean;
+  stockCount?: number;
+  sku?: string;
 }
 
 export interface Product {
@@ -31,6 +44,8 @@ export interface Product {
   salePriceUSD?: number; // Sale price in USD
   discountPercentage?: number; // Explicit discount percentage
   onSale?: boolean; // Flag indicating product is on sale
+  storageOptions?: StorageOption[]; // Structured storage memory tiers with tier-specific prices
+  colorOptions?: ColorOption[]; // Available device colors with swatches
   variants: ProductVariant[];
   rating: number;
   reviewCount: number;

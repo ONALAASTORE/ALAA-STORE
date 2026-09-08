@@ -3,18 +3,16 @@ import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { 
   SlidersHorizontal, 
   ArrowUpDown, 
-  MessageCircle,
   X,
 } from 'lucide-react';
 import { Currency, Product, CartItem, ProductVariant, FilterState, StoreSettings } from './types';
 import { PRODUCTS } from './data/products';
-import { CATEGORIES, BRANDS } from './data/categories';
+import { CATEGORIES } from './data/categories';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { RecentlyViewedSlider } from './components/RecentlyViewedSlider';
-import { PriceRangeSlider } from './components/PriceRangeSlider';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { CompareModal } from './components/CompareModal';
@@ -26,6 +24,9 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Footer } from './components/Footer';
 import { ScrollToTopButton } from './components/ScrollToTopButton';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { MobileFilterDrawer } from './components/MobileFilterDrawer';
+import { FilterPanelContent } from './components/FilterPanelContent';
 import { getProductImages } from './utils/productImages';
 import { CategoryIcon } from './utils/categoryIcons';
 
@@ -581,6 +582,42 @@ export function App() {
     window.scrollTo({ top: 0, left: 0 });
   }, [currentRoute]);
 
+  const handleResetFilters = () => {
+    setFilterState({
+      searchQuery: '',
+      category: 'all',
+      brand: 'All Brands',
+      minPriceUSD: 0,
+      maxPriceUSD: 3000,
+      condition: 'all',
+      onlyInStock: false,
+      sortBy: 'featured',
+    });
+  };
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      filterState.brand !== 'All Brands' ||
+      filterState.condition !== 'all' ||
+      filterState.onlyInStock ||
+      Boolean(filterState.searchQuery) ||
+      filterState.minPriceUSD > 0 ||
+      filterState.maxPriceUSD < 3000 ||
+      filterState.category !== 'all'
+    );
+  }, [filterState]);
+
+  const activeFilterCount = useMemo(() => {
+    return [
+      Boolean(filterState.searchQuery),
+      filterState.category !== 'all',
+      filterState.brand !== 'All Brands',
+      filterState.minPriceUSD > 0 || filterState.maxPriceUSD < 3000,
+      filterState.condition !== 'all',
+      filterState.onlyInStock,
+    ].filter(Boolean).length;
+  }, [filterState]);
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
       currentRoute === 'store' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
@@ -626,7 +663,7 @@ export function App() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-[#FF0000] selection:text-white font-sans"
+            className="min-h-screen w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-[#FF0000] selection:text-white font-sans pb-16 md:pb-0"
           >
             {/* Top Header */}
             <Header
@@ -713,148 +750,34 @@ export function App() {
             </div>
 
             <button
-              onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
-              className="lg:hidden flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-200"
+              onClick={() => setMobileFilterOpen(true)}
+              className="lg:hidden flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-200 min-h-[40px] cursor-pointer transition"
+              aria-label="Open filter menu"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
               <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
 
         {/* Catalog Layout: Sidebar + Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
-          {/* Desktop Filter Sidebar */}
-          <aside className={`lg:col-span-3 space-y-6 ${mobileFilterOpen ? 'block' : 'hidden lg:block'}`}>
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
-              
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                  <SlidersHorizontal className="w-4 h-4 text-blue-600" />
-                  <span>Refine Catalog</span>
-                </h3>
-                {(filterState.brand !== 'All Brands' || filterState.condition !== 'all' || filterState.onlyInStock || filterState.searchQuery || filterState.minPriceUSD > 0 || filterState.maxPriceUSD < 3000) && (
-                  <button
-                    onClick={() =>
-                      setFilterState({
-                        searchQuery: '',
-                        category: 'all',
-                        brand: 'All Brands',
-                        minPriceUSD: 0,
-                        maxPriceUSD: 3000,
-                        condition: 'all',
-                        onlyInStock: false,
-                        sortBy: 'featured',
-                      })
-                    }
-                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
-                  >
-                    Reset All
-                  </button>
-                )}
-              </div>
-
-              {/* Brand Filter */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                  Brand / Manufacturer
-                </label>
-                <div className="space-y-1">
-                  {BRANDS.map((brand) => (
-                    <button
-                      key={brand}
-                      onClick={() => setFilterState((prev) => ({ ...prev, brand }))}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                        filterState.brand === brand
-                          ? 'bg-blue-50 text-blue-700 font-bold'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {brand}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Slider-based Price Range Filter */}
-              <PriceRangeSlider
-                minPriceUSD={filterState.minPriceUSD}
-                maxPriceUSD={filterState.maxPriceUSD}
-                onChange={(min, max) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    minPriceUSD: min,
-                    maxPriceUSD: max,
-                  }))
-                }
+          {/* Desktop Filter Sidebar (Hidden on Mobile/Tablet, visible on LG+) */}
+          <aside className="hidden lg:block lg:col-span-3 space-y-6 sticky top-24">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <FilterPanelContent
+                filterState={filterState}
+                setFilterState={setFilterState}
                 currency={currency}
-                minLimit={0}
-                maxLimit={3000}
-                step={25}
+                onResetFilters={handleResetFilters}
+                hasActiveFilters={hasActiveFilters}
               />
-
-              {/* Condition Filter */}
-              <div className="space-y-2 pt-3 border-t border-slate-100">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                  Item Condition
-                </label>
-                <div className="space-y-1">
-                  {[
-                    { id: 'all', label: 'All Conditions' },
-                    { id: 'Brand New (Sealed)', label: 'Brand New (Sealed)' },
-                    { id: 'Open Box', label: 'Open Box / Like New' },
-                    { id: 'Certified Pre-Owned', label: 'Certified Pre-Owned' },
-                  ].map((cond) => (
-                    <button
-                      key={cond.id}
-                      onClick={() => setFilterState((prev) => ({ ...prev, condition: cond.id }))}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                        filterState.condition === cond.id
-                          ? 'bg-blue-50 text-blue-700 font-bold'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {cond.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Availability Filter */}
-              <div className="pt-3 border-t border-slate-100">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filterState.onlyInStock}
-                    onChange={(e) => setFilterState((prev) => ({ ...prev, onlyInStock: e.target.checked }))}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
-                  />
-                  <span className="text-xs font-semibold text-slate-700">
-                    Show In-Stock Only
-                  </span>
-                </label>
-              </div>
-
-              {/* WhatsApp Help banner in sidebar */}
-              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 space-y-2 text-xs">
-                <div className="font-bold text-emerald-900 flex items-center gap-1.5">
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
-                  <span>Looking for a specific device?</span>
-                </div>
-                <p className="text-emerald-800 text-[11px] leading-relaxed">
-                  We can source customized specs or special colors from authorized distributors in Lebanon.
-                </p>
-                <a
-                  href="https://wa.me/96171135241?text=Hello%20On%20Alaa%20Store%2C%20I%20am%20looking%20for%20a%20specific%20device"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-block font-bold text-emerald-700 hover:underline text-[11px]"
-                >
-                  Contact WhatsApp Rep →
-                </a>
-              </div>
-
             </div>
           </aside>
 
@@ -963,7 +886,7 @@ export function App() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6"
                 >
                   {filteredProducts.map((product) => (
                     <ProductCard
@@ -1111,6 +1034,31 @@ export function App() {
 
       {/* Floating Scroll to Top Button */}
       <ScrollToTopButton threshold={400} />
+
+      {/* Mobile Filter Slide-Over Drawer (< 1024px) */}
+      <MobileFilterDrawer
+        isOpen={mobileFilterOpen}
+        onClose={() => setMobileFilterOpen(false)}
+        filterState={filterState}
+        setFilterState={setFilterState}
+        currency={currency}
+        itemCount={filteredProducts.length}
+        onResetFilters={handleResetFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
+
+      {/* Mobile Sticky Bottom Navigation Bar (< 768px) */}
+      <MobileBottomNav
+        cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
+        wishlistCount={wishlistIds.length}
+        compareCount={comparedProducts.length}
+        activeFilterCount={activeFilterCount}
+        onOpenMobileFilters={() => setMobileFilterOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenCompare={() => setIsCompareOpen(true)}
+        onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      />
           </motion.div>
         )}
       </AnimatePresence>

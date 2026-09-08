@@ -16,8 +16,10 @@ import {
   Link2,
   FileText
 } from 'lucide-react';
-import { Product } from '../../types';
+import { Product, StorageOption, ColorOption, ProductVariant } from '../../types';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE, cleanImageUrls } from '../../utils/productImages';
+import { extractProductVariantConfig } from '../../utils/variantUtils';
+import { VariantManager } from './VariantManager';
 
 
 interface ProductFormModalProps {
@@ -80,6 +82,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [specsList, setSpecsList] = useState<{ key: string; value: string }[]>(initialSpecs);
   const [newSpecKey, setNewSpecKey] = useState('');
   const [newSpecValue, setNewSpecValue] = useState('');
+
+  // Device Variants, Colors & Tiered Storage Pricing
+  const [variantConfig] = useState(() => extractProductVariantConfig(productToEdit));
+  const [storageOptions, setStorageOptions] = useState<StorageOption[]>(variantConfig.storageOptions);
+  const [colorOptions, setColorOptions] = useState<ColorOption[]>(variantConfig.colorOptions);
+  const [variants, setVariants] = useState<ProductVariant[]>(variantConfig.variants);
 
   // Error validation
   const [errorMsg, setErrorMsg] = useState('');
@@ -282,6 +290,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     const newId = productToEdit?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
 
+    // Sync specs with storage options and colors if not manually overridden
+    if (storageOptions.length > 0 && !compiledSpecs['Storage']) {
+      compiledSpecs['Storage'] = storageOptions.map((s) => s.capacity).join(' / ');
+    }
+    if (colorOptions.length > 0 && !compiledSpecs['Colors'] && !compiledSpecs['Color']) {
+      compiledSpecs['Colors'] = colorOptions.map((c) => c.name).join(', ');
+    }
+
+    const finalBasePrice = Number(basePriceUSD) > 0
+      ? Number(basePriceUSD)
+      : (storageOptions.length > 0 ? storageOptions[0].priceUSD : 500);
+
     const savedProduct: Product = {
       id: newId,
       name: name.trim(),
@@ -296,15 +316,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       imageUrls: finalImages,
       image_urls: finalImages,
       additional_images: finalImages.slice(1),
-      basePriceUSD: Number(basePriceUSD),
-      originalPriceUSD: originalPriceUSD !== '' && Number(originalPriceUSD) > Number(basePriceUSD) ? Number(originalPriceUSD) : undefined,
-      variants: productToEdit?.variants?.length 
-        ? productToEdit.variants 
+      basePriceUSD: finalBasePrice,
+      originalPriceUSD: originalPriceUSD !== '' && Number(originalPriceUSD) > Number(finalBasePrice) ? Number(originalPriceUSD) : undefined,
+      storageOptions,
+      colorOptions,
+      variants: variants.length > 0
+        ? variants
         : [
             {
               id: `${newId}-standard`,
               name: 'Standard Option',
-              priceUSD: Number(basePriceUSD),
+              priceUSD: finalBasePrice,
               inStock: inStock
             }
           ],
@@ -315,7 +337,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       inStock: inStock,
       isFeatured: productToEdit?.isFeatured ?? true,
       tags: productToEdit?.tags || [brand, category, 'Trending'],
-      freeDelivery: basePriceUSD >= 150
+      freeDelivery: finalBasePrice >= 150
     };
 
     onSave(savedProduct);
@@ -761,6 +783,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               />
             </div>
           </div>
+
+          {/* Section: Storage Options, Colors & Variant Matrix */}
+          <VariantManager
+            productId={productToEdit?.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
+            productName={name || 'Product'}
+            basePriceUSD={Number(basePriceUSD) || 0}
+            storageOptions={storageOptions}
+            setStorageOptions={setStorageOptions}
+            colorOptions={colorOptions}
+            setColorOptions={setColorOptions}
+            variants={variants}
+            setVariants={setVariants}
+          />
 
           {/* Section: Bulleted Description Points / Highlights */}
           <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">

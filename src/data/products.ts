@@ -32,6 +32,16 @@ const INITIAL_PRODUCTS: Product[] = [
     ],
     basePriceUSD: 1280,
     originalPriceUSD: 1350,
+    storageOptions: [
+      { capacity: '256GB', priceUSD: 1280, inStock: true },
+      { capacity: '512GB', priceUSD: 1490, inStock: true },
+      { capacity: '1TB', priceUSD: 1720, inStock: true }
+    ],
+    colorOptions: [
+      { name: 'Desert Titanium', hex: '#CDBCA7' },
+      { name: 'Natural Titanium', hex: '#9E9E9C' },
+      { name: 'Black Titanium', hex: '#383838' }
+    ],
     variants: [
       { id: 'ip16pm-256-desert', name: '256GB - Desert Titanium', storage: '256GB', color: 'Desert Titanium', colorHex: '#CDBCA7', priceUSD: 1280, inStock: true },
       { id: 'ip16pm-256-natural', name: '256GB - Natural Titanium', storage: '256GB', color: 'Natural Titanium', colorHex: '#9E9E9C', priceUSD: 1280, inStock: true },
@@ -80,6 +90,16 @@ const INITIAL_PRODUCTS: Product[] = [
     ],
     basePriceUSD: 1190,
     originalPriceUSD: 1299,
+    storageOptions: [
+      { capacity: '256GB', priceUSD: 1190, inStock: true },
+      { capacity: '512GB', priceUSD: 1360, inStock: true },
+      { capacity: '1TB', priceUSD: 1620, inStock: true }
+    ],
+    colorOptions: [
+      { name: 'Titanium Gray', hex: '#7B7D82' },
+      { name: 'Titanium Black', hex: '#2B2B2C' },
+      { name: 'Titanium Silver Blue', hex: '#A6B8C7' }
+    ],
     variants: [
       { id: 's25u-256-titanium-gray', name: '256GB - Titanium Gray', storage: '256GB', color: 'Titanium Gray', colorHex: '#7B7D82', priceUSD: 1190, inStock: true },
       { id: 's25u-256-titanium-black', name: '256GB - Titanium Black', storage: '256GB', color: 'Titanium Black', colorHex: '#2B2B2C', priceUSD: 1190, inStock: true },

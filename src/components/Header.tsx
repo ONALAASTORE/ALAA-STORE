@@ -127,12 +127,12 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between gap-3 sm:gap-6">
           
           {/* Brand Logo & Name */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button 
               id="mobile-menu-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 text-slate-600 hover:text-slate-900 md:hidden rounded-lg hover:bg-slate-100 cursor-pointer"
-              aria-label="Toggle menu"
+              className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-900 md:hidden rounded-xl hover:bg-slate-100 active:bg-slate-200 active:scale-95 transition cursor-pointer -ml-2"
+              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onSelectCategory('all');
                 onSearchChange('');
               }}
-              className="flex items-center gap-2.5 sm:gap-3 text-left group cursor-pointer"
+              className="flex items-center gap-2 sm:gap-3 text-left group cursor-pointer"
               title="ON ALAA STORE Homepage"
             >
               {/* 3D Elevated Logo Avatar */}
@@ -310,16 +310,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-slate-200 px-4 py-4 space-y-3">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="md:hidden bg-white border-b border-slate-200 px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               onClick={() => {
                 onOpenTradeIn();
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 text-amber-800 font-semibold text-xs border border-amber-200 cursor-pointer"
+              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-amber-50 text-amber-800 font-bold text-xs border border-amber-200 active:bg-amber-100 cursor-pointer transition"
             >
-              <Calculator className="w-4 h-4 text-amber-600" />
+              <Calculator className="w-4 h-4 text-amber-600 shrink-0" />
               <span>Trade-In Value</span>
             </button>
             <button
@@ -327,9 +327,9 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenCompare();
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 text-blue-800 font-semibold text-xs border border-blue-200 cursor-pointer"
+              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-blue-50 text-blue-800 font-bold text-xs border border-blue-200 active:bg-blue-100 cursor-pointer transition"
             >
-              <ArrowLeftRight className="w-4 h-4 text-blue-600" />
+              <ArrowLeftRight className="w-4 h-4 text-blue-600 shrink-0" />
               <span>Compare ({compareCount})</span>
             </button>
             <button
@@ -337,9 +337,9 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenWishlist();
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2 p-2.5 rounded-lg bg-rose-50 text-rose-800 font-semibold text-xs border border-rose-200 cursor-pointer"
+              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-rose-50 text-rose-800 font-bold text-xs border border-rose-200 active:bg-rose-100 cursor-pointer transition"
             >
-              <Heart className="w-4 h-4 text-rose-600" />
+              <Heart className="w-4 h-4 text-rose-600 shrink-0" />
               <span>Wishlist ({wishlistCount})</span>
             </button>
             <button
@@ -347,10 +347,10 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenContact();
                 setMobileMenuOpen(false);
               }}
-              className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 text-slate-800 font-semibold text-xs border border-slate-200 cursor-pointer"
+              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-slate-50 text-slate-800 font-bold text-xs border border-slate-200 active:bg-slate-100 cursor-pointer transition"
             >
-              <HelpCircle className="w-4 h-4 text-slate-600" />
-              <span>Store Branches & Help</span>
+              <HelpCircle className="w-4 h-4 text-slate-600 shrink-0" />
+              <span>Store Branches</span>
             </button>
           </div>
         </div>
