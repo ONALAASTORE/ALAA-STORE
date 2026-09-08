@@ -29,12 +29,14 @@ import { MobileFilterDrawer } from './components/MobileFilterDrawer';
 import { FilterPanelContent } from './components/FilterPanelContent';
 import { getProductImages } from './utils/productImages';
 import { CategoryIcon } from './utils/categoryIcons';
+import { Showroom2027View } from './components/showroom2027/Showroom2027View';
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
 const PRODUCTS_STORAGE_KEY = 'on_alaa_store_products';
 const SETTINGS_STORAGE_KEY = 'on_alaa_store_settings';
 const RECENTLY_VIEWED_STORAGE_KEY = 'on_alaa_store_recently_viewed';
+const SHOWROOM_STORAGE_KEY = 'on_alaa_store_showroom_2027';
 
 const DEFAULT_SETTINGS: StoreSettings = {
   topBannerText: 'Available delivery to all Lebanon 🚚 (Beirut, Tripoli, Saida, Bekaa)',
@@ -174,6 +176,25 @@ export function App() {
       .map((id) => productsList.find((p) => p.id === id))
       .filter((p): p is Product => Boolean(p));
   }, [recentlyViewedIds, productsList]);
+
+  // 2027 Cutting-Edge 3D Showroom Mode state
+  const [showroomMode, setShowroomMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(SHOWROOM_STORAGE_KEY);
+      return saved !== 'false'; // Default to 2027 Cutting-Edge 3D Showroom!
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleShowroom = (enabled: boolean) => {
+    setShowroomMode(enabled);
+    try {
+      localStorage.setItem(SHOWROOM_STORAGE_KEY, enabled ? 'true' : 'false');
+    } catch {
+      // ignore
+    }
+  };
 
   // Hash route listener
   useEffect(() => {
@@ -656,6 +677,35 @@ export function App() {
               onBackToStore={handleNavigateToStore}
             />
           </motion.div>
+        ) : showroomMode ? (
+          <motion.div
+            key="showroom-2027-page"
+            variants={pageTransitionVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="min-h-screen w-full"
+          >
+            <Showroom2027View
+              products={productsList}
+              currency={currency}
+              onCurrencyChange={setCurrency}
+              onSelectProduct={handleOpenProductDetail}
+              onAddToCart={(p, v) => handleAddToCart(p, v || p.variants[0], 1)}
+              cartItems={cartItems}
+              onUpdateCartQuantity={handleUpdateCartQuantity}
+              onRemoveCartItem={handleRemoveCartItem}
+              onClearCart={handleClearCart}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+              recentlyViewed={recentlyViewedProducts}
+              storeSettings={storeSettings}
+              onSwitchToClassic={() => handleToggleShowroom(false)}
+              onOpenAdmin={handleNavigateToAdmin}
+              onOpenWishlist={() => setIsWishlistOpen(true)}
+              onOpenCompare={() => setIsCompareOpen(true)}
+            />
+          </motion.div>
         ) : (
           <motion.div
             key="store-front-page"
@@ -663,7 +713,7 @@ export function App() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="min-h-screen w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-[#FF0000] selection:text-white font-sans pb-16 md:pb-0"
+            className="min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-[#FF0000] selection:text-white font-sans pb-24 md:pb-0"
           >
             {/* Top Header */}
             <Header
@@ -687,9 +737,10 @@ export function App() {
         topBannerText={storeSettings.topBannerText}
         isTopBannerActive={storeSettings.isTopBannerActive}
         whatsappNumber={storeSettings.whatsappNumber}
+        onSwitchToShowroom={() => handleToggleShowroom(true)}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 space-y-8 w-full">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1 space-y-6 sm:space-y-8 w-full">
         {/* Dynamic Hero Banner with Marketing Video Showcase */}
         <HeroBanner
           featuredProducts={featuredList}
@@ -703,7 +754,7 @@ export function App() {
         />
 
         {/* Filter Controls Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
           
           {/* Category Chips Bar */}
           <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 scrollbar-none">
@@ -714,7 +765,7 @@ export function App() {
                   key={cat.id}
                   id={`cat-chip-${cat.id}`}
                   onClick={() => setFilterState((prev) => ({ ...prev, category: cat.id }))}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 shadow-2xs ${
+                  className={`px-3.5 py-2.5 sm:py-2 min-h-[44px] sm:min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 shadow-2xs shrink-0 ${
                     isSelected
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -739,7 +790,7 @@ export function App() {
               <select
                 value={filterState.sortBy}
                 onChange={(e) => setFilterState((prev) => ({ ...prev, sortBy: e.target.value as any }))}
-                className="bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-600"
+                className="bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               >
                 <option value="featured">Featured First</option>
                 <option value="price-asc">Price: Low to High</option>
@@ -751,10 +802,10 @@ export function App() {
 
             <button
               onClick={() => setMobileFilterOpen(true)}
-              className="lg:hidden flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-200 min-h-[40px] cursor-pointer transition"
+              className="lg:hidden flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-200 min-h-[48px] min-w-[48px] cursor-pointer transition"
               aria-label="Open filter menu"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+              <SlidersHorizontal className="w-4 h-4 text-blue-600" />
               <span>Filters</span>
               {activeFilterCount > 0 && (
                 <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
@@ -931,19 +982,21 @@ export function App() {
       </main>
 
       {/* Product Detail Modal */}
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          currency={currency}
-          onClose={handleCloseProductDetail}
-          isWishlisted={wishlistIds.includes(selectedProduct.id)}
-          onToggleWishlist={handleToggleWishlist}
-          isCompared={comparedProducts.some((p) => p.id === selectedProduct.id)}
-          onToggleCompare={handleToggleCompare}
-          onAddToCart={handleAddToCart}
-          whatsappNumber={storeSettings.whatsappNumber}
-        />
-      )}
+      <AnimatePresence>
+        {selectedProduct && (
+          <ProductDetailModal
+            product={selectedProduct}
+            currency={currency}
+            onClose={handleCloseProductDetail}
+            isWishlisted={wishlistIds.includes(selectedProduct.id)}
+            onToggleWishlist={handleToggleWishlist}
+            isCompared={comparedProducts.some((p) => p.id === selectedProduct.id)}
+            onToggleCompare={handleToggleCompare}
+            onAddToCart={handleAddToCart}
+            whatsappNumber={storeSettings.whatsappNumber}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Cart Drawer */}
       <CartDrawer

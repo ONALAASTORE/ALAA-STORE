@@ -53,27 +53,27 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         {/* Subtle grid background */}
         <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px] opacity-15" />
         
-        <div className="relative max-w-7xl mx-auto px-6 py-8 sm:py-12 lg:py-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 lg:py-14 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
           
           {/* Left Hero Content */}
-          <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
+          <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-left">
             <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
               <Brand3DBadge variant="hero" />
             </div>
 
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.2] font-display">
+            <h1 className="text-fluid-hero font-black tracking-tight font-display">
               Latest Flagships & Tech <br className="hidden sm:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300">
                 At The Best Prices in Lebanon
               </span>
             </h1>
 
-            <p className="text-slate-300 text-xs sm:text-base max-w-xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-slate-300 text-fluid-body max-w-xl mx-auto lg:mx-0 leading-relaxed">
               Shop authentic smartphones, MacBooks, gaming consoles, audio gear & GaN chargers. Guaranteed official agency warranties with cash on delivery across Lebanon.
             </p>
 
             {/* Quick Benefits Badges */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2 text-xs font-semibold text-slate-300 max-w-lg mx-auto lg:mx-0">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5 pt-2 text-xs font-semibold text-slate-300 max-w-lg mx-auto lg:mx-0">
               <div className="flex items-center gap-2 bg-slate-800/60 backdrop-blur-xs border border-slate-700/60 p-2.5 rounded-xl">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>100% Sealed & Original</span>
@@ -82,7 +82,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 <Truck className="w-4 h-4 text-blue-400 shrink-0" />
                 <span>Fast All-Lebanon Delivery</span>
               </div>
-              <div className="flex items-center gap-2 bg-slate-800/60 backdrop-blur-xs border border-slate-700/60 p-2.5 rounded-xl col-span-2 sm:col-span-1">
+              <div className="flex items-center gap-2 bg-slate-800/60 backdrop-blur-xs border border-slate-700/60 p-2.5 rounded-xl xs:col-span-2 sm:col-span-1">
                 <CreditCard className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>USD or L.L. Cash / Whish</span>
               </div>

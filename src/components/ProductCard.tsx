@@ -36,9 +36,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isCompared,
   onToggleCompare,
 }) => {
-  const defaultVariant = product.variants[0];
+  const variants = React.useMemo(() => {
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      return product.variants;
+    }
+    return [
+      {
+        id: `${product.id}-default`,
+        name: 'Standard Option',
+        priceUSD: product.basePriceUSD,
+        inStock: product.inStock !== false,
+      },
+    ];
+  }, [product.variants, product.id, product.basePriceUSD, product.inStock]);
+
   const [selectedVariantIndex, setSelectedVariantIndex] = React.useState(0);
-  const activeVariant = product.variants[selectedVariantIndex] || defaultVariant;
+  const activeVariant = variants[selectedVariantIndex] || variants[0];
 
   const [addedAnimation, setAddedAnimation] = React.useState(false);
 
@@ -168,7 +181,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onToggleWishlist(product.id);
           }}
-          className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer ${
+          className={`w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer active:scale-95 ${
             isWishlisted 
               ? 'border-rose-300 text-rose-500 bg-rose-50' 
               : 'border-slate-200 text-slate-600 hover:text-rose-500'
@@ -185,7 +198,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onToggleCompare(product);
           }}
-          className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer ${
+          className={`w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer active:scale-95 ${
             isCompared 
               ? 'border-blue-300 text-blue-600 bg-blue-50' 
               : 'border-slate-200 text-slate-600 hover:text-blue-600'
@@ -202,7 +215,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onQuickView(product);
           }}
-          className="w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer"
+          className="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer active:scale-95"
           title="Quick preview"
           aria-label="Quick view"
         >
@@ -321,7 +334,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
           <div>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-extrabold text-slate-900 text-base sm:text-lg font-display">
+              <span className="font-extrabold text-slate-900 text-fluid-price font-display">
                 {formatPrice(effectivePrice, currency)}
               </span>
               {strikePrice && (
@@ -341,7 +354,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             id={`add-cart-btn-${product.id}`}
             onClick={handleAdd}
             disabled={isOutOfStock}
-            className={`min-h-[44px] px-3.5 sm:px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-xs ${
+            className={`min-h-[48px] px-4 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 shadow-xs ${
               isOutOfStock
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                 : addedAnimation 

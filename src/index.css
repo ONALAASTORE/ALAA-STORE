@@ -7,6 +7,8 @@
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: hidden;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -26,6 +28,41 @@
   h1, h2, h3, h4, h5, h6, .font-display {
     font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
   }
+
+  /* Prevent auto-zooming on iOS inputs by ensuring at least 16px font size on mobile */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]), 
+    select, 
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+/* Fluid Typography Utilities using CSS clamp() */
+.text-fluid-hero {
+  font-size: clamp(1.65rem, 3.8vw + 0.5rem, 3.25rem);
+  line-height: 1.15;
+}
+
+.text-fluid-h2 {
+  font-size: clamp(1.35rem, 2.4vw + 0.4rem, 2.25rem);
+  line-height: 1.25;
+}
+
+.text-fluid-h3 {
+  font-size: clamp(1.1rem, 1.6vw + 0.35rem, 1.5rem);
+  line-height: 1.35;
+}
+
+.text-fluid-price {
+  font-size: clamp(1.125rem, 1.4vw + 0.45rem, 1.75rem);
+  line-height: 1.2;
+}
+
+.text-fluid-body {
+  font-size: clamp(0.875rem, 0.5vw + 0.75rem, 1rem);
+  line-height: 1.5;
 }
 
 /* Safe area insets for mobile devices with notches */
@@ -137,14 +174,165 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #0A0F1E;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #1E293B;
   border-radius: 9999px;
+  border: 1px solid rgba(0, 240, 255, 0.2);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #00F0FF;
+}
+
+/* ==========================================================================
+   2027 Holographic 3D Digital Showroom System
+   Color Palette: Midnight Blue (#0A0F1E), Neon Cyan (#00F0FF), 
+                  Aurora Purple (#7B2FFF), Premium Gold (#FFD700)
+   ========================================================================== */
+
+@keyframes holo-scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+@keyframes holo-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.35), inset 0 0 15px rgba(123, 47, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.65), 0 0 60px rgba(123, 47, 255, 0.4), inset 0 0 25px rgba(0, 240, 255, 0.3);
+  }
+}
+
+@keyframes orbit-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbit-counter-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes float-levitate {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(0.8deg); }
+}
+
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
+}
+
+.animate-holo-scanline {
+  animation: holo-scanline 6s linear infinite;
+}
+
+.animate-holo-pulse {
+  animation: holo-glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-float-levitate {
+  animation: float-levitate 4s ease-in-out infinite;
+}
+
+.animate-orbit-slow {
+  animation: orbit-rotate 40s linear infinite;
+}
+
+.animate-orbit-counter {
+  animation: orbit-counter-rotate 40s linear infinite;
+}
+
+/* 3D Perspective Preservation */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1500 {
+  perspective: 1500px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 2027 Holographic Glassmorphism */
+.glass-2027 {
+  background: rgba(10, 15, 30, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(0, 240, 255, 0.08);
+}
+
+.glass-2027-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-2027-hover:hover {
+  border-color: rgba(0, 240, 255, 0.6);
+  box-shadow: 0 16px 40px -10px rgba(0, 240, 255, 0.35), 0 0 25px rgba(123, 47, 255, 0.25), inset 0 0 20px rgba(0, 240, 255, 0.15);
+  transform: translateY(-4px);
+}
+
+.glass-2027-purple {
+  background: rgba(123, 47, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(123, 47, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(123, 47, 255, 0.1);
+}
+
+.glass-2027-gold {
+  background: rgba(255, 215, 0, 0.06);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
+/* Variable Gradient Text Utilities */
+.text-gradient-2027 {
+  background: linear-gradient(135deg, #00F0FF 0%, #7B2FFF 50%, #FFD700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #FFFFFF 0%, #00F0FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-aurora {
+  background: linear-gradient(135deg, #00F0FF 0%, #7B2FFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #FFF099 0%, #FFD700 70%, #FFA500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Laser Grid Floor */
+.laser-grid-floor {
+  background-image: 
+    linear-gradient(to right, rgba(0, 240, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 240, 255, 0.12) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 90%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 90%);
 }

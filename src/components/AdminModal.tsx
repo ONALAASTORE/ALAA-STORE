@@ -51,29 +51,30 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-6 animate-in fade-in duration-200">
       <div 
-        className="relative bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 sm:p-8"
+        className="relative bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 p-4 sm:p-6 lg:p-8"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer active:scale-95"
+          aria-label="Close admin modal"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Login Screen */}
         {!isAuthenticated ? (
-          <div className="max-w-md mx-auto py-6 space-y-6">
+          <div className="max-w-md mx-auto py-4 sm:py-6 space-y-6">
             <div className="text-center space-y-2">
               <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/30">
                 <Lock className="w-7 h-7" />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 font-display">
+              <h3 className="text-fluid-h2 font-black text-slate-900 font-display">
                 ON ALAA STORE Admin Portal
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs sm:text-sm text-slate-500">
                 Private administrative dashboard for inventory and orders management
               </p>
             </div>
@@ -96,7 +97,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@example.com"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="w-full px-4 py-3 min-h-[48px] rounded-xl border border-slate-200 text-sm font-medium focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
                 />
               </div>
 
@@ -111,12 +112,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter admin password"
                     required
-                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
+                    className="w-full pl-4 pr-12 py-3 min-h-[48px] rounded-xl border border-slate-200 text-sm font-medium focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -125,7 +127,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer mt-2"
+                className="w-full min-h-[48px] py-3 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition cursor-pointer mt-2"
               >
                 Access Admin Dashboard
               </button>
@@ -133,14 +135,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </div>
         ) : (
           /* Authenticated Dashboard */
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="space-y-5 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shrink-0">
                   OA
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 font-display">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 font-display">
                     ON ALAA STORE • Admin Dashboard 🇱🇧
                   </h3>
                   <p className="text-xs text-slate-500">
@@ -151,7 +153,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                className="min-h-[40px] flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
@@ -162,28 +164,28 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
                 <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Catalog Inventory</div>
-                <div className="text-2xl font-black text-blue-950 font-display mt-1">{products.length} Products</div>
+                <div className="text-xl sm:text-2xl font-black text-blue-950 font-display mt-1">{products.length} Products</div>
                 <div className="text-[10px] text-blue-600 mt-0.5">All synced with official warranties</div>
               </div>
 
               <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
                 <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Exchange Benchmark</div>
-                <div className="text-2xl font-black text-emerald-950 font-display mt-1">89,500 LBP/$</div>
+                <div className="text-xl sm:text-2xl font-black text-emerald-950 font-display mt-1">89,500 LBP/$</div>
                 <div className="text-[10px] text-emerald-600 mt-0.5">Lebanese Market Standard</div>
               </div>
 
               <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100">
                 <div className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Delivery Coverage</div>
-                <div className="text-2xl font-black text-purple-950 font-display mt-1">Nationwide 🚚</div>
+                <div className="text-xl sm:text-2xl font-black text-purple-950 font-display mt-1">Nationwide 🚚</div>
                 <div className="text-[10px] text-purple-600 mt-0.5">Beirut, South, North, Bekaa</div>
               </div>
             </div>
 
-            {/* Admin Tabs */}
-            <div className="flex border-b border-slate-200 text-xs font-bold gap-4">
+            {/* Admin Tabs - Fluid horizontal scrolling on mobile */}
+            <div className="flex border-b border-slate-200 text-xs font-bold gap-3 sm:gap-5 overflow-x-auto whitespace-nowrap scrollbar-none pb-1">
               <button
                 onClick={() => setActiveTab('inventory')}
-                className={`pb-2.5 transition border-b-2 ${
+                className={`pb-2.5 transition border-b-2 min-h-[44px] flex items-center ${
                   activeTab === 'inventory' 
                     ? 'border-blue-600 text-blue-600' 
                     : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -193,7 +195,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab('sales')}
-                className={`pb-2.5 transition border-b-2 ${
+                className={`pb-2.5 transition border-b-2 min-h-[44px] flex items-center ${
                   activeTab === 'sales' 
                     ? 'border-blue-600 text-blue-600' 
                     : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -203,7 +205,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
-                className={`pb-2.5 transition border-b-2 ${
+                className={`pb-2.5 transition border-b-2 min-h-[44px] flex items-center ${
                   activeTab === 'settings' 
                     ? 'border-blue-600 text-blue-600' 
                     : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -217,7 +219,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             {activeTab === 'inventory' && (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                 {products.map((p) => (
-                  <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3 text-xs">
+                  <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-3 min-w-0">
                       <img
                         src={p.image}
@@ -234,7 +236,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                       <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
                         p.inStock ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                       }`}>

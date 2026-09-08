@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   X, 
-  Star, 
   ShieldCheck, 
   Truck, 
   Check, 
@@ -17,14 +16,19 @@ import {
   LayoutGrid,
   SlidersHorizontal,
   Images,
-  ZoomIn
+  ZoomIn,
+  Scan,
+  CircleDot
 } from 'lucide-react';
 import { Product, Currency, ProductVariant, ProductReview } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
 import { buildWhatsAppLink } from '../utils/phone';
 import { extractProductVariantConfig, findBestMatchingVariant } from '../utils/variantUtils';
+import { VisualStarRating } from './VisualStarRating';
 import { ProductReviewsSection } from './ProductReviewsSection';
+import { SpecsAccordion } from './SpecsAccordion';
+import { motion } from 'motion/react';
 import { getStoredReviews, saveStoredReviews, INITIAL_REVIEWS_SEED } from '../data/initialReviews';
 
 interface ProductDetailModalProps {
@@ -134,12 +138,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     });
   };
 
-  const calculatedRating = useMemo(() => {
-    if (currentProductReviews.length === 0) return product.rating;
-    const sum = currentProductReviews.reduce((acc, r) => acc + r.rating, 0);
-    return Number((sum / currentProductReviews.length).toFixed(1));
-  }, [currentProductReviews, product.rating]);
-
   // Product image carousel iterating through the 'allImages' array
   const allImages = useMemo<string[]>(() => {
     // 1. Direct 'imageUrls' array on product
@@ -165,43 +163,54 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Hover-to-zoom state for the main product image
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [zoomCoords, setZoomCoords] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  // Hover-to-magnify lens state for the main product image
+  const [isLensActive, setIsLensActive] = useState(false);
+  const [lensCoords, setLensCoords] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [zoomLevel, setZoomLevel] = useState<number>(2.5); // 2x, 2.5x, 3.5x
+  const [lensMode, setLensMode] = useState<'lens' | 'zoom'>('lens'); // 'lens' optical loupe vs 'zoom' whole-stage zoom
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
-  // Reset active image and zoom state when product or image changes
+  // Reset active image and lens state when product or image changes
   useEffect(() => {
     setActiveImageIndex(0);
-    setIsZoomed(false);
-    setZoomCoords({ x: 50, y: 50 });
+    setIsLensActive(false);
+    setIsTouchDragging(false);
   }, [product?.id]);
 
   useEffect(() => {
-    setIsZoomed(false);
-    setZoomCoords({ x: 50, y: 50 });
+    setIsLensActive(false);
+    setIsTouchDragging(false);
   }, [activeImageIndex]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const updateLensCoordinates = (clientX: number, clientY: number, isTouch = false) => {
     if (!imageContainerRef.current) return;
     const rect = imageContainerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    setZoomCoords({ x, y });
-    if (!isZoomed) setIsZoomed(true);
+    
+    // For touch devices, offset Y slightly upwards so user's finger/thumb does not obscure the lens
+    const touchOffsetY = isTouch ? -45 : 0;
+    
+    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, clientY - rect.top + touchOffsetY));
+    
+    setLensCoords({ x, y });
+    setContainerDimensions({ width: rect.width, height: rect.height });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    updateLensCoordinates(e.clientX, e.clientY, false);
+    if (!isLensActive) setIsLensActive(true);
   };
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageContainerRef.current) return;
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    setZoomCoords({ x, y });
-    setIsZoomed(true);
+    updateLensCoordinates(e.clientX, e.clientY, false);
+    setIsLensActive(true);
   };
 
   const handleMouseLeave = () => {
-    setIsZoomed(false);
+    setIsLensActive(false);
+    setIsTouchDragging(false);
   };
 
   // Seamless pagination helper with infinite loop
@@ -266,6 +275,30 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }
     setTouchStart(null);
     setTouchEnd(null);
+  };
+
+  const handleTouchStartLens = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.targetTouches.length === 1) {
+      const touch = e.targetTouches[0];
+      updateLensCoordinates(touch.clientX, touch.clientY, true);
+      setIsTouchDragging(true);
+      setIsLensActive(true);
+    }
+    handleTouchStart(e);
+  };
+
+  const handleTouchMoveLens = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.targetTouches.length === 1 && isTouchDragging) {
+      const touch = e.targetTouches[0];
+      updateLensCoordinates(touch.clientX, touch.clientY, true);
+    }
+    handleTouchMove(e);
+  };
+
+  const handleTouchEndLens = () => {
+    setIsTouchDragging(false);
+    setIsLensActive(false);
+    handleTouchEnd();
   };
 
   const currentVariant = useMemo(() => {
@@ -405,9 +438,44 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     setTimeout(() => setShareStatus('idle'), 2500);
   };
 
+  // Geometric calculations for the magnifying lens effect
+  const stageWidth = containerDimensions.width || 420;
+  const stageHeight = containerDimensions.height || 420;
+  // Adaptive lens diameter: 140px on narrow mobile stages, 175px on desktop/tablets
+  const lensDiameter = stageWidth < 360 ? 140 : 175;
+  const lensRadius = lensDiameter / 2;
+
+  // Clamped outer position of the circular lens to stay cleanly within the stage container
+  const clampedLensLeft = Math.max(0, Math.min(stageWidth - lensDiameter, lensCoords.x - lensRadius));
+  const clampedLensTop = Math.max(0, Math.min(stageHeight - lensDiameter, lensCoords.y - lensRadius));
+
+  // Cursor position inside the lens circle
+  const cursorInLensX = lensCoords.x - clampedLensLeft;
+  const cursorInLensY = lensCoords.y - clampedLensTop;
+
+  // Exact mathematical alignment for the magnified image inside the lens:
+  const magnifiedImgLeft = cursorInLensX - lensCoords.x * zoomLevel;
+  const magnifiedImgTop = cursorInLensY - lensCoords.y * zoomLevel;
+
+  // Target reticle / crop footprint on the base image:
+  const cropSize = lensDiameter / zoomLevel;
+  const cropLeft = lensCoords.x - cropSize / 2;
+  const cropTop = lensCoords.y - cropSize / 2;
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
-      <div 
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6"
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 14 }}
+        animate={{ opacity: 1, scale: 1.0, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 14 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[95vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
@@ -468,38 +536,120 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Slider / Carousel View Mode */}
             {galleryViewMode === 'slider' ? (
               <div className="space-y-2.5">
-                {/* Main Featured Stage with Hover-to-Zoom */}
+                {/* Main Featured Stage with Hover-to-Magnify Lens */}
                 <div 
                   ref={imageContainerRef}
                   id="main-product-image-stage"
                   className={`relative aspect-square rounded-2xl bg-slate-50 border border-slate-200/80 p-6 flex items-center justify-center overflow-hidden group select-none transition-colors ${
-                    isZoomed ? 'cursor-crosshair bg-slate-100/80' : 'cursor-zoom-in'
+                    isLensActive ? 'cursor-crosshair bg-slate-100/70' : 'cursor-zoom-in'
                   }`}
                   onClick={() => setIsLightboxOpen(true)}
                   onMouseMove={handleMouseMove}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
-                  onTouchStart={(e) => {
-                    setIsZoomed(false);
-                    handleTouchStart(e);
-                  }}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
+                  onTouchStart={handleTouchStartLens}
+                  onTouchMove={handleTouchMoveLens}
+                  onTouchEnd={handleTouchEndLens}
                 >
+                  {/* Base Product Image */}
                   <img
                     src={allImages[activeImageIndex] || DEFAULT_PRODUCT_IMAGE}
                     alt={`${product.name} - View ${activeImageIndex + 1}`}
-                    className="w-full h-full object-contain object-center will-change-transform pointer-events-none"
-                    style={{
-                      transform: isZoomed ? 'scale(2.4)' : 'scale(1)',
-                      transformOrigin: `${zoomCoords.x}% ${zoomCoords.y}%`,
-                      transition: isZoomed ? 'transform 0.08s ease-out' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
+                    className="w-full h-full object-contain object-center will-change-transform pointer-events-none transition-transform duration-200"
+                    style={
+                      lensMode === 'zoom'
+                        ? {
+                            transform: isLensActive ? `scale(${zoomLevel})` : 'scale(1)',
+                            transformOrigin: `${(lensCoords.x / (stageWidth || 1)) * 100}% ${(lensCoords.y / (stageHeight || 1)) * 100}%`,
+                            transition: isLensActive ? 'transform 0.08s ease-out' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                          }
+                        : {
+                            transform: 'scale(1)',
+                          }
+                    }
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = DEFAULT_PRODUCT_IMAGE;
                     }}
                   />
+
+                  {/* Focus Target Crop Box on Base Image (shows what is inside the magnifying lens) */}
+                  {isLensActive && lensMode === 'lens' && (
+                    <div
+                      id="lens-focus-crop-box"
+                      className="absolute pointer-events-none rounded-lg border-2 border-blue-500/70 bg-blue-500/10 shadow-[0_0_12px_rgba(59,130,246,0.25)] z-10 transition-[width,height] duration-150"
+                      style={{
+                        width: `${cropSize}px`,
+                        height: `${cropSize}px`,
+                        left: `${cropLeft}px`,
+                        top: `${cropTop}px`,
+                      }}
+                    >
+                      {/* Precise corner reticle ticks */}
+                      <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-blue-600 -translate-x-0.5 -translate-y-0.5" />
+                      <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-blue-600 translate-x-0.5 -translate-y-0.5" />
+                      <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-blue-600 -translate-x-0.5 translate-y-0.5" />
+                      <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-blue-600 translate-x-0.5 translate-y-0.5" />
+                    </div>
+                  )}
+
+                  {/* Optical Magnifying Lens Loupe */}
+                  {isLensActive && lensMode === 'lens' && (
+                    <div
+                      id="product-magnifier-lens"
+                      className="absolute pointer-events-none z-30 rounded-full overflow-hidden border-2 border-white shadow-[0_16px_40px_rgba(0,0,0,0.38),0_0_0_1px_rgba(0,0,0,0.12)] ring-4 ring-blue-500/25 bg-white will-change-transform animate-in fade-in zoom-in-95 duration-100"
+                      style={{
+                        width: `${lensDiameter}px`,
+                        height: `${lensDiameter}px`,
+                        left: `${clampedLensLeft}px`,
+                        top: `${clampedLensTop}px`,
+                      }}
+                    >
+                      {/* High-Resolution Magnified Product Image inside the circular lens */}
+                      <img
+                        src={allImages[activeImageIndex] || DEFAULT_PRODUCT_IMAGE}
+                        alt=""
+                        className="absolute pointer-events-none object-contain select-none max-w-none max-h-none will-change-transform"
+                        style={{
+                          width: `${stageWidth * zoomLevel}px`,
+                          height: `${stageHeight * zoomLevel}px`,
+                          left: `${magnifiedImgLeft}px`,
+                          top: `${magnifiedImgTop}px`,
+                        }}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DEFAULT_PRODUCT_IMAGE;
+                        }}
+                      />
+
+                      {/* Precision Optical Reticle aligned exactly with the inspected pixel */}
+                      <div
+                        className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10"
+                        style={{
+                          left: `${cursorInLensX}px`,
+                          top: `${cursorInLensY}px`,
+                        }}
+                      >
+                        <div className="w-5 h-5 rounded-full border border-blue-500/70 flex items-center justify-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-600 shadow-xs" />
+                        </div>
+                        {/* 4 Optical Crosshair Hairlines */}
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-blue-500/70" />
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0.5 h-1.5 bg-blue-500/70" />
+                        <div className="absolute top-1/2 -left-2 -translate-y-1/2 w-1.5 h-0.5 bg-blue-500/70" />
+                        <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-1.5 h-0.5 bg-blue-500/70" />
+                      </div>
+
+                      {/* Optical Glass Flare Gloss Overlay */}
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/25 to-white/10 pointer-events-none" />
+
+                      {/* Magnification Power Pill on Lens Rim */}
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-slate-900/90 backdrop-blur-xs text-[10px] font-extrabold text-white shadow-md flex items-center gap-1 pointer-events-none border border-white/20 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                        <span>{zoomLevel}x Lens</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Badges Overlay */}
                   <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-20 pointer-events-none">
@@ -515,31 +665,77 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     )}
                   </div>
 
-                  {/* Hover-to-Zoom Visual Feedback Indicator Pill */}
+                  {/* Lens Controls Toolbar (Zoom Power Selector, Lens Mode Toggle & Lightbox) */}
+                  <div 
+                    className="absolute top-3 right-3 z-20 flex items-center gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Zoom Multipliers */}
+                    <div className="hidden sm:flex items-center bg-white/90 backdrop-blur-xs rounded-full p-0.5 border border-slate-200 shadow-xs">
+                      {[2, 2.5, 3.5].map((lvl) => (
+                        <button
+                          key={lvl}
+                          type="button"
+                          onClick={() => setZoomLevel(lvl)}
+                          className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
+                            zoomLevel === lvl
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                          title={`Set zoom level to ${lvl}x`}
+                        >
+                          {lvl}x
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Lens vs Stage Mode Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setLensMode(prev => prev === 'lens' ? 'zoom' : 'lens')}
+                      className={`h-7 px-2 rounded-full text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer ${
+                        lensMode === 'lens'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-white/90 hover:bg-white text-slate-700 border-slate-200'
+                      }`}
+                      title={lensMode === 'lens' ? 'Switch to Stage Zoom' : 'Switch to Optical Lens'}
+                    >
+                      <Scan className="w-3 h-3 text-blue-600" />
+                      <span className="hidden sm:inline">{lensMode === 'lens' ? 'Lens' : 'Stage'}</span>
+                    </button>
+
+                    {/* Lightbox Fullscreen Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsLightboxOpen(true)}
+                      className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-xs border border-slate-200 flex items-center justify-center transition opacity-80 hover:opacity-100 cursor-pointer"
+                      title="Open Fullscreen Lightbox"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Hover-to-Magnify Visual Feedback Indicator Pill */}
                   <div 
                     id="zoom-indicator-pill"
                     className={`absolute bottom-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none transition-all duration-200 ${
-                      isZoomed 
+                      isLensActive 
                         ? 'bg-blue-600 text-white shadow-md scale-105' 
                         : 'bg-white/90 backdrop-blur-xs text-slate-700 border border-slate-200 shadow-2xs opacity-0 group-hover:opacity-100'
                     }`}
                   >
-                    <ZoomIn className="w-3 h-3" />
-                    <span>{isZoomed ? 'Zoom 2.4x • Move cursor to inspect' : 'Hover to zoom'}</span>
+                    {isLensActive ? (
+                      <>
+                        <CircleDot className="w-3 h-3 text-white animate-pulse" />
+                        <span>{zoomLevel}x Lens Active • Move to inspect</span>
+                      </>
+                    ) : (
+                      <>
+                        <ZoomIn className="w-3 h-3 text-blue-600" />
+                        <span>Hover to magnify lens • Click for fullscreen</span>
+                      </>
+                    )}
                   </div>
-
-                  {/* Zoom Action Pill */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsLightboxOpen(true);
-                    }}
-                    className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 flex items-center justify-center transition opacity-80 hover:opacity-100 cursor-pointer"
-                    title="Open Fullscreen Lightbox"
-                  >
-                    <Maximize2 className="w-3.5 h-3.5" />
-                  </button>
 
                   {/* Previous / Next Arrows on Main Stage */}
                   {allImages.length > 1 && (
@@ -730,17 +926,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
               {/* Reviews & Condition */}
               <div className="flex items-center gap-3 text-xs flex-wrap">
-                <button
-                  type="button"
-                  id="modal-rating-jump-btn"
+                <VisualStarRating
+                  id="modal-visual-star-rating"
+                  rating={product.rating}
+                  size="sm"
+                  showScore={true}
+                  showReviewCount={true}
+                  reviewCount={currentProductReviews.length || product.reviewCount}
                   onClick={() => setActiveTab('reviews')}
-                  className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200/80 font-bold transition cursor-pointer"
-                  title="Click to view all reviews and write your own"
-                >
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{calculatedRating}</span>
-                  <span className="text-amber-700">({currentProductReviews.length} reviews)</span>
-                </button>
+                />
                 <span className="bg-emerald-50 text-emerald-800 px-2 py-1 rounded-md border border-emerald-200/60 font-semibold">
                   {product.condition}
                 </span>
@@ -1138,14 +1332,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
 
           {activeTab === 'specs' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {Object.entries(product.specs).map(([key, value]) => (
-                <div key={key} className="bg-white p-3 rounded-xl border border-slate-200/80">
-                  <span className="font-bold text-slate-500 block text-[11px] uppercase tracking-wider">{key}</span>
-                  <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{value}</span>
-                </div>
-              ))}
-            </div>
+            <SpecsAccordion
+              specs={product.specs}
+              productName={product.name}
+            />
           )}
 
           {activeTab === 'features' && (
@@ -1270,7 +1460,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
         )}
 
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

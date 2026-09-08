@@ -230,7 +230,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. Alaa Kassir"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                     />
                   </div>
                 </div>
@@ -247,7 +247,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+961 71 135 241"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                     />
                   </div>
                 </div>
@@ -262,7 +262,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <select
                       value={region}
                       onChange={(e) => setRegion(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 bg-white"
+                      className="w-full px-3 py-2.5 min-h-[44px] text-xs sm:text-sm rounded-xl border border-slate-200 focus:border-blue-500 bg-white"
                     >
                       {LEBANON_REGIONS.map((r) => (
                         <option key={r} value={r}>{r}</option>

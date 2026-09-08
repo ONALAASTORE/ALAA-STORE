@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   Menu,
   X,
-  Calculator
+  Calculator,
+  Sparkles
 } from 'lucide-react';
 import { Currency, Product } from '../types';
 import { CATEGORIES } from '../data/categories';
@@ -40,6 +41,7 @@ interface HeaderProps {
   topBannerText?: string;
   isTopBannerActive?: boolean;
   whatsappNumber?: string;
+  onSwitchToShowroom?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -63,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
   topBannerText = 'Available delivery to all Lebanon 🚚 (Beirut, Tripoli, Saida, Bekaa)',
   isTopBannerActive = true,
   whatsappNumber = '+961 71 135 241',
+  onSwitchToShowroom,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -205,6 +208,19 @@ export const Header: React.FC<HeaderProps> = ({
                 L.L.
               </button>
             </div>
+
+            {/* 2027 3D Showroom Mode Switcher */}
+            {onSwitchToShowroom && (
+              <button
+                id="header-2027-showroom-btn"
+                onClick={onSwitchToShowroom}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#00F0FF] via-[#7B2FFF] to-[#FFD700] text-slate-950 font-black text-xs hover:brightness-110 active:scale-95 transition shadow-[0_0_15px_rgba(0,240,255,0.35)] cursor-pointer"
+                title="Enter 2027 Futuristic 3D Holographic Showroom"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>2027 3D Showroom</span>
+              </button>
+            )}
 
             {/* Compare Tool Button */}
             <button
