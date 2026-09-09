@@ -87,3 +87,7 @@ export function buildWhatsAppLink(phone: string, message?: string): string {
   if (!message) return baseUrl;
   return `${baseUrl}?text=${encodeURIComponent(message)}`;
 }
+
+export { formatWhatsAppCartSummary, buildWhatsAppCartCheckoutLink } from './whatsapp';
+export type { WhatsAppCartSummaryOptions } from './whatsapp';
+

@@ -605,6 +605,45 @@ const INITIAL_PRODUCTS: Product[] = [
     isFeatured: true,
     tags: ['RTX 4080', '240Hz OLED', 'Core Ultra 9', 'Slash Lighting'],
     freeDelivery: true
+  },
+  {
+    id: 'logitech-g923-racing-wheel',
+    name: 'Logitech G923 TrueForce Racing Wheel & Pedals',
+    brand: 'Logitech',
+    category: 'racing-wheel',
+    subcategory: 'Sim Racing Gear',
+    description: 'High-definition TrueForce feedback system dialed into real in-game physics. Hand-stitched leather rim, dual-clutch launch assist, 24-point selection dial, and progressive brake spring pedals.',
+    features: [
+      'TRUEFORCE next-generation force feedback technology',
+      'Dual-Clutch programmable launch assist control',
+      'Closed-loop motor control for precision torque',
+      'Premium hand-stitched leather cover and brushed metal wheel',
+      'Progressive brake pedal spring for realistic tactile feel'
+    ],
+    specs: {
+      'Compatibility': 'PlayStation 5, PlayStation 4 & PC (Windows 10/11)',
+      'Rotation': '900 degrees lock-to-lock',
+      'Feedback': 'TrueForce dual-motor force feedback',
+      'Pedals': 'Throttle, pressure-sensitive progressive brake, and clutch',
+      'Materials': 'Brushed anodized aluminum wheel spokes, hand-stitched leather, cold-rolled steel pedals'
+    },
+    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1000&q=80',
+    galleryImages: [
+      'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1000&q=80'
+    ],
+    basePriceUSD: 380,
+    originalPriceUSD: 430,
+    variants: [
+      { id: 'g923-ps-pc', name: 'PS5 / PS4 / PC Edition', priceUSD: 380, inStock: true }
+    ],
+    rating: 4.9,
+    reviewCount: 38,
+    condition: 'Brand New (Sealed)',
+    warranty: '2 Years Logitech Official Agency Warranty',
+    inStock: true,
+    isFeatured: true,
+    tags: ['TrueForce', 'Logitech', 'Racing Wheel', 'Sim Racing', 'PS5 Compatible'],
+    freeDelivery: true
   }
 ];
 

@@ -23,11 +23,73 @@ export interface ProductVariant {
   sku?: string;
 }
 
+export type ProductBrand =
+  | 'Apple'
+  | 'Samsung'
+  | 'Xiaomi'
+  | 'Sony'
+  | 'Anker'
+  | 'JBL'
+  | 'Asus'
+  | 'ASUS'
+  | 'HyperX'
+  | 'Razer'
+  | 'Logitech'
+  | 'Dell'
+  | 'Lenovo'
+  | 'Huawei'
+  | 'Tecno'
+  | 'Infinix'
+  | 'UGREEN'
+  | 'Braun'
+  | 'Pitaka'
+  | 'DeepCool'
+  | 'ACEFAST'
+  | 'Yesido'
+  | 'Wiwu'
+  | 'Whoop'
+  | 'Marshall'
+  | 'DJI'
+  | 'Google'
+  | 'Honor'
+  | 'Nintendo'
+  | 'Hoco'
+  | 'Green Lion'
+  | 'Porodo'
+  | string;
+
+export type ProductCategory =
+  | 'all'
+  | 'smartphones'
+  | 'laptops'
+  | 'tablets'
+  | 'audio'
+  | 'wearables'
+  | 'gaming'
+  | 'racing-wheel'
+  | 'racing-wheels'
+  | 'Racing Wheel'
+  | 'power'
+  | 'smart-home'
+  | 'bags-cases'
+  | 'cables'
+  | 'cameras-projectors'
+  | 'car-accessories'
+  | 'flash-card-memory'
+  | 'smartwatches-accessories'
+  | 'personal-health-care'
+  | 'home-lighting'
+  | 'tools'
+  | 'kitchen-tools'
+  | 'microphones'
+  | 'stands-holders'
+  | string;
+
 export interface Product {
   id: string;
   name: string;
-  brand: string;
-  category: string;
+  brand: ProductBrand;
+  category: ProductCategory;
   subcategory?: string;
   description: string;
   features: string[];

@@ -10,7 +10,9 @@ import {
   Menu,
   X,
   Calculator,
-  Sparkles
+  Sparkles,
+  Coins,
+  Check
 } from 'lucide-react';
 import { Currency, Product } from '../types';
 import { CATEGORIES } from '../data/categories';
@@ -19,6 +21,7 @@ import { LogoAvatar, Brand3DText } from './brand';
 import { SearchAutocomplete } from './SearchAutocomplete';
 import { buildWhatsAppLink } from '../utils/phone';
 import { CategoryIcon } from '../utils/categoryIcons';
+import { DEFAULT_USD_TO_LBP_RATE } from '../utils/currency';
 
 interface HeaderProps {
   currency: Currency;
@@ -86,12 +89,44 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>100% Official Agency Warranties</span>
               </span>
               <span className="hidden lg:inline-block text-slate-500">•</span>
-              <span className="hidden lg:inline-block text-amber-300">
-                Cash on Delivery in USD or L.L. (89,500 LBP/$)
-              </span>
+              <div className="hidden lg:flex items-center gap-1.5 text-amber-300 font-medium">
+                <Coins className="w-3.5 h-3.5 text-amber-400" />
+                <span>Rate: 1$ = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              {/* Top Banner Quick Currency Switcher */}
+              <div 
+                className="flex items-center bg-slate-800 border border-slate-700/80 rounded-lg p-0.5 text-[11px] font-bold shadow-2xs"
+                title="Toggle global store currency"
+              >
+                <button
+                  type="button"
+                  onClick={() => onCurrencyChange('USD')}
+                  className={`px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1 ${
+                    currency === 'USD'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Switch to US Dollars ($)"
+                >
+                  <span>$ USD</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onCurrencyChange('LBP')}
+                  className={`px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1 ${
+                    currency === 'LBP'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Switch to Lebanese Pounds (L.L.)"
+                >
+                  <span>L.L. (LBP)</span>
+                </button>
+              </div>
+
               <button 
                 id="trade-in-top-btn"
                 onClick={onOpenTradeIn}
@@ -181,32 +216,61 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Currency Switcher & User Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             
-            {/* Currency Switcher Toggle */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                id="currency-usd-btn"
-                onClick={() => onCurrencyChange('USD')}
-                className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
-                  currency === 'USD' 
-                    ? 'bg-white text-blue-600 shadow-xs' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="View prices in US Dollars"
+            {/* Prominent Global Store Currency Switcher Toggle */}
+            <div 
+              id="header-currency-toggle-container"
+              className="flex items-center gap-1.5 bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 shadow-xs"
+            >
+              {/* Live Rate Reference Chip (Visible on Desktop XL) */}
+              <div 
+                className="hidden xl:flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-slate-500 bg-white rounded-xl border border-slate-200/60 shadow-2xs"
+                title="Current Official Lebanese Market Reference Rate"
               >
-                $ USD
-              </button>
-              <button
-                id="currency-lbp-btn"
-                onClick={() => onCurrencyChange('LBP')}
-                className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
-                  currency === 'LBP' 
-                    ? 'bg-white text-emerald-600 shadow-xs' 
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="View prices in Lebanese Pounds (L.L.)"
+                <Coins className="w-3.5 h-3.5 text-amber-500" />
+                <span>1$ = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.</span>
+              </div>
+
+              {/* Segmented Toggle Control */}
+              <div 
+                role="radiogroup" 
+                aria-label="Global Store Currency Selector"
+                className="flex items-center bg-white p-0.5 rounded-xl border border-slate-200/80 shadow-inner"
               >
-                L.L.
-              </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={currency === 'USD'}
+                  id="currency-usd-btn"
+                  onClick={() => onCurrencyChange('USD')}
+                  className={`min-h-[34px] sm:min-h-[36px] px-2.5 sm:px-3.5 py-1 text-xs font-black rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 select-none ${
+                    currency === 'USD'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 active:scale-95'
+                  }`}
+                  title="Switch to US Dollars ($ USD) across the entire store"
+                >
+                  <span className="text-sm leading-none" aria-hidden="true">🇺🇸</span>
+                  <span>$ USD</span>
+                </button>
+
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={currency === 'LBP'}
+                  id="currency-lbp-btn"
+                  onClick={() => onCurrencyChange('LBP')}
+                  className={`min-h-[34px] sm:min-h-[36px] px-2.5 sm:px-3.5 py-1 text-xs font-black rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 select-none ${
+                    currency === 'LBP'
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 active:scale-95'
+                  }`}
+                  title="Switch to Lebanese Pounds (L.L. / 89,500 LBP/$) across the entire store"
+                >
+                  <span className="text-sm leading-none" aria-hidden="true">🇱🇧</span>
+                  <span className="hidden xs:inline sm:inline">LBP</span>
+                  <span>(L.L.)</span>
+                </button>
+              </div>
             </div>
 
             {/* 2027 3D Showroom Mode Switcher */}
@@ -327,6 +391,51 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-slate-200 px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+          {/* Dedicated Mobile Currency Switcher */}
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Coins className="w-4 h-4 text-amber-500" />
+                <span>Store Currency</span>
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                1 USD = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                id="mobile-currency-usd-btn"
+                onClick={() => {
+                  onCurrencyChange('USD');
+                }}
+                className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  currency === 'USD'
+                    ? 'bg-blue-600 text-white shadow-xs scale-[1.01]'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>🇺🇸 $ USD</span>
+                {currency === 'USD' && <Check className="w-3.5 h-3.5 ml-1" />}
+              </button>
+              <button
+                type="button"
+                id="mobile-currency-lbp-btn"
+                onClick={() => {
+                  onCurrencyChange('LBP');
+                }}
+                className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  currency === 'LBP'
+                    ? 'bg-emerald-600 text-white shadow-xs scale-[1.01]'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>🇱🇧 L.L. (LBP)</span>
+                {currency === 'LBP' && <Check className="w-3.5 h-3.5 ml-1" />}
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2.5">
             <button
               onClick={() => {

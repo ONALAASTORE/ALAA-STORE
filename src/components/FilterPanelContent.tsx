@@ -43,7 +43,7 @@ export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
         <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
           Brand / Manufacturer
         </label>
-        <div className="space-y-1">
+        <div className="space-y-1 max-h-64 overflow-y-auto pr-1.5 scrollbar-thin">
           {BRANDS.map((brand) => (
             <button
               key={brand}

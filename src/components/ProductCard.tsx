@@ -9,11 +9,13 @@ import {
   Truck,
   Check,
   Images,
-  Tag
+  Tag,
+  MessageCircle
 } from 'lucide-react';
 import { Product, Currency, ProductVariant } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
+import { buildWhatsAppLink } from '../utils/phone';
 
 interface ProductCardProps {
   product: Product;
@@ -24,6 +26,7 @@ interface ProductCardProps {
   onToggleWishlist: (productId: string) => void;
   isCompared: boolean;
   onToggleCompare: (product: Product) => void;
+  whatsappNumber?: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -35,6 +38,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   isCompared,
   onToggleCompare,
+  whatsappNumber = '+961 71 135 241',
 }) => {
   const variants = React.useMemo(() => {
     if (Array.isArray(product.variants) && product.variants.length > 0) {
@@ -100,6 +104,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const strikePrice = (promotionalPrice !== undefined && promotionalPrice < basePrice)
     ? basePrice
     : (originalPrice !== undefined && originalPrice > effectivePrice ? originalPrice : undefined);
+
+  const whatsappBuyLink = buildWhatsAppLink(
+    whatsappNumber || '+961 71 135 241',
+    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n• Product: ${product.name}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice}\n\nPlease confirm availability and delivery details.`
+  );
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -294,9 +303,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     e.stopPropagation();
                     setSelectedVariantIndex(idx);
                   }}
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded border transition cursor-pointer ${
+                  className={`text-[10px] sm:text-[11px] font-semibold min-h-[30px] px-2.5 py-1 rounded-lg border transition cursor-pointer active:scale-95 ${
                     selectedVariantIndex === idx
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold shadow-2xs'
                       : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -331,52 +340,78 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Pricing & Add to Cart Action */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-extrabold text-slate-900 text-fluid-price font-display">
-                {formatPrice(effectivePrice, currency)}
-              </span>
-              {strikePrice && (
-                <span className="text-xs text-slate-400 line-through">
-                  {formatPrice(strikePrice, currency)}
+        <div className="pt-2 border-t border-slate-100 space-y-2">
+          <div className="flex items-baseline justify-between gap-1 flex-wrap">
+            <div>
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="font-extrabold text-slate-900 text-sm sm:text-base font-display">
+                  {formatPrice(effectivePrice, currency)}
+                </span>
+                {strikePrice && (
+                  <span className="text-[11px] text-slate-400 line-through">
+                    {formatPrice(strikePrice, currency)}
+                  </span>
+                )}
+              </div>
+              {currency === 'USD' && (
+                <span className="text-[10px] text-slate-400 font-medium block">
+                  ≈ {formatPrice(effectivePrice, 'LBP')}
                 </span>
               )}
             </div>
-            {currency === 'USD' && (
-              <span className="text-[10px] text-slate-400 font-medium block">
-                ≈ {formatPrice(effectivePrice, 'LBP')}
+            {hasPromotionalPrice && discountPercent && discountPercent > 0 && (
+              <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                -{discountPercent}%
               </span>
             )}
           </div>
 
-          <button
-            id={`add-cart-btn-${product.id}`}
-            onClick={handleAdd}
-            disabled={isOutOfStock}
-            className={`min-h-[48px] px-4 sm:px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 shadow-xs ${
-              isOutOfStock
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                : addedAnimation 
-                  ? 'bg-emerald-600 text-white cursor-pointer' 
-                  : 'bg-slate-900 hover:bg-blue-600 text-white cursor-pointer active:scale-95'
-            }`}
-            aria-label={isOutOfStock ? "Sold out" : `Add ${product.name} to cart`}
-          >
-            {isOutOfStock ? (
-              <span>Sold Out</span>
-            ) : addedAnimation ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Added</span>
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="w-3.5 h-3.5" />
-                <span>Add</span>
-              </>
+          {/* Dual Action Buttons (Mobile-first, touch-friendly min-h-[44px]) */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              id={`add-cart-btn-${product.id}`}
+              onClick={handleAdd}
+              disabled={isOutOfStock}
+              className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs ${
+                isOutOfStock
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 col-span-2'
+                  : addedAnimation 
+                    ? 'bg-emerald-600 text-white cursor-pointer ring-2 ring-emerald-500/30' 
+                    : 'bg-slate-900 hover:bg-blue-600 text-white cursor-pointer active:scale-95'
+              }`}
+              aria-label={isOutOfStock ? "Sold out" : `Add ${product.name} to cart`}
+            >
+              {isOutOfStock ? (
+                <span>Sold Out</span>
+              ) : addedAnimation ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Added</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </>
+              )}
+            </button>
+
+            {!isOutOfStock && (
+              <a
+                id={`whatsapp-buy-btn-${product.id}`}
+                href={whatsappBuyLink}
+                onClick={(e) => e.stopPropagation()}
+                target="_blank"
+                rel="noreferrer"
+                className="min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center justify-center gap-1 shadow-xs active:scale-95 text-center cursor-pointer"
+                title="Order immediately on WhatsApp"
+                aria-label={`Order ${product.name} directly on WhatsApp`}
+              >
+                <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">WhatsApp</span>
+              </a>
             )}
-          </button>
+          </div>
         </div>
       </div>
     </div>

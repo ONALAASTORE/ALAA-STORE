@@ -4,6 +4,8 @@ import {
   SlidersHorizontal, 
   ArrowUpDown, 
   X,
+  Grid2X2,
+  Square,
 } from 'lucide-react';
 import { Currency, Product, CartItem, ProductVariant, FilterState, StoreSettings } from './types';
 import { PRODUCTS } from './data/products';
@@ -78,6 +80,8 @@ const pageTransitionVariants: Variants = {
   },
 };
 
+const CURRENCY_STORAGE_KEY = 'on_alaa_store_currency';
+
 export function App() {
   // Routing View state ('store' | 'admin-login' | 'admin')
   const [currentRoute, setCurrentRoute] = useState<'store' | 'admin-login' | 'admin'>(() => {
@@ -92,8 +96,15 @@ export function App() {
     return 'store';
   });
 
-  // Currency state (USD or LBP)
-  const [currency, setCurrency] = useState<Currency>('USD');
+  // Currency state (USD or LBP) with persistence
+  const [currency, setCurrency] = useState<Currency>(() => {
+    try {
+      const saved = localStorage.getItem(CURRENCY_STORAGE_KEY);
+      return saved === 'LBP' || saved === 'USD' ? saved : 'USD';
+    } catch {
+      return 'USD';
+    }
+  });
 
   // Dynamic Product Catalog State
   const [productsList, setProductsList] = useState<Product[]>(() => {
@@ -151,6 +162,8 @@ export function App() {
   });
 
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  // Mobile grid column layout state (1 column or 2 columns on mobile screens)
+  const [mobileGridCols, setMobileGridCols] = useState<1 | 2>(2);
 
   // Active modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -227,6 +240,15 @@ export function App() {
       console.error('Failed to save products to localStorage', e);
     }
   }, [productsList]);
+
+  // Save Currency to local storage
+  useEffect(() => {
+    try {
+      localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
+    } catch (e) {
+      console.error('Failed to save currency to localStorage', e);
+    }
+  }, [currency]);
 
   // Save Store Settings to local storage
   useEffect(() => {
@@ -527,12 +549,29 @@ export function App() {
       }
 
       // Category filter
-      if (filterState.category !== 'all' && p.category !== filterState.category) {
-        return false;
+      if (filterState.category !== 'all') {
+        const prodCat = (p.category || '').toLowerCase();
+        const selCat = filterState.category.toLowerCase();
+        const catObj = CATEGORIES.find((c) => c.id === filterState.category);
+        const catName = catObj ? catObj.name.toLowerCase() : '';
+
+        const matchesCat =
+          prodCat === selCat ||
+          (catName && prodCat === catName) ||
+          (selCat === 'racing-wheel' && (prodCat === 'racing-wheels' || prodCat === 'racing wheel' || prodCat === 'racing_wheel')) ||
+          (selCat === 'smartwatches-accessories' && (prodCat === 'wearables' || prodCat === 'smartwatches')) ||
+          (selCat === 'wearables' && (prodCat === 'smartwatches-accessories' || prodCat === 'smartwatches'));
+
+        if (!matchesCat) {
+          return false;
+        }
       }
 
       // Brand filter
-      if (filterState.brand !== 'All Brands' && p.brand !== filterState.brand) {
+      if (
+        filterState.brand !== 'All Brands' &&
+        p.brand.toLowerCase() !== filterState.brand.toLowerCase()
+      ) {
         return false;
       }
 
@@ -841,6 +880,36 @@ export function App() {
                 <span>
                   Showing <strong className="text-slate-900 font-bold">{filteredProducts.length}</strong> items in catalog
                 </span>
+
+                {/* Mobile 1-col vs 2-col toggle button */}
+                <div className="flex sm:hidden items-center border border-slate-200 rounded-lg p-0.5 bg-slate-50 ml-1">
+                  <button
+                    type="button"
+                    onClick={() => setMobileGridCols(1)}
+                    className={`p-1.5 rounded-md transition cursor-pointer ${
+                      mobileGridCols === 1
+                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                    title="1 Column View"
+                    aria-label="1 Column Layout"
+                  >
+                    <Square className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileGridCols(2)}
+                    className={`p-1.5 rounded-md transition cursor-pointer ${
+                      mobileGridCols === 2
+                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                    title="2 Columns View"
+                    aria-label="2 Columns Layout"
+                  >
+                    <Grid2X2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {filterState.searchQuery && (
@@ -937,7 +1006,9 @@ export function App() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6"
+                  className={`grid ${
+                    mobileGridCols === 1 ? 'grid-cols-1' : 'grid-cols-2'
+                  } sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6`}
                 >
                   {filteredProducts.map((product) => (
                     <ProductCard
@@ -950,6 +1021,7 @@ export function App() {
                       onToggleCompare={handleToggleCompare}
                       onAddToCart={(p, v) => handleAddToCart(p, v, 1)}
                       onQuickView={handleOpenProductDetail}
+                      whatsappNumber={storeSettings.whatsappNumber}
                     />
                   ))}
                 </motion.div>
@@ -1007,6 +1079,7 @@ export function App() {
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveCartItem}
         onClearCart={handleClearCart}
+        whatsappNumber={storeSettings.whatsappNumber}
         onProceedToCheckout={() => {
           setIsCartOpen(false);
           setIsCheckoutOpen(true);

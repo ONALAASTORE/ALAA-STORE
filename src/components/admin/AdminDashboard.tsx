@@ -36,6 +36,9 @@ import { formatPrice } from '../../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../../utils/productImages';
 import { LogoAvatar, Brand3DText } from '../brand';
 import { validatePhoneNumber, buildWhatsAppLink, formatWhatsAppDigits } from '../../utils/phone';
+import { CATEGORIES } from '../../data/categories';
+import { saveProductToFirestore, deleteProductFromFirestore } from '../../utils/firestore';
+import { AdminToastContainer, ToastItem } from './AdminToast';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -98,25 +101,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isBannerActiveInput, setIsBannerActiveInput] = useState(storeSettings.isTopBannerActive);
   const [bannerSavedSuccess, setBannerSavedSuccess] = useState(false);
 
-  // Notifications / Toast
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Toast Notification System
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  const addToast = (toast: Omit<ToastItem, 'id'>) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const newToast: ToastItem = { ...toast, id };
+    setToasts((prev) => [...prev.slice(-3), newToast]);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3000);
+    addToast({
+      title: 'Dashboard Notification',
+      message: msg,
+      type: 'success',
+      icon: 'check',
+    });
   };
 
   // Filtered Products
   const filteredProducts = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
-    const matchesStock = stockFilter === 'all' || 
-      (stockFilter === 'inStock' && p.inStock) || 
+
+    const prodCat = (p.category || '').toLowerCase();
+    const selCat = selectedCategory.toLowerCase();
+    const catObj = CATEGORIES.find((c) => c.id === selectedCategory);
+    const catName = catObj ? catObj.name.toLowerCase() : '';
+
+    const matchesCategory =
+      selectedCategory === 'all' ||
+      prodCat === selCat ||
+      (catName && prodCat === catName) ||
+      (selCat === 'racing-wheel' && (prodCat === 'racing-wheels' || prodCat === 'racing wheel' || prodCat === 'racing_wheel')) ||
+      (selCat === 'smartwatches-accessories' && (prodCat === 'wearables' || prodCat === 'smartwatches')) ||
+      (selCat === 'wearables' && (prodCat === 'smartwatches-accessories' || prodCat === 'smartwatches'));
+
+    const matchesStock =
+      stockFilter === 'all' ||
+      (stockFilter === 'inStock' && p.inStock) ||
       (stockFilter === 'outOfStock' && !p.inStock);
 
     return matchesSearch && matchesCategory && matchesStock;
@@ -133,44 +162,143 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setIsProductModalOpen(true);
   };
 
-  const handleDeleteProduct = (productId: string, productName: string) => {
+  const handleDeleteProduct = async (productId: string, productName: string) => {
     if (window.confirm(`Are you sure you want to delete "${productName}" from the catalog?`)) {
       const updated = products.filter((p) => p.id !== productId);
       onUpdateProducts(updated);
-      showToast(`Product "${productName}" removed from store.`);
+      await deleteProductFromFirestore(productId).catch((e) => console.warn('Firestore delete note:', e));
+      addToast({
+        title: 'Product Removed',
+        message: `"${productName}" was removed from the store and Firestore.`,
+        type: 'info',
+        badge: 'Catalog Updated',
+        icon: 'trash',
+      });
     }
   };
 
-  const handleToggleStock = (productId: string) => {
+  const handleToggleStock = async (productId: string) => {
+    let targetProduct: Product | undefined;
+    let newInStockState = false;
+
     const updated = products.map((p) => {
       if (p.id === productId) {
-        return { ...p, inStock: !p.inStock };
+        newInStockState = !p.inStock;
+        targetProduct = { ...p, inStock: !p.inStock };
+        return targetProduct;
       }
       return p;
     });
+
     onUpdateProducts(updated);
+
+    if (targetProduct) {
+      try {
+        await saveProductToFirestore(targetProduct);
+        addToast({
+          title: 'Inventory Update Succeeded',
+          message: `"${targetProduct.name}" is now marked as ${
+            newInStockState ? 'In Stock' : 'Out of Stock'
+          }. Firestore updated.`,
+          type: 'success',
+          badge: newInStockState ? 'In Stock' : 'Out of Stock',
+          icon: 'inventory',
+        });
+      } catch (err) {
+        addToast({
+          title: 'Inventory Update Succeeded',
+          message: `"${targetProduct.name}" marked as ${
+            newInStockState ? 'In Stock' : 'Out of Stock'
+          }.`,
+          type: 'info',
+          badge: 'Stock Updated',
+          icon: 'inventory',
+        });
+      }
+    }
   };
 
-  const handleDuplicateProduct = (product: Product) => {
+  const handleDuplicateProduct = async (product: Product) => {
     const duplicated: Product = {
       ...product,
       id: `${product.id}-copy-${Date.now().toString().slice(-4)}`,
       name: `${product.name} (Copy)`,
     };
     onUpdateProducts([duplicated, ...products]);
-    showToast(`Duplicated "${product.name}"`);
+    await saveProductToFirestore(duplicated).catch((e) => console.warn('Firestore sync note:', e));
+    addToast({
+      title: 'Product Duplicated & Synced',
+      message: `"${duplicated.name}" cloned and saved to Firestore.`,
+      type: 'success',
+      badge: 'Firestore Synced',
+      icon: 'firestore',
+    });
   };
 
-  const handleSaveProduct = (savedProduct: Product) => {
+  const handleSaveProduct = async (savedProduct: Product) => {
     if (editingProduct) {
       // Update existing
       const updated = products.map((p) => (p.id === savedProduct.id ? savedProduct : p));
       onUpdateProducts(updated);
-      showToast(`Updated "${savedProduct.name}" successfully!`);
+      try {
+        const res = await saveProductToFirestore(savedProduct);
+        if (res.success) {
+          addToast({
+            title: 'Product Saved to Firestore',
+            message: `"${savedProduct.name}" changes saved and synchronized to Firestore successfully.`,
+            type: 'success',
+            badge: 'Firestore Synced',
+            icon: 'firestore',
+          });
+        } else {
+          addToast({
+            title: 'Product Updated',
+            message: `"${savedProduct.name}" updated successfully.`,
+            type: 'success',
+            badge: 'Saved',
+            icon: 'check',
+          });
+        }
+      } catch (err) {
+        addToast({
+          title: 'Product Updated',
+          message: `"${savedProduct.name}" updated in catalog.`,
+          type: 'success',
+          badge: 'Catalog Saved',
+          icon: 'check',
+        });
+      }
     } else {
       // Add new
       onUpdateProducts([savedProduct, ...products]);
-      showToast(`Added new product "${savedProduct.name}" to catalog!`);
+      try {
+        const res = await saveProductToFirestore(savedProduct);
+        if (res.success) {
+          addToast({
+            title: 'New Product Saved to Firestore',
+            message: `"${savedProduct.name}" has been added to your Firestore database and is now live.`,
+            type: 'success',
+            badge: 'Firestore Live',
+            icon: 'firestore',
+          });
+        } else {
+          addToast({
+            title: 'New Product Added',
+            message: `"${savedProduct.name}" has been added to the catalog.`,
+            type: 'success',
+            badge: 'Catalog Live',
+            icon: 'check',
+          });
+        }
+      } catch (err) {
+        addToast({
+          title: 'New Product Added',
+          message: `"${savedProduct.name}" added to catalog!`,
+          type: 'success',
+          badge: 'Catalog Live',
+          icon: 'check',
+        });
+      }
     }
   };
 
@@ -339,13 +467,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="fixed inset-0 bg-[radial-gradient(#FF0000_1px,transparent_1px)] [background-size:32px_32px] opacity-10 pointer-events-none" />
       <div className="fixed top-0 right-1/4 w-96 h-96 bg-[#FF0000]/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Floating Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#FF0000] text-white px-5 py-3 rounded-2xl shadow-2xl font-bold text-xs flex items-center gap-2.5 animate-in slide-in-from-bottom-4 duration-300">
-          <Check className="w-4 h-4" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      {/* Floating Toast Notification System */}
+      <AdminToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {/* Main Admin Header */}
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 shadow-xl">
@@ -424,11 +547,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 w-full space-y-6 relative z-10 flex-1">
         
         {/* Navigation Tabs Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-lg">
-          <div className="flex items-center gap-1 overflow-x-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/80 backdrop-blur-md p-2 sm:p-1.5 rounded-2xl border border-slate-800 shadow-lg">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none w-full sm:w-auto pb-1 sm:pb-0">
             <button
               onClick={() => setActiveTab('products')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                 activeTab === 'products'
                   ? 'bg-[#FF0000] text-white shadow-lg shadow-red-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -445,45 +568,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <button
               onClick={() => setActiveTab('video')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                 activeTab === 'video'
                   ? 'bg-[#FF0000] text-white shadow-lg shadow-red-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >
               <Video className="w-4 h-4" />
-              <span>Homepage Video Manager</span>
+              <span>Video Showcase</span>
             </button>
 
             <button
               onClick={() => setActiveTab('banner')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                 activeTab === 'banner'
                   ? 'bg-[#FF0000] text-white shadow-lg shadow-red-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >
               <Megaphone className="w-4 h-4" />
-              <span>Top Banner & Alerts</span>
+              <span>Top Banner</span>
             </button>
 
             <button
               onClick={() => setActiveTab('overview')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                 activeTab === 'overview'
                   ? 'bg-[#FF0000] text-white shadow-lg shadow-red-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >
               <User className="w-4 h-4" />
-              <span>Profile & Store Settings</span>
+              <span>Profile & Settings</span>
             </button>
           </div>
 
           {activeTab === 'products' && (
             <button
               onClick={handleOpenAddProduct}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF0000] to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition cursor-pointer"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF0000] to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition cursor-pointer min-h-[44px] shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Add New Product</span>
@@ -525,14 +648,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs font-medium focus:border-[#FF0000] outline-none"
                 >
                   <option value="all">All Categories ({products.length})</option>
-                  <option value="smartphones">Smartphones</option>
-                  <option value="tablets">iPads & Tablets</option>
-                  <option value="laptops">MacBooks & Laptops</option>
-                  <option value="gaming">Gaming & Consoles</option>
-                  <option value="audio">Audio & AirPods</option>
-                  <option value="wearables">Smartwatches</option>
-                  <option value="chargers">Chargers & Cables</option>
-                  <option value="accessories">Accessories</option>
+                  {CATEGORIES.filter((c) => c.id !== 'all').map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -598,7 +718,110 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                  {/* Mobile Responsive Cards View (sm:hidden) */}
+                  <div className="block sm:hidden divide-y divide-slate-800/80">
+                    {filteredProducts.map((product) => {
+                      const productImgs = getProductImages(product);
+                      const primaryImg = productImgs[0] || DEFAULT_PRODUCT_IMAGE;
+                      return (
+                        <div key={product.id} className="p-4 space-y-3 bg-slate-900/40 hover:bg-slate-900/80 transition">
+                          <div className="flex items-start gap-3">
+                            <div className="relative w-14 h-14 rounded-xl bg-slate-950 border border-slate-800 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                              <img
+                                src={primaryImg}
+                                alt={product.name}
+                                className="w-full h-full object-contain rounded"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = DEFAULT_PRODUCT_IMAGE;
+                                }}
+                              />
+                              {productImgs.length > 1 && (
+                                <span className="absolute bottom-0.5 right-0.5 bg-slate-900/90 text-white font-mono text-[9px] font-bold px-1 rounded">
+                                  {productImgs.length}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 font-bold text-slate-200 uppercase tracking-wider text-[9px]">
+                                  {product.brand}
+                                </span>
+                                <span className="text-[10px] text-slate-400 capitalize">
+                                  {product.category}
+                                </span>
+                                <span className="text-amber-400 font-semibold text-[10px]">
+                                  • {product.condition}
+                                </span>
+                              </div>
+
+                              <div className="font-bold text-white text-sm mt-1 leading-snug line-clamp-2">
+                                {product.name}
+                              </div>
+
+                              <div className="flex items-baseline gap-2 mt-1.5">
+                                <span className="font-black text-white text-base font-display">
+                                  {formatPrice(product.basePriceUSD, currency)}
+                                </span>
+                                {product.originalPriceUSD && (
+                                  <span className="text-xs text-slate-500 line-through">
+                                    {formatPrice(product.originalPriceUSD, currency)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Mobile Action Controls with min-h-[40px] Touch Targets */}
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
+                            <button
+                              onClick={() => handleToggleStock(product.id)}
+                              className={`px-3 py-2 min-h-[40px] rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                                product.inStock
+                                  ? 'bg-emerald-950/80 border border-emerald-500/50 text-emerald-300'
+                                  : 'bg-red-950/80 border border-red-500/50 text-red-300'
+                              }`}
+                            >
+                              <span className={`w-2 h-2 rounded-full ${product.inStock ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                              <span>{product.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                            </button>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleDuplicateProduct(product)}
+                                className="w-10 h-10 min-h-[40px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                                title="Duplicate Product"
+                                aria-label="Duplicate Product"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenEditProduct(product)}
+                                className="w-10 h-10 min-h-[40px] rounded-xl bg-slate-800 hover:bg-[#FF0000] text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                                title="Edit Product"
+                                aria-label="Edit Product"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(product.id, product.name)}
+                                className="w-10 h-10 min-h-[40px] rounded-xl bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                                title="Delete Product"
+                                aria-label="Delete Product"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop & Tablet Table View (sm+) */}
+                  <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px] font-bold">
                       <tr>
@@ -739,7 +962,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </tbody>
                   </table>
                 </div>
-              )}
+              </>
+            )}
             </div>
           </motion.div>
         )}

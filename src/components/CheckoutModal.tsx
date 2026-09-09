@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -10,11 +10,16 @@ import {
   Banknote,
   QrCode,
   Store,
-  FileText
+  FileText,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { formatPrice } from '../utils/currency';
 import { buildWhatsAppLink } from '../utils/phone';
+import { formatWhatsAppCartSummary } from '../utils/whatsapp';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -61,6 +66,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
 
+  const [showWhatsAppPreview, setShowWhatsAppPreview] = useState(false);
+  const [copiedPreview, setCopiedPreview] = useState(false);
+  const [copiedCheckoutSummary, setCopiedCheckoutSummary] = useState(false);
+  const [copiedSuccessSummary, setCopiedSuccessSummary] = useState(false);
+
   const subtotalUSD = items.reduce((sum, item) => sum + item.selectedVariant.priceUSD * item.quantity, 0);
   const deliveryFeeUSD = deliveryType === 'pickup' ? 0 : subtotalUSD >= 150 ? 0 : 3;
   const totalUSD = subtotalUSD + deliveryFeeUSD;
@@ -81,29 +91,87 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }, 800);
   };
 
+  const fastWhatsAppCartMessage = useMemo(() => {
+    return formatWhatsAppCartSummary({
+      items,
+      customer: {
+        fullName,
+        phone,
+        deliveryType,
+        region,
+        address,
+        paymentMethod,
+        notes,
+      },
+      deliveryFeeUSD,
+    });
+  }, [items, fullName, phone, deliveryType, region, address, paymentMethod, notes, deliveryFeeUSD]);
+
+  const fastWhatsAppHref = useMemo(() => {
+    return buildWhatsAppLink(whatsappNumber, fastWhatsAppCartMessage);
+  }, [whatsappNumber, fastWhatsAppCartMessage]);
+
   const generateWhatsAppOrderText = (orderRef: string) => {
-    return encodeURIComponent(
-      `🇱🇧 *ON ALAA STORE - NEW ORDER CONFIRMATION*\n` +
-      `*Order Reference:* #${orderRef}\n` +
-      `-----------------------------\n` +
-      `*Customer:* ${fullName}\n` +
-      `*Phone:* ${phone}\n` +
-      `*Method:* ${deliveryType === 'delivery' ? `Doorstep Delivery (${region})` : 'Store Pickup (Jadra Warehouse Store)'}\n` +
-      `*Address:* ${address || 'N/A'}\n` +
-      `*Payment:* ${
-        paymentMethod === 'cod_usd' ? 'Cash on Delivery (USD)' :
-        paymentMethod === 'cod_lbp' ? 'Cash on Delivery (L.L.)' :
-        paymentMethod === 'whish' ? 'Whish Money' :
-        paymentMethod === 'omt' ? 'OMT Intra-Lebanon' : 'USDT Crypto'
-      }\n` +
-      `-----------------------------\n` +
-      `*Items:*\n` +
-      items.map((it, i) => ` ${i+1}. ${it.product.name} (${it.selectedVariant.name}) x${it.quantity} = $${it.selectedVariant.priceUSD * it.quantity}`).join('\n') +
-      `\n-----------------------------\n` +
-      `*Total Due:* $${totalUSD} (≈ ${(totalUSD * 89500).toLocaleString()} L.L.)\n` +
-      (notes ? `*Notes:* ${notes}\n` : '') +
-      `\nPlease confirm stock availability and dispatch time.`
-    );
+    return formatWhatsAppCartSummary({
+      items,
+      orderRef,
+      customer: {
+        fullName,
+        phone,
+        deliveryType,
+        region,
+        address,
+        paymentMethod,
+        notes,
+      },
+      deliveryFeeUSD,
+    });
+  };
+
+  const copyTextToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      throw new Error('navigator.clipboard not available');
+    } catch {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
+      } catch (err) {
+        console.error('Failed to copy to clipboard', err);
+        return false;
+      }
+    }
+  };
+
+  const handleCopyPreview = async () => {
+    await copyTextToClipboard(fastWhatsAppCartMessage);
+    setCopiedPreview(true);
+    setTimeout(() => setCopiedPreview(false), 2500);
+  };
+
+  const handleCopyCheckoutSummary = async () => {
+    await copyTextToClipboard(fastWhatsAppCartMessage);
+    setCopiedCheckoutSummary(true);
+    setTimeout(() => setCopiedCheckoutSummary(false), 2500);
+  };
+
+  const handleCopySuccessSummary = async (orderRef: string) => {
+    const text = generateWhatsAppOrderText(orderRef);
+    await copyTextToClipboard(text);
+    setCopiedSuccessSummary(true);
+    setTimeout(() => setCopiedSuccessSummary(false), 2500);
   };
 
   return (
@@ -149,20 +217,45 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <p><strong>Payment Method:</strong> {paymentMethod.toUpperCase()}</p>
             </div>
 
-            <div className="pt-2 space-y-3">
+            <div className="pt-2 space-y-2.5">
               <a
                 href={buildWhatsAppLink(whatsappNumber, generateWhatsAppOrderText(orderSuccess))}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition"
+                id="success-whatsapp-btn"
+                className="w-full min-h-[46px] py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition cursor-pointer"
               >
                 <MessageCircle className="w-5 h-5" />
                 <span>Send Order & Live Tracking via WhatsApp</span>
               </a>
 
               <button
+                type="button"
+                id="success-copy-order-btn"
+                onClick={() => handleCopySuccessSummary(orderSuccess)}
+                className={`w-full min-h-[46px] py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer border ${
+                  copiedSuccessSummary
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs ring-2 ring-emerald-400/30'
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300 shadow-2xs'
+                }`}
+                title="Copy confirmed order summary with reference number to clipboard"
+              >
+                {copiedSuccessSummary ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Order Summary Copied to Clipboard!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-slate-600 shrink-0" />
+                    <span>Copy to Clipboard (Paste into Telegram, SMS, etc.)</span>
+                  </>
+                )}
+              </button>
+
+              <button
                 onClick={onClose}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-semibold text-xs transition"
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-semibold text-xs transition cursor-pointer"
               >
                 Return to Storefront
               </button>
@@ -178,6 +271,76 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <p className="text-xs text-slate-500 mt-0.5">
                 Fast doorstep delivery all across Lebanon with Cash on Delivery (USD or L.L.)
               </p>
+            </div>
+
+            {/* Quick 1-Tap WhatsApp Alternative with Live Pre-filled Text Block Preview */}
+            <div className="p-3.5 bg-emerald-50/90 border border-emerald-200/90 rounded-2xl space-y-2.5 transition">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <MessageCircle className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs min-w-0">
+                    <p className="font-bold text-slate-900 truncate">Prefer ordering via WhatsApp?</p>
+                    <p className="text-[11px] text-emerald-800">Pre-fills cart summary, items & pricing</p>
+                  </div>
+                </div>
+                <a
+                  href={fastWhatsAppHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3.5 py-2.5 min-h-[42px] bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-bold text-xs shrink-0 flex items-center gap-1.5 transition shadow-xs cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Order on WhatsApp</span>
+                </a>
+              </div>
+
+              {/* Message Preview Accordion & Copy Controls */}
+              <div className="flex items-center justify-between pt-2 border-t border-emerald-200/70 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppPreview((prev) => !prev)}
+                  className="text-emerald-800 hover:text-emerald-950 font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  {showWhatsAppPreview ? (
+                    <>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                      <span>Hide Pre-filled Text Block</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      <span>Preview Pre-filled WhatsApp Text Block</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  id="checkout-preview-copy-btn"
+                  onClick={handleCopyPreview}
+                  className="text-emerald-800 hover:text-emerald-950 font-semibold flex items-center gap-1.5 cursor-pointer bg-white/80 hover:bg-white px-2.5 py-1 rounded-lg border border-emerald-300/80 shadow-2xs transition active:scale-95"
+                  title="Copy pre-filled order text to clipboard"
+                >
+                  {copiedPreview ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="font-bold text-emerald-700">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Copy to Clipboard</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {showWhatsAppPreview && (
+                <div className="mt-2 p-3 bg-slate-950 text-slate-100 rounded-xl font-mono text-[11px] leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto border border-slate-800 selection:bg-emerald-600/50 scrollbar-thin">
+                  {fastWhatsAppCartMessage}
+                </div>
+              )}
             </div>
 
             {/* Delivery Type Selector */}
@@ -372,14 +535,61 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isSubmitting ? 'Confirming Order...' : `Confirm Order ($${totalUSD})`}</span>
-            </button>
+            <div className="space-y-2.5 pt-1">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full min-h-[48px] py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isSubmitting ? 'Confirming Order...' : `Confirm Order ($${totalUSD})`}</span>
+              </button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <a
+                  href={fastWhatsAppHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  id="checkout-instant-whatsapp-btn"
+                  className="min-h-[46px] py-3 px-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer text-center"
+                  title="Open order directly in WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4 shrink-0" />
+                  <span>Order via WhatsApp (${totalUSD})</span>
+                </a>
+
+                <button
+                  type="button"
+                  id="checkout-copy-summary-btn"
+                  onClick={handleCopyCheckoutSummary}
+                  className={`min-h-[46px] py-3 px-3.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer border active:scale-98 ${
+                    copiedCheckoutSummary
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs ring-2 ring-emerald-400/30'
+                      : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300 shadow-2xs'
+                  }`}
+                  title="Copy formatted WhatsApp order summary to clipboard to paste into any messaging app"
+                >
+                  {copiedCheckoutSummary ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Copied to Clipboard!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-slate-600 shrink-0" />
+                      <span>Copy to Clipboard</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 pt-0.5 text-center">
+                <span>📋</span>
+                <span>
+                  <strong>Copy to Clipboard</strong> lets you easily paste the order into Telegram, SMS, Instagram DM, or other messaging apps.
+                </span>
+              </div>
+            </div>
           </form>
         )}
       </div>

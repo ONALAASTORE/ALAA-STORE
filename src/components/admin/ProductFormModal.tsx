@@ -20,6 +20,7 @@ import { Product, StorageOption, ColorOption, ProductVariant } from '../../types
 import { getProductImages, DEFAULT_PRODUCT_IMAGE, cleanImageUrls } from '../../utils/productImages';
 import { extractProductVariantConfig } from '../../utils/variantUtils';
 import { VariantManager } from './VariantManager';
+import { CATEGORIES, PRODUCT_BRANDS } from '../../data/categories';
 
 
 interface ProductFormModalProps {
@@ -407,15 +408,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 onChange={(e) => setBrand(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-medium focus:border-[#FF0000] outline-none"
               >
-                <option value="Apple">Apple</option>
-                <option value="Samsung">Samsung</option>
-                <option value="Sony">Sony (PlayStation & Audio)</option>
-                <option value="Xiaomi">Xiaomi</option>
-                <option value="Honor">Honor</option>
-                <option value="Anker">Anker</option>
-                <option value="Google">Google Pixel</option>
-                <option value="Nintendo">Nintendo</option>
-                <option value="Other">Other Brand</option>
+                {PRODUCT_BRANDS.map((b) => (
+                  <option key={b} value={b}>
+                    {b === 'Sony' ? 'Sony (PlayStation & Audio)' : b === 'Google' ? 'Google Pixel' : b}
+                  </option>
+                ))}
+                {brand && !PRODUCT_BRANDS.includes(brand) && (
+                  <option value={brand}>{brand}</option>
+                )}
               </select>
             </div>
 
@@ -429,14 +429,20 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-medium focus:border-[#FF0000] outline-none"
               >
-                <option value="smartphones">Smartphones</option>
-                <option value="tablets">iPads & Tablets</option>
-                <option value="laptops">MacBooks & Laptops</option>
-                <option value="gaming">PlayStation & Gaming</option>
-                <option value="audio">AirPods & Headphones</option>
-                <option value="wearables">Apple Watch & Smartwatches</option>
-                <option value="chargers">Fast Chargers & GaN Power</option>
-                <option value="accessories">Cases & Screen Protectors</option>
+                {CATEGORIES.filter((c) => c.id !== 'all').map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+                {/* Legacy options for backward compatibility */}
+                <option value="chargers">Fast Chargers & GaN Power (Legacy)</option>
+                <option value="accessories">Accessories (Legacy)</option>
+                {category &&
+                  !CATEGORIES.some((c) => c.id === category) &&
+                  category !== 'chargers' &&
+                  category !== 'accessories' && (
+                    <option value={category}>{category}</option>
+                  )}
               </select>
             </div>
 

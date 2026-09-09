@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { formatPrice } from '../utils/currency';
+import { buildWhatsAppLink } from '../utils/phone';
+import { formatWhatsAppCartSummary } from '../utils/whatsapp';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ interface CartDrawerProps {
   onRemoveItem: (productId: string, variantId: string) => void;
   onProceedToCheckout: () => void;
   onClearCart: () => void;
+  whatsappNumber?: string;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -33,6 +36,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onProceedToCheckout,
   onClearCart,
+  whatsappNumber = '+961 71 135 241',
 }) => {
   if (!isOpen) return null;
 
@@ -41,14 +45,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const isFreeDelivery = subtotalUSD >= freeDeliveryThreshold;
   const progressPercent = Math.min(100, (subtotalUSD / freeDeliveryThreshold) * 100);
 
-  const whatsappCartMessage = encodeURIComponent(
-    `Hello On Alaa Store! 🇱🇧\nHere is my shopping cart order:\n\n${items
-      .map(
-        (item, idx) =>
-          `${idx + 1}. ${item.product.name}\n   - Variant: ${item.selectedVariant.name}\n   - Qty: ${item.quantity} x $${item.selectedVariant.priceUSD} = $${item.selectedVariant.priceUSD * item.quantity}`
-      )
-      .join('\n')}\n\n*Total:* $${subtotalUSD}\n\nPlease proceed with my delivery!`
-  );
+  const whatsappCartMessage = formatWhatsAppCartSummary({
+    items,
+    deliveryFeeUSD: isFreeDelivery ? 0 : 3,
+  });
+
+  const whatsappOrderHref = buildWhatsAppLink(whatsappNumber, whatsappCartMessage);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
@@ -147,29 +149,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50 text-xs overflow-hidden">
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.selectedVariant.id, item.quantity - 1)}
-                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-900 active:bg-slate-200 cursor-pointer"
+                          className="w-10 h-10 flex items-center justify-center text-slate-600 hover:text-slate-900 active:bg-slate-200 cursor-pointer"
                           aria-label="Decrease quantity"
                         >
-                          <Minus className="w-3.5 h-3.5" />
+                          <Minus className="w-4 h-4" />
                         </button>
-                        <span className="px-2.5 font-bold text-slate-900 min-w-[24px] text-center">
+                        <span className="px-3 font-bold text-slate-900 min-w-[28px] text-center text-sm">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.selectedVariant.id, item.quantity + 1)}
-                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-900 active:bg-slate-200 cursor-pointer"
+                          className="w-10 h-10 flex items-center justify-center text-slate-600 hover:text-slate-900 active:bg-slate-200 cursor-pointer"
                           aria-label="Increase quantity"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
 
                       <div className="text-right">
-                        <span className="font-bold text-xs text-slate-900 block font-display">
+                        <span className="font-bold text-sm text-slate-900 block font-display">
                           {formatPrice(itemTotal, currency)}
                         </span>
                         {currency === 'USD' && (
-                          <span className="text-[9px] text-slate-400">
+                          <span className="text-[10px] text-slate-400">
                             ≈ {formatPrice(itemTotal, 'LBP')}
                           </span>
                         )}
@@ -179,7 +181,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                   <button
                     onClick={() => onRemoveItem(item.product.id, item.selectedVariant.id)}
-                    className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 cursor-pointer"
+                    className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition shrink-0 cursor-pointer"
                     title="Remove item"
                     aria-label="Remove item"
                   >
@@ -221,12 +223,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
             </div>
 
-            {/* Buttons */}
-            <div className="space-y-2 pt-2">
+            {/* Action Buttons (Frictionless Touch Targets min-h-[48px]) */}
+            <div className="space-y-2.5 pt-2">
               <button
                 id="cart-checkout-btn"
                 onClick={onProceedToCheckout}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition cursor-pointer"
+                className="w-full min-h-[48px] py-3 px-4 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-500/25 transition cursor-pointer"
               >
                 <span>Proceed to Checkout</span>
                 <ArrowRight className="w-4 h-4" />
@@ -234,10 +236,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
               <a
                 id="cart-whatsapp-order-btn"
-                href={`https://wa.me/96171135241?text=${whatsappCartMessage}`}
+                href={whatsappOrderHref}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
+                className="w-full min-h-[48px] py-3 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition cursor-pointer text-center"
+                title="Send whole cart to WhatsApp instantly"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>Fast 1-Click WhatsApp Order</span>
