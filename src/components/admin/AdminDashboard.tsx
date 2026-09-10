@@ -27,10 +27,12 @@ import {
   X,
   FileVideo,
   CheckCircle2,
-  Send
+  Send,
+  BarChart3
 } from 'lucide-react';
 import { Product, StoreSettings, Currency } from '../../types';
 import { ProductFormModal } from './ProductFormModal';
+import { AdminAnalyticsTab } from './AdminAnalyticsTab';
 import { getEmbedVideoUrl, isDirectVideoFile } from '../../utils/video';
 import { formatPrice } from '../../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../../utils/productImages';
@@ -59,7 +61,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigateToStore,
   currency,
 }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'video' | 'banner' | 'overview'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'analytics' | 'video' | 'banner' | 'overview'>('products');
   
   // Product Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -567,6 +569,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
 
             <button
+              id="admin-tab-analytics-btn"
+              onClick={() => setActiveTab('analytics')}
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                activeTab === 'analytics'
+                  ? 'bg-[#FF0000] text-white shadow-lg shadow-red-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Analytics</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                activeTab === 'analytics' ? 'bg-black/30 text-white' : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/60'
+              }`}>
+                Weekly
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('video')}
               className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                 activeTab === 'video'
@@ -966,6 +986,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
             </div>
           </motion.div>
+        )}
+
+        {/* TAB: ANALYTICS (Weekly Sales & Popular Products with Recharts) */}
+        {activeTab === 'analytics' && (
+          <AdminAnalyticsTab
+            products={products}
+            storeSettings={storeSettings}
+            currency={currency}
+            onEditProduct={handleOpenEditProduct}
+            onShowToast={showToast}
+          />
         )}
 
         {/* TAB 2: HOMEPAGE MARKETING VIDEO MANAGER */}

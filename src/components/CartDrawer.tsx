@@ -8,12 +8,15 @@ import {
   ArrowRight, 
   Truck, 
   MessageCircle,
-  ShieldCheck
+  ShieldCheck,
+  Tag,
+  Sparkles
 } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { formatPrice } from '../utils/currency';
 import { buildWhatsAppLink } from '../utils/phone';
 import { formatWhatsAppCartSummary } from '../utils/whatsapp';
+import { getCartSavingsSummary, getCartItemSavings } from '../utils/dealUtils';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -41,6 +44,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   if (!isOpen) return null;
 
   const subtotalUSD = items.reduce((sum, item) => sum + (item.selectedVariant.priceUSD * item.quantity), 0);
+  const cartSavings = getCartSavingsSummary(items);
   const freeDeliveryThreshold = 150;
   const isFreeDelivery = subtotalUSD >= freeDeliveryThreshold;
   const progressPercent = Math.min(100, (subtotalUSD / freeDeliveryThreshold) * 100);
@@ -128,6 +132,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           ) : (
             items.map((item) => {
               const itemTotal = item.selectedVariant.priceUSD * item.quantity;
+              const itemSavings = getCartItemSavings(item);
               return (
                 <div key={`${item.product.id}-${item.selectedVariant.id}`} className="pt-3 first:pt-0 flex gap-3 items-start">
                   <img
@@ -167,12 +172,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
 
                       <div className="text-right">
+                        {itemSavings.hasDiscount && itemSavings.totalSavingsUSD > 0 && (
+                          <span className="text-[10px] text-slate-400 line-through block">
+                            {formatPrice(itemSavings.originalUnitPriceUSD * item.quantity, currency)}
+                          </span>
+                        )}
                         <span className="font-bold text-sm text-slate-900 block font-display">
                           {formatPrice(itemTotal, currency)}
                         </span>
                         {currency === 'USD' && (
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-400 block">
                             ≈ {formatPrice(itemTotal, 'LBP')}
+                          </span>
+                        )}
+                        {itemSavings.hasDiscount && itemSavings.totalSavingsUSD > 0 && (
+                          <span className="inline-block mt-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/80">
+                            Save {formatPrice(itemSavings.totalSavingsUSD, currency)}
                           </span>
                         )}
                       </div>
@@ -198,16 +213,48 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50/70 space-y-3 pb-safe">
             {/* Subtotal Calculation */}
             <div className="space-y-1.5 text-xs text-slate-600">
+              {cartSavings.hasSavings && (
+                <div className="flex justify-between text-slate-500">
+                  <span>Original Price:</span>
+                  <span className="line-through font-medium font-display">
+                    {formatPrice(cartSavings.originalSubtotalUSD, currency)}
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between">
                 <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} items)</span>
                 <span className="font-bold text-slate-900 font-display">{formatPrice(subtotalUSD, currency)}</span>
               </div>
+
+              {/* Total Savings Highlight Row */}
+              {cartSavings.hasSavings && (
+                <div 
+                  id="cart-total-savings-banner"
+                  className="flex justify-between items-center bg-emerald-50 text-emerald-800 px-3 py-2 rounded-xl border border-emerald-200/90 font-bold animate-in fade-in"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Total Savings:</span>
+                  </span>
+                  <div className="text-right">
+                    <span className="font-black text-emerald-700 font-display text-xs sm:text-sm">
+                      -{formatPrice(cartSavings.totalSavingsUSD, currency)}
+                    </span>
+                    <span className="text-[10px] text-emerald-600/90 font-medium block">
+                      ({cartSavings.averageDiscountPercent}% Saved)
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between">
                 <span>Delivery (All Lebanon)</span>
                 <span className="font-bold text-emerald-600">
                   {isFreeDelivery ? 'FREE' : '$3.00 (≈ 270,000 L.L.)'}
                 </span>
               </div>
+
               <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
                 <span>Estimated Total</span>
                 <div className="text-right">
@@ -221,6 +268,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Friendly celebratory savings note */}
+              {cartSavings.hasSavings && (
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-100/60 rounded-xl px-2.5 py-1.5 font-medium border border-emerald-200/60 mt-1">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    You are saving <strong>{formatPrice(cartSavings.totalSavingsUSD, currency)}</strong> on discounted items in this cart!
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons (Frictionless Touch Targets min-h-[48px]) */}

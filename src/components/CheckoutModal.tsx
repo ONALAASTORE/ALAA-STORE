@@ -14,12 +14,15 @@ import {
   Copy,
   Check,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Tag,
+  Sparkles
 } from 'lucide-react';
 import { CartItem, Currency } from '../types';
 import { formatPrice } from '../utils/currency';
 import { buildWhatsAppLink } from '../utils/phone';
 import { formatWhatsAppCartSummary } from '../utils/whatsapp';
+import { getCartSavingsSummary } from '../utils/dealUtils';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -72,6 +75,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [copiedSuccessSummary, setCopiedSuccessSummary] = useState(false);
 
   const subtotalUSD = items.reduce((sum, item) => sum + item.selectedVariant.priceUSD * item.quantity, 0);
+  const cartSavings = useMemo(() => getCartSavingsSummary(items), [items]);
   const deliveryFeeUSD = deliveryType === 'pickup' ? 0 : subtotalUSD >= 150 ? 0 : 3;
   const totalUSD = subtotalUSD + deliveryFeeUSD;
 
@@ -212,6 +216,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <span>Total Due on Arrival</span>
                 <span className="text-sm text-blue-600 font-display">${totalUSD} (≈ {(totalUSD * 89500).toLocaleString()} L.L.)</span>
               </div>
+              {cartSavings.hasSavings && (
+                <div className="flex justify-between items-center py-1 px-2.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Total Discount Savings:</span>
+                  </span>
+                  <span className="text-emerald-700 font-black">
+                    -{formatPrice(cartSavings.totalSavingsUSD, currency)} ({cartSavings.averageDiscountPercent}% OFF)
+                  </span>
+                </div>
+              )}
               <p><strong>Contact Phone:</strong> {phone}</p>
               <p><strong>Destination:</strong> {deliveryType === 'pickup' ? 'In-Store Pickup (Jadra Warehouse Store)' : `${region} - ${address}`}</p>
               <p><strong>Payment Method:</strong> {paymentMethod.toUpperCase()}</p>
@@ -512,16 +527,48 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
             {/* Order Summary & Final Submit */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              {cartSavings.hasSavings && (
+                <div className="flex justify-between font-medium text-slate-500">
+                  <span>Original Subtotal:</span>
+                  <span className="line-through font-display">
+                    {formatPrice(cartSavings.originalSubtotalUSD, currency)}
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between font-medium text-slate-600">
                 <span>Items Subtotal:</span>
                 <span className="font-bold text-slate-900 font-display">{formatPrice(subtotalUSD, currency)}</span>
               </div>
+
+              {/* Total Savings Highlight Row */}
+              {cartSavings.hasSavings && (
+                <div 
+                  id="checkout-total-savings-row"
+                  className="flex justify-between items-center py-1.5 px-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/90 font-bold animate-in fade-in"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Total Savings:</span>
+                  </span>
+                  <div className="text-right">
+                    <span className="text-emerald-700 font-display font-black text-xs sm:text-sm">
+                      -{formatPrice(cartSavings.totalSavingsUSD, currency)}
+                    </span>
+                    <span className="text-[10px] text-emerald-600/90 font-medium block">
+                      ({cartSavings.averageDiscountPercent}% OFF on deals)
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between font-medium text-slate-600">
                 <span>Delivery:</span>
                 <span className="font-bold text-emerald-600">
                   {deliveryFeeUSD === 0 ? 'FREE' : formatPrice(deliveryFeeUSD, currency)}
                 </span>
               </div>
+
               <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
                 <span>Grand Total:</span>
                 <div className="text-right">
@@ -533,6 +580,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   )}
                 </div>
               </div>
+
+              {cartSavings.hasSavings && (
+                <div className="pt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    Total discount savings of <strong>{formatPrice(cartSavings.totalSavingsUSD, currency)}</strong> applied to this purchase!
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2.5 pt-1">

@@ -1,4 +1,4 @@
-import { Product } from '../types';
+import { Product, CartItem } from '../types';
 
 export interface ProductDealInfo {
   isDiscounted: boolean;
@@ -6,6 +6,24 @@ export interface ProductDealInfo {
   originalPriceUSD: number;
   savingsUSD: number;
   discountPercent: number;
+}
+
+export interface CartItemSavingsInfo {
+  unitPriceUSD: number;
+  originalUnitPriceUSD: number;
+  unitSavingsUSD: number;
+  totalSavingsUSD: number;
+  hasDiscount: boolean;
+  discountPercent: number;
+}
+
+export interface CartSavingsSummary {
+  subtotalUSD: number;
+  originalSubtotalUSD: number;
+  totalSavingsUSD: number;
+  discountedItemsCount: number;
+  hasSavings: boolean;
+  averageDiscountPercent: number;
 }
 
 /**
@@ -86,3 +104,86 @@ export function getDiscountedProducts(products: Product[]): Product[] {
     return deal.isDiscounted && deal.savingsUSD > 0;
   });
 }
+
+/**
+  * Calculates the savings amount and original price for an individual cart item line.
+  */
+export function getCartItemSavings(item: CartItem): CartItemSavingsInfo {
+  const currentPrice = item.selectedVariant.priceUSD;
+  const product = item.product;
+  const deal = getProductDealInfo(product);
+
+  let unitSavingsUSD = 0;
+  let originalUnitPriceUSD = currentPrice;
+  let discountPercent = 0;
+
+  if (deal.isDiscounted && deal.savingsUSD > 0) {
+    if (product.originalPriceUSD && product.originalPriceUSD > currentPrice) {
+      originalUnitPriceUSD = product.originalPriceUSD;
+      unitSavingsUSD = originalUnitPriceUSD - currentPrice;
+      discountPercent = Math.round((unitSavingsUSD / originalUnitPriceUSD) * 100);
+    } else if (product.originalPriceUSD && product.originalPriceUSD > product.basePriceUSD) {
+      // Variant upgrade: maintain same dollar savings or proportional discount
+      const diff = product.originalPriceUSD - product.basePriceUSD;
+      unitSavingsUSD = diff;
+      originalUnitPriceUSD = currentPrice + diff;
+      discountPercent = Math.round((unitSavingsUSD / originalUnitPriceUSD) * 100);
+    } else if (product.discountPercentage && product.discountPercentage > 0) {
+      discountPercent = Math.round(product.discountPercentage);
+      originalUnitPriceUSD = Math.round(currentPrice / (1 - discountPercent / 100));
+      unitSavingsUSD = Math.max(0, originalUnitPriceUSD - currentPrice);
+    } else if (deal.savingsUSD > 0) {
+      unitSavingsUSD = deal.savingsUSD;
+      originalUnitPriceUSD = currentPrice + unitSavingsUSD;
+      discountPercent = deal.discountPercent || Math.round((unitSavingsUSD / originalUnitPriceUSD) * 100);
+    }
+  }
+
+  const totalSavingsUSD = unitSavingsUSD * item.quantity;
+
+  return {
+    unitPriceUSD: currentPrice,
+    originalUnitPriceUSD,
+    unitSavingsUSD,
+    totalSavingsUSD,
+    hasDiscount: unitSavingsUSD > 0,
+    discountPercent,
+  };
+}
+
+/**
+ * Calculates the aggregate Total Savings across all items in a customer's cart.
+ */
+export function getCartSavingsSummary(items: CartItem[]): CartSavingsSummary {
+  let totalSavingsUSD = 0;
+  let discountedItemsCount = 0;
+  let subtotalUSD = 0;
+
+  items.forEach((item) => {
+    const itemSubtotal = item.selectedVariant.priceUSD * item.quantity;
+    subtotalUSD += itemSubtotal;
+
+    const itemSavings = getCartItemSavings(item);
+    if (itemSavings.hasDiscount && itemSavings.totalSavingsUSD > 0) {
+      totalSavingsUSD += itemSavings.totalSavingsUSD;
+      discountedItemsCount += item.quantity;
+    }
+  });
+
+  const originalSubtotalUSD = subtotalUSD + totalSavingsUSD;
+  const hasSavings = totalSavingsUSD > 0;
+  const averageDiscountPercent =
+    hasSavings && originalSubtotalUSD > 0
+      ? Math.round((totalSavingsUSD / originalSubtotalUSD) * 100)
+      : 0;
+
+  return {
+    subtotalUSD,
+    originalSubtotalUSD,
+    totalSavingsUSD,
+    discountedItemsCount,
+    hasSavings,
+    averageDiscountPercent,
+  };
+}
+

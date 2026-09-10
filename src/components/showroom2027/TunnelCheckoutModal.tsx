@@ -17,6 +17,7 @@ import {
 import { CartItem, Currency, StoreSettings } from '../../types';
 import { formatPrice } from '../../utils/currency';
 import { buildWhatsAppLink } from '../../utils/phone';
+import { getCartSavingsSummary } from '../../utils/dealUtils';
 import { 
   playClickBeep, 
   playHologramActivation, 
@@ -59,6 +60,7 @@ export const TunnelCheckoutModal: React.FC<TunnelCheckoutModalProps> = ({
   const [orderId, setOrderId] = useState('');
 
   const subtotalUSD = cartItems.reduce((acc, item) => acc + item.selectedVariant.priceUSD * item.quantity, 0);
+  const cartSavings = getCartSavingsSummary(cartItems);
   const deliveryUSD = couponApplied ? 0 : 5;
   const totalUSD = subtotalUSD + deliveryUSD;
 
@@ -240,11 +242,24 @@ ${summaryLines}
                 )}
 
                 {/* Subtotal Preview */}
-                <div className="p-4 rounded-2xl glass-2027 border border-white/10 flex items-center justify-between">
-                  <span className="text-xs font-mono text-slate-300 uppercase">Subtotal Payload</span>
-                  <span className="text-lg font-black text-gradient-gold">
-                    {formatPrice(subtotalUSD, currency)}
-                  </span>
+                <div className="p-4 rounded-2xl glass-2027 border border-white/10 space-y-2">
+                  {cartSavings.hasSavings && (
+                    <div className="flex items-center justify-between text-xs font-mono text-emerald-400">
+                      <span className="flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5" />
+                        <span>PROMO SAVINGS</span>
+                      </span>
+                      <span className="font-bold">
+                        -{formatPrice(cartSavings.totalSavingsUSD, currency)} ({cartSavings.averageDiscountPercent}% OFF)
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-slate-300 uppercase">Subtotal Payload</span>
+                    <span className="text-lg font-black text-gradient-gold">
+                      {formatPrice(subtotalUSD, currency)}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -400,6 +415,17 @@ ${summaryLines}
 
                 {/* Cost Matrix Breakdown */}
                 <div className="p-4 rounded-2xl glass-2027 border border-white/10 space-y-2">
+                  {cartSavings.hasSavings && (
+                    <div className="flex items-center justify-between text-xs text-emerald-400 font-mono">
+                      <span className="flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5" />
+                        <span>Total Deal Savings:</span>
+                      </span>
+                      <span className="font-bold">
+                        -${cartSavings.totalSavingsUSD.toLocaleString()} ({cartSavings.averageDiscountPercent}% OFF)
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-xs text-slate-300">
                     <span>Hardware Payload Total:</span>
                     <span className="font-mono font-bold">${subtotalUSD}</span>

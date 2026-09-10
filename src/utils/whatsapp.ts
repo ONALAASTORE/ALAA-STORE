@@ -1,6 +1,7 @@
 import { CartItem } from '../types';
 import { DEFAULT_USD_TO_LBP_RATE } from './currency';
 import { buildWhatsAppLink } from './phone';
+import { getCartSavingsSummary, getCartItemSavings } from './dealUtils';
 
 export interface WhatsAppCartSummaryOptions {
   items: CartItem[];
@@ -107,14 +108,29 @@ export function formatWhatsAppCartSummary(options: WhatsAppCartSummaryOptions): 
     lines.push(
       `   ▫️ *Qty:* ${item.quantity} × $${item.selectedVariant.priceUSD.toLocaleString()} = *$${itemTotalUSD.toLocaleString()}* (≈ ${itemTotalLBP.toLocaleString()} L.L.)`
     );
+    const itemSavings = getCartItemSavings(item);
+    if (itemSavings.hasDiscount && itemSavings.unitSavingsUSD > 0) {
+      lines.push(
+        `   ▫️ *Discount:* Was ~$${itemSavings.originalUnitPriceUSD.toLocaleString()}~ (Save $${(itemSavings.unitSavingsUSD * item.quantity).toLocaleString()} total)`
+      );
+    }
     lines.push('');
   });
 
   lines.push(divider);
 
   // Pricing & Totals Breakdown
+  const cartSavings = getCartSavingsSummary(items);
   lines.push(`📊 *PRICING & TOTAL BREAKDOWN:*`);
-  lines.push(`• *Items Subtotal:* $${subtotalUSD.toLocaleString()} (≈ ${subtotalLBP.toLocaleString()} L.L.)`);
+  if (cartSavings.hasSavings) {
+    const origSubtotalLBP = Math.round(cartSavings.originalSubtotalUSD * rate);
+    const totalSavingsLBP = Math.round(cartSavings.totalSavingsUSD * rate);
+    lines.push(`• *Original Subtotal:* ~$${cartSavings.originalSubtotalUSD.toLocaleString()}~ (≈ ${origSubtotalLBP.toLocaleString()} L.L.)`);
+    lines.push(`• *Discounted Subtotal:* $${subtotalUSD.toLocaleString()} (≈ ${subtotalLBP.toLocaleString()} L.L.)`);
+    lines.push(`• *🎉 Total Savings:* -$${cartSavings.totalSavingsUSD.toLocaleString()} (≈ -${totalSavingsLBP.toLocaleString()} L.L.) [${cartSavings.averageDiscountPercent}% OFF]`);
+  } else {
+    lines.push(`• *Items Subtotal:* $${subtotalUSD.toLocaleString()} (≈ ${subtotalLBP.toLocaleString()} L.L.)`);
+  }
   
   if (customer?.deliveryType === 'pickup') {
     lines.push(`• *Delivery:* FREE (Store Pickup at Jadra Warehouse Store)`);
