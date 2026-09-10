@@ -7,17 +7,19 @@ import {
   MapPin, 
   Phone, 
   Mail, 
-  Calculator
+  Calculator,
+  Flame
 } from 'lucide-react';
 import { LogoAvatar, Brand3DText } from './brand';
 import { buildWhatsAppLink } from '../utils/phone';
 
 interface FooterProps {
-  onSelectCategory: (catId: string) => void;
-  onOpenTradeIn: () => void;
-  onOpenContact: () => void;
+  onSelectCategory?: (catId: string) => void;
+  onOpenTradeIn?: () => void;
+  onOpenContact?: () => void;
   whatsappNumber?: string;
   supportEmail?: string;
+  onNavigateToOffers?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -26,6 +28,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenContact,
   whatsappNumber = '+961 71 135 241',
   supportEmail = 'alaastoreon@gmail.com',
+  onNavigateToOffers,
 }) => {
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 mt-16">
@@ -111,33 +114,45 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="space-y-3 text-xs">
           <h5 className="font-bold text-white text-sm uppercase tracking-wider">Categories</h5>
           <ul className="space-y-2">
+            {onNavigateToOffers && (
+              <li>
+                <button 
+                  id="footer-offers-category-link"
+                  onClick={onNavigateToOffers} 
+                  className="text-rose-400 hover:text-rose-300 font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Flame className="w-3.5 h-3.5 fill-rose-400" />
+                  <span>🔥 Special Offers & Deals</span>
+                </button>
+              </li>
+            )}
             <li>
-              <button onClick={() => onSelectCategory('smartphones')} className="hover:text-white transition">
+              <button onClick={() => onSelectCategory?.('smartphones')} className="hover:text-white transition">
                 Smartphones & iPhones
               </button>
             </li>
             <li>
-              <button onClick={() => onSelectCategory('laptops')} className="hover:text-white transition">
+              <button onClick={() => onSelectCategory?.('laptops')} className="hover:text-white transition">
                 Laptops & MacBooks
               </button>
             </li>
             <li>
-              <button onClick={() => onSelectCategory('audio')} className="hover:text-white transition">
+              <button onClick={() => onSelectCategory?.('audio')} className="hover:text-white transition">
                 Audio & Noise-Cancelling
               </button>
             </li>
             <li>
-              <button onClick={() => onSelectCategory('wearables')} className="hover:text-white transition">
+              <button onClick={() => onSelectCategory?.('wearables')} className="hover:text-white transition">
                 Smartwatches & Bands
               </button>
             </li>
             <li>
-              <button onClick={() => onSelectCategory('gaming')} className="hover:text-white transition">
+              <button onClick={() => onSelectCategory?.('gaming')} className="hover:text-white transition">
                 PlayStation & Gaming Gear
               </button>
             </li>
             <li>
-              <button onClick={() => onSelectCategory('power')} className="hover:text-white transition">
+              <button onClick={() => onSelectCategory?.('power')} className="hover:text-white transition">
                 Anker GaN Fast Chargers
               </button>
             </li>
@@ -148,6 +163,20 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="space-y-3 text-xs">
           <h5 className="font-bold text-white text-sm uppercase tracking-wider">Services</h5>
           <ul className="space-y-2">
+            {onNavigateToOffers && (
+              <li>
+                <button 
+                  id="footer-offers-service-link"
+                  onClick={onNavigateToOffers} 
+                  className="text-rose-400 hover:text-rose-300 font-semibold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🔥 Flash Discounts & Deals</span>
+                  <span className="bg-rose-500/20 text-rose-300 text-[9px] font-black px-1.5 py-0.2 rounded-full border border-rose-500/30">
+                    Active
+                  </span>
+                </button>
+              </li>
+            )}
             <li>
               <button onClick={onOpenTradeIn} className="text-amber-400 hover:text-amber-300 font-semibold transition">
                 Device Trade-In Calculator

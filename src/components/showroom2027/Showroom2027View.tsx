@@ -14,7 +14,8 @@ import {
   Truck, 
   ArrowRightLeft, 
   Heart,
-  X 
+  X,
+  Flame 
 } from 'lucide-react';
 import { Product, Currency, CartItem, ProductVariant, StoreSettings } from '../../types';
 import { ShowroomMeshBackground } from './ShowroomMeshBackground';
@@ -51,6 +52,7 @@ interface Showroom2027ViewProps {
   onOpenAdmin: () => void;
   onOpenWishlist: () => void;
   onOpenCompare: () => void;
+  onNavigateToOffers?: () => void;
 }
 
 export const Showroom2027View: React.FC<Showroom2027ViewProps> = ({
@@ -71,6 +73,7 @@ export const Showroom2027View: React.FC<Showroom2027ViewProps> = ({
   onOpenAdmin,
   onOpenWishlist,
   onOpenCompare,
+  onNavigateToOffers,
 }) => {
   // Category filtering
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -232,6 +235,23 @@ export const Showroom2027View: React.FC<Showroom2027ViewProps> = ({
             >
               <ArrowRightLeft className="w-4 h-4" />
             </button>
+
+            {/* Special Offers Teleport */}
+            {onNavigateToOffers && (
+              <button
+                type="button"
+                onClick={() => {
+                  playClickBeep();
+                  onNavigateToOffers();
+                }}
+                onMouseEnter={playHoverBlip}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white text-xs font-black hover:brightness-110 active:scale-95 transition cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.4)]"
+                title="View Active Discounts & Special Offers"
+              >
+                <Flame className="w-3.5 h-3.5 fill-white animate-pulse" />
+                <span>Offers</span>
+              </button>
+            )}
 
             {/* Classic View Mode Switcher */}
             <button

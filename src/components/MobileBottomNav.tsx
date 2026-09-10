@@ -4,7 +4,8 @@ import {
   SlidersHorizontal, 
   Heart, 
   ArrowLeftRight, 
-  ShoppingCart 
+  ShoppingCart,
+  Flame
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
@@ -17,6 +18,9 @@ interface MobileBottomNavProps {
   onOpenWishlist: () => void;
   onOpenCompare: () => void;
   onScrollToTop: () => void;
+  onNavigateToOffers?: () => void;
+  isOffersActive?: boolean;
+  offersCount?: number;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -29,6 +33,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenWishlist,
   onOpenCompare,
   onScrollToTop,
+  onNavigateToOffers,
+  isOffersActive = false,
+  offersCount = 0,
 }) => {
   return (
     <nav 
@@ -42,31 +49,55 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           id="mobile-nav-store"
           type="button"
           onClick={onScrollToTop}
-          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50"
+          className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 ${
+            !isOffersActive ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600 font-semibold'
+          }`}
           aria-label="Storefront Top"
         >
           <Store className="w-5 h-5" />
-          <span className="text-[10px] font-bold tracking-tight">Store</span>
+          <span className="text-[10px] tracking-tight">Store</span>
         </button>
 
-        {/* 2. Filters & Sort Drawer */}
-        <button
-          id="mobile-nav-filters"
-          type="button"
-          onClick={onOpenMobileFilters}
-          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
-          aria-label="Filter products"
-        >
-          <div className="relative">
-            <SlidersHorizontal className="w-5 h-5" />
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                {activeFilterCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] font-bold tracking-tight">Filters</span>
-        </button>
+        {/* 2. Offers OR Filters */}
+        {onNavigateToOffers ? (
+          <button
+            id="mobile-nav-offers"
+            type="button"
+            onClick={onNavigateToOffers}
+            className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-rose-50/60 relative ${
+              isOffersActive ? 'text-rose-600 font-black' : 'text-rose-500 hover:text-rose-600 font-bold'
+            }`}
+            aria-label="Special Offers"
+          >
+            <div className="relative">
+              <Flame className={`w-5 h-5 ${isOffersActive ? 'fill-rose-500 text-rose-500' : 'fill-rose-100 text-rose-500 animate-pulse'}`} />
+              {offersCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white font-black text-[9px] px-1 h-3.5 min-w-3.5 rounded-full flex items-center justify-center shadow-xs">
+                  {offersCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] tracking-tight">Offers</span>
+          </button>
+        ) : (
+          <button
+            id="mobile-nav-filters"
+            type="button"
+            onClick={onOpenMobileFilters}
+            className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
+            aria-label="Filter products"
+          >
+            <div className="relative">
+              <SlidersHorizontal className="w-5 h-5" />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold tracking-tight">Filters</span>
+          </button>
+        )}
 
         {/* 3. Wishlist */}
         <button
@@ -87,24 +118,44 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <span className="text-[10px] font-bold tracking-tight">Wishlist</span>
         </button>
 
-        {/* 4. Compare */}
-        <button
-          id="mobile-nav-compare"
-          type="button"
-          onClick={onOpenCompare}
-          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
-          aria-label="Compare Devices"
-        >
-          <div className="relative">
-            <ArrowLeftRight className="w-5 h-5" />
-            {compareCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                {compareCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] font-bold tracking-tight">Compare</span>
-        </button>
+        {/* 4. Filters or Compare */}
+        {onNavigateToOffers ? (
+          <button
+            id="mobile-nav-filters"
+            type="button"
+            onClick={onOpenMobileFilters}
+            className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
+            aria-label="Filter products"
+          >
+            <div className="relative">
+              <SlidersHorizontal className="w-5 h-5" />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold tracking-tight">Filters</span>
+          </button>
+        ) : (
+          <button
+            id="mobile-nav-compare"
+            type="button"
+            onClick={onOpenCompare}
+            className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
+            aria-label="Compare Devices"
+          >
+            <div className="relative">
+              <ArrowLeftRight className="w-5 h-5" />
+              {compareCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                  {compareCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold tracking-tight">Compare</span>
+          </button>
+        )}
 
         {/* 5. Cart Drawer */}
         <button

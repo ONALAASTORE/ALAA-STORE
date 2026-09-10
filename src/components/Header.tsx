@@ -12,7 +12,8 @@ import {
   Calculator,
   Sparkles,
   Coins,
-  Check
+  Check,
+  Flame
 } from 'lucide-react';
 import { Currency, Product } from '../types';
 import { CATEGORIES } from '../data/categories';
@@ -45,6 +46,9 @@ interface HeaderProps {
   isTopBannerActive?: boolean;
   whatsappNumber?: string;
   onSwitchToShowroom?: () => void;
+  isOffersPage?: boolean;
+  onNavigateToOffers?: () => void;
+  offersCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -69,6 +73,9 @@ export const Header: React.FC<HeaderProps> = ({
   isTopBannerActive = true,
   whatsappNumber = '+961 71 135 241',
   onSwitchToShowroom,
+  isOffersPage = false,
+  onNavigateToOffers,
+  offersCount = 0,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -273,6 +280,30 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
+            {/* Special Offers Page Trigger */}
+            {onNavigateToOffers && (
+              <button
+                id="header-offers-btn"
+                onClick={onNavigateToOffers}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs transition cursor-pointer active:scale-95 shadow-2xs ${
+                  isOffersPage
+                    ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/90'
+                }`}
+                title="View Special Offers & Discounted Products"
+              >
+                <Flame className={`w-3.5 h-3.5 ${isOffersPage ? 'fill-white text-white' : 'fill-rose-500 text-rose-500 animate-pulse'}`} />
+                <span>Offers</span>
+                {offersCount !== undefined && offersCount > 0 && (
+                  <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                    isOffersPage ? 'bg-white/20 text-white' : 'bg-rose-600 text-white'
+                  }`}>
+                    {offersCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* 2027 3D Showroom Mode Switcher */}
             {onSwitchToShowroom && (
               <button
@@ -362,6 +393,29 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Category Pills Bar */}
       <div className="bg-slate-50/90 border-t border-slate-200/60 overflow-x-auto scrollbar-none py-2 px-4">
         <div className="max-w-7xl mx-auto flex items-center gap-1.5 sm:gap-2">
+          {/* Special Offers Pill */}
+          {onNavigateToOffers && (
+            <button
+              id="cat-nav-btn-offers"
+              onClick={onNavigateToOffers}
+              className={`whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                isOffersPage
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 shadow-2xs'
+              }`}
+            >
+              <Flame className={`w-3.5 h-3.5 shrink-0 ${isOffersPage ? 'fill-white text-white' : 'fill-rose-500 text-rose-500'}`} />
+              <span>🔥 Special Offers</span>
+              {offersCount !== undefined && offersCount > 0 && (
+                <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                  isOffersPage ? 'bg-white/20 text-white' : 'bg-rose-600 text-white'
+                }`}>
+                  {offersCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat.id;
             return (
@@ -435,6 +489,28 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Special Offers Mobile Banner */}
+          {onNavigateToOffers && (
+            <button
+              id="mobile-menu-offers-btn"
+              onClick={() => {
+                onNavigateToOffers();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full min-h-[48px] flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 active:scale-98 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 fill-white animate-pulse" />
+                <span>Special Offers & Hot Deals</span>
+              </div>
+              {offersCount !== undefined && offersCount > 0 && (
+                <span className="bg-white/25 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {offersCount} Deals Live
+                </span>
+              )}
+            </button>
+          )}
 
           <div className="grid grid-cols-2 gap-2.5">
             <button

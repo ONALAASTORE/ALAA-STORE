@@ -33,6 +33,8 @@ import { getProductImages } from './utils/productImages';
 import { CategoryIcon } from './utils/categoryIcons';
 import { Showroom2027View } from './components/showroom2027/Showroom2027View';
 import { decodeWishlistIds } from './utils/wishlistShare';
+import { SpecialOffersPage } from './components/SpecialOffersPage';
+import { getDiscountedProducts } from './utils/dealUtils';
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
@@ -84,8 +86,8 @@ const pageTransitionVariants: Variants = {
 const CURRENCY_STORAGE_KEY = 'on_alaa_store_currency';
 
 export function App() {
-  // Routing View state ('store' | 'admin-login' | 'admin')
-  const [currentRoute, setCurrentRoute] = useState<'store' | 'admin-login' | 'admin'>(() => {
+  // Routing View state ('store' | 'offers' | 'admin-login' | 'admin')
+  const [currentRoute, setCurrentRoute] = useState<'store' | 'offers' | 'admin-login' | 'admin'>(() => {
     const hash = window.location.hash.toLowerCase();
     const isAuth = localStorage.getItem('on_alaa_admin_auth') === 'true';
     if (hash === '#admin' || hash === '#/admin') {
@@ -93,6 +95,9 @@ export function App() {
     }
     if (hash === '#admin-login' || hash === '#/admin/login' || hash === '#login') {
       return 'admin-login';
+    }
+    if (hash === '#offers' || hash === '#/offers' || hash === '#deals' || hash === '#special-offers') {
+      return 'offers';
     }
     return 'store';
   });
@@ -228,6 +233,8 @@ export function App() {
         }
       } else if (hash === '#admin-login' || hash === '#/admin/login' || hash === '#login') {
         setCurrentRoute('admin-login');
+      } else if (hash === '#offers' || hash === '#/offers' || hash === '#deals' || hash === '#special-offers') {
+        setCurrentRoute('offers');
       } else if (hash === '' || hash === '#' || hash === '#/' || hash === '#store') {
         setCurrentRoute('store');
       }
@@ -333,6 +340,9 @@ export function App() {
     } else if (currentRoute === 'admin-login') {
       title = 'Admin Portal Login | On Alaa Store Lebanon';
       description = 'Secure admin sign-in portal for On Alaa Store management.';
+    } else if (currentRoute === 'offers') {
+      title = 'Special Offers & Hot Deals | ON ALAA STORE Lebanon';
+      description = 'Discover genuine discounted prices, hot deals, and exclusive promotional offers on smartphones, MacBooks, gaming consoles, and audio gear at ON ALAA STORE Lebanon.';
     } else if (isCheckoutOpen) {
       title = 'Order Checkout | On Alaa Store Lebanon';
       description = 'Complete your electronics order with fast cash-on-delivery across all regions of Lebanon.';
@@ -469,7 +479,19 @@ export function App() {
   const handleNavigateToStore = () => {
     window.location.hash = '';
     setCurrentRoute('store');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handleNavigateToOffers = () => {
+    window.location.hash = '#offers';
+    setCurrentRoute('offers');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Discounted products count for promotional badges
+  const discountedProductsCount = useMemo(() => {
+    return getDiscountedProducts(productsList).length;
+  }, [productsList]);
 
   // Cart operations
   const handleAddToCart = (product: Product, variant?: ProductVariant, quantity: number = 1) => {
@@ -751,6 +773,95 @@ export function App() {
               onBackToStore={handleNavigateToStore}
             />
           </motion.div>
+        ) : currentRoute === 'offers' ? (
+          <motion.div
+            key="special-offers-page"
+            variants={pageTransitionVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-[#FF0000] selection:text-white font-sans pb-24 md:pb-0"
+          >
+            {/* Top Header */}
+            <Header
+              currency={currency}
+              onCurrencyChange={setCurrency}
+              searchQuery=""
+              onSearchChange={(q) => {
+                setFilterState((prev) => ({ ...prev, searchQuery: q }));
+                handleNavigateToStore();
+              }}
+              selectedCategory="all"
+              onSelectCategory={(catId) => {
+                setFilterState((prev) => ({ ...prev, category: catId }));
+                handleNavigateToStore();
+              }}
+              products={productsList}
+              onSelectProduct={handleOpenProductDetail}
+              cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
+              onOpenCart={() => setIsCartOpen(true)}
+              wishlistCount={wishlistIds.length}
+              onOpenWishlist={() => setIsWishlistOpen(true)}
+              compareCount={comparedProducts.length}
+              onOpenCompare={() => setIsCompareOpen(true)}
+              onOpenTradeIn={() => setIsTradeInOpen(true)}
+              onOpenContact={() => setIsContactOpen(true)}
+              onOpenAdmin={handleNavigateToAdmin}
+              topBannerText={storeSettings.topBannerText}
+              isTopBannerActive={storeSettings.isTopBannerActive}
+              whatsappNumber={storeSettings.whatsappNumber}
+              onSwitchToShowroom={() => handleToggleShowroom(true)}
+              isOffersPage={true}
+              onNavigateToOffers={handleNavigateToOffers}
+              offersCount={discountedProductsCount}
+            />
+
+            {/* Special Offers Dedicated View */}
+            <SpecialOffersPage
+              products={productsList}
+              currency={currency}
+              onSelectProduct={handleOpenProductDetail}
+              onAddToCart={(p, v) => handleAddToCart(p, v, 1)}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+              comparedProducts={comparedProducts}
+              onToggleCompare={handleToggleCompare}
+              onBackToStore={handleNavigateToStore}
+              whatsappNumber={storeSettings.whatsappNumber}
+            />
+
+            {/* Footer */}
+            <Footer
+              onSelectCategory={(catId) => {
+                setFilterState((prev) => ({ ...prev, category: catId }));
+                handleNavigateToStore();
+              }}
+              onOpenTradeIn={() => setIsTradeInOpen(true)}
+              onOpenContact={() => setIsContactOpen(true)}
+              whatsappNumber={storeSettings.whatsappNumber}
+              supportEmail={storeSettings.supportEmail}
+              onNavigateToOffers={handleNavigateToOffers}
+            />
+
+            {/* Floating Scroll to Top Button */}
+            <ScrollToTopButton threshold={400} />
+
+            {/* Mobile Sticky Bottom Navigation Bar (< 768px) */}
+            <MobileBottomNav
+              cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
+              wishlistCount={wishlistIds.length}
+              compareCount={comparedProducts.length}
+              activeFilterCount={0}
+              onOpenMobileFilters={() => {}}
+              onOpenCart={() => setIsCartOpen(true)}
+              onOpenWishlist={() => setIsWishlistOpen(true)}
+              onOpenCompare={() => setIsCompareOpen(true)}
+              onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onNavigateToOffers={handleNavigateToOffers}
+              isOffersActive={true}
+              offersCount={discountedProductsCount}
+            />
+          </motion.div>
         ) : showroomMode ? (
           <motion.div
             key="showroom-2027-page"
@@ -778,6 +889,7 @@ export function App() {
               onOpenAdmin={handleNavigateToAdmin}
               onOpenWishlist={() => setIsWishlistOpen(true)}
               onOpenCompare={() => setIsCompareOpen(true)}
+              onNavigateToOffers={handleNavigateToOffers}
             />
           </motion.div>
         ) : (
@@ -812,6 +924,9 @@ export function App() {
         isTopBannerActive={storeSettings.isTopBannerActive}
         whatsappNumber={storeSettings.whatsappNumber}
         onSwitchToShowroom={() => handleToggleShowroom(true)}
+        isOffersPage={false}
+        onNavigateToOffers={handleNavigateToOffers}
+        offersCount={discountedProductsCount}
       />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1 space-y-6 sm:space-y-8 w-full">
@@ -1088,6 +1203,55 @@ export function App() {
         </div>
       </main>
 
+      {/* Footer */}
+      <Footer
+        onSelectCategory={(catId) => {
+          setFilterState((prev) => ({ ...prev, category: catId }));
+          window.scrollTo({ top: 400, behavior: 'smooth' });
+        }}
+        onOpenTradeIn={() => setIsTradeInOpen(true)}
+        onOpenContact={() => setIsContactOpen(true)}
+        whatsappNumber={storeSettings.whatsappNumber}
+        supportEmail={storeSettings.supportEmail}
+        onNavigateToOffers={handleNavigateToOffers}
+      />
+
+      {/* Floating Scroll to Top Button */}
+      <ScrollToTopButton threshold={400} />
+
+      {/* Mobile Filter Slide-Over Drawer (< 1024px) */}
+      <MobileFilterDrawer
+        isOpen={mobileFilterOpen}
+        onClose={() => setMobileFilterOpen(false)}
+        filterState={filterState}
+        setFilterState={setFilterState}
+        currency={currency}
+        itemCount={filteredProducts.length}
+        onResetFilters={handleResetFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
+
+      {/* Mobile Sticky Bottom Navigation Bar (< 768px) */}
+      <MobileBottomNav
+        cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
+        wishlistCount={wishlistIds.length}
+        compareCount={comparedProducts.length}
+        activeFilterCount={activeFilterCount}
+        onOpenMobileFilters={() => setMobileFilterOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenCompare={() => setIsCompareOpen(true)}
+        onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onNavigateToOffers={handleNavigateToOffers}
+        isOffersActive={false}
+        offersCount={discountedProductsCount}
+      />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Shared Global Modals & Drawers (accessible across Store, Offers, Showroom) */}
+
       {/* Product Detail Modal */}
       <AnimatePresence>
         {selectedProduct && (
@@ -1193,49 +1357,6 @@ export function App() {
         whatsappNumber={storeSettings.whatsappNumber}
         supportEmail={storeSettings.supportEmail}
       />
-
-      {/* Footer */}
-      <Footer
-        onSelectCategory={(catId) => {
-          setFilterState((prev) => ({ ...prev, category: catId }));
-          window.scrollTo({ top: 400, behavior: 'smooth' });
-        }}
-        onOpenTradeIn={() => setIsTradeInOpen(true)}
-        onOpenContact={() => setIsContactOpen(true)}
-        whatsappNumber={storeSettings.whatsappNumber}
-        supportEmail={storeSettings.supportEmail}
-      />
-
-      {/* Floating Scroll to Top Button */}
-      <ScrollToTopButton threshold={400} />
-
-      {/* Mobile Filter Slide-Over Drawer (< 1024px) */}
-      <MobileFilterDrawer
-        isOpen={mobileFilterOpen}
-        onClose={() => setMobileFilterOpen(false)}
-        filterState={filterState}
-        setFilterState={setFilterState}
-        currency={currency}
-        itemCount={filteredProducts.length}
-        onResetFilters={handleResetFilters}
-        hasActiveFilters={hasActiveFilters}
-      />
-
-      {/* Mobile Sticky Bottom Navigation Bar (< 768px) */}
-      <MobileBottomNav
-        cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
-        wishlistCount={wishlistIds.length}
-        compareCount={comparedProducts.length}
-        activeFilterCount={activeFilterCount}
-        onOpenMobileFilters={() => setMobileFilterOpen(true)}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenCompare={() => setIsCompareOpen(true)}
-        onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

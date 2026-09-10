@@ -13,6 +13,8 @@ import {
   Sparkles,
   Users
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import confetti from 'canvas-confetti';
 import { Product, Currency } from '../types';
 import { formatPrice } from '../utils/currency';
 import { 
@@ -57,6 +59,17 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
+  // Subtle confetti explosion state for micro-particles
+  const [burstCenter, setBurstCenter] = useState<{ x: number; y: number } | null>(null);
+  const [particles, setParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    color: string;
+    size: number;
+    rotation: number;
+  }>>([]);
+
   // Generate shareable URL with encoded product IDs
   const productIds = useMemo(() => products.map((p) => p.id), [products]);
   const shareUrl = useMemo(() => buildWishlistShareUrl(productIds), [productIds]);
@@ -74,6 +87,69 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
     () => formatWishlistShareMessage(products, shareUrl, currency),
     [products, shareUrl, currency]
   );
+
+  // Trigger subtle confetti burst on successful copy
+  const triggerSubtleConfetti = (e?: React.MouseEvent | null) => {
+    try {
+      let originX = 0.5;
+      let originY = 0.45;
+      if (e && typeof window !== 'undefined' && window.innerWidth > 0 && window.innerHeight > 0) {
+        if (typeof e.clientX === 'number' && e.clientX > 0) {
+          originX = Math.max(0.12, Math.min(0.88, e.clientX / window.innerWidth));
+        }
+        if (typeof e.clientY === 'number' && e.clientY > 0) {
+          originY = Math.max(0.12, Math.min(0.88, e.clientY / window.innerHeight));
+        }
+      }
+
+      // Subtle, refined explosion using brand jewelry and storefront tones
+      confetti({
+        particleCount: 45,
+        angle: 90,
+        spread: 68,
+        origin: { x: originX, y: originY },
+        colors: [
+          '#f43f5e', // rose-500
+          '#e11d48', // rose-600
+          '#fb7185', // rose-400
+          '#38bdf8', // sky-400
+          '#10b981', // emerald-500
+          '#f59e0b', // amber-500
+          '#a855f7', // purple-500
+          '#ec4899', // pink-500
+        ],
+        ticks: 180,
+        gravity: 1.15,
+        decay: 0.94,
+        scalar: 0.85,
+        shapes: ['circle', 'square'],
+        disableForReducedMotion: true,
+        zIndex: 99999,
+      });
+    } catch (err) {
+      console.warn('Canvas confetti error:', err);
+    }
+
+    // Localized tactile motion micro-particles
+    const clientX = e?.clientX ?? (typeof window !== 'undefined' ? window.innerWidth / 2 : 200);
+    const clientY = e?.clientY ?? (typeof window !== 'undefined' ? window.innerHeight / 2 : 200);
+    const colors = ['#f43f5e', '#e11d48', '#38bdf8', '#10b981', '#f59e0b', '#a855f7'];
+    const newParticles = Array.from({ length: 18 }).map((_, i) => {
+      const angle = (i / 18) * 2 * Math.PI + (Math.random() * 0.4 - 0.2);
+      const distance = 35 + Math.random() * 55;
+      return {
+        id: Date.now() + i,
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance,
+        color: colors[i % colors.length],
+        size: 4 + Math.floor(Math.random() * 4),
+        rotation: Math.random() * 360,
+      };
+    });
+    setBurstCenter({ x: clientX, y: clientY });
+    setParticles(newParticles);
+    setTimeout(() => setParticles([]), 1200);
+  };
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
     try {
@@ -102,9 +178,10 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
     }
   };
 
-  const handleCopyLink = async () => {
+  const handleCopyLink = async (e?: React.MouseEvent) => {
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
+      triggerSubtleConfetti(e);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
     }
@@ -118,7 +195,7 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
     }
   };
 
-  const handleNativeShare = async () => {
+  const handleNativeShare = async (e?: React.MouseEvent) => {
     if (products.length === 0) return;
 
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
@@ -143,6 +220,7 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
     // Fallback if browser does not support Native Share API
     const ok = await copyToClipboard(shareUrl);
     if (ok) {
+      triggerSubtleConfetti(e);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
       setShareFeedback('Wishlist link copied to clipboard!');
@@ -172,17 +250,75 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         id="wishlist-modal-container"
       >
+        {/* Confetti Explosion Micro-Particles Overlay */}
+        <AnimatePresence>
+          {particles.length > 0 && burstCenter && (
+            <div 
+              className="fixed inset-0 pointer-events-none z-50 overflow-hidden"
+              aria-hidden="true"
+            >
+              {particles.map((p) => (
+                <motion.span
+                  key={p.id}
+                  initial={{
+                    x: burstCenter.x,
+                    y: burstCenter.y,
+                    scale: 0,
+                    opacity: 1,
+                    rotate: 0,
+                  }}
+                  animate={{
+                    x: burstCenter.x + p.x,
+                    y: burstCenter.y + p.y + 20,
+                    scale: [0, 1.35, 0.7],
+                    opacity: [1, 1, 0],
+                    rotate: p.rotation,
+                  }}
+                  exit={{ opacity: 0 }}
+                  transition={{
+                    duration: 0.95,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  style={{
+                    backgroundColor: p.color,
+                    width: `${p.size}px`,
+                    height: `${p.size}px`,
+                  }}
+                  className="absolute rounded-xs shadow-xs"
+                />
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Top Header Controls: Native Share Button & Close Button */}
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
           {products.length > 0 && (
             <button
-              onClick={handleNativeShare}
+              onClick={(e) => handleNativeShare(e)}
               id="wishlist-native-share-btn"
-              className="w-9 h-9 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+              className="relative w-9 h-9 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95 group overflow-visible"
               aria-label="Share wishlist"
               title="Share Wishlist via Native Share API (distribute to social media or messaging apps)"
             >
-              <Share2 className="w-4 h-4" />
+              {/* Subtle pulsing ping wave when wishlist has items */}
+              <span className="absolute inset-0 rounded-full bg-rose-400/35 animate-ping pointer-events-none" />
+
+              {/* Animated pulsing Share icon */}
+              <motion.span
+                animate={products.length > 0 ? {
+                  scale: [1, 1.25, 1],
+                  opacity: [0.85, 1, 0.85],
+                } : {}}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1.8,
+                  ease: 'easeInOut',
+                }}
+                className="relative z-10 inline-flex items-center justify-center text-rose-600"
+              >
+                <Share2 className="w-4 h-4" />
+              </motion.span>
             </button>
           )}
 
@@ -300,16 +436,36 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
             {/* Top Toolbar Actions: Native Share, Share Panel & Add All to Cart */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-2xl border border-slate-200/80">
               <div className="flex items-center gap-2">
-                {/* Native Share Icon Button */}
+                {/* Native Share Icon Button with Pulse Animation */}
                 <button
                   type="button"
                   id="wishlist-native-share-toolbar-btn"
-                  onClick={handleNativeShare}
-                  className="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 hover:border-rose-300 shadow-2xs active:scale-95"
+                  onClick={(e) => handleNativeShare(e)}
+                  className="relative min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-white text-rose-600 border border-rose-200 hover:bg-rose-50 hover:border-rose-300 shadow-2xs active:scale-95 group"
                   title="Trigger browser's Native Share API to distribute current wishlist URL"
                   aria-label="Share via Native Share API"
                 >
-                  <Share2 className="w-3.5 h-3.5" />
+                  {/* Glowing beacon when items exist */}
+                  {products.length > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 pointer-events-none">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                    </span>
+                  )}
+                  <motion.span
+                    animate={products.length > 0 ? {
+                      scale: [1, 1.25, 1],
+                      opacity: [0.85, 1, 0.85],
+                    } : {}}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.8,
+                      ease: 'easeInOut',
+                    }}
+                    className="inline-flex items-center justify-center text-rose-600"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                  </motion.span>
                   <span>Share</span>
                 </button>
 
@@ -335,7 +491,7 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                 <button
                   type="button"
                   id="quick-copy-link-btn"
-                  onClick={handleCopyLink}
+                  onClick={(e) => handleCopyLink(e)}
                   className={`min-h-[38px] px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer border ${
                     copiedLink
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
@@ -379,7 +535,19 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-1.5 text-rose-600 font-bold text-xs">
-                      <Share2 className="w-4 h-4" />
+                      <motion.span
+                        animate={products.length > 0 ? {
+                          scale: [1, 1.2, 1],
+                        } : {}}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 2,
+                          ease: 'easeInOut',
+                        }}
+                        className="inline-flex items-center justify-center"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </motion.span>
                       <span>Shareable Wishlist URL</span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">
@@ -415,8 +583,8 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                     <button
                       type="button"
                       id="copy-wishlist-url-btn"
-                      onClick={handleCopyLink}
-                      className={`min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs ${
+                      onClick={(e) => handleCopyLink(e)}
+                      className={`min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs active:scale-95 ${
                         copiedLink
                           ? 'bg-emerald-600 text-white shadow-emerald-600/20'
                           : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
@@ -455,11 +623,23 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                   <button
                     type="button"
                     id="share-wishlist-native-btn"
-                    onClick={handleNativeShare}
+                    onClick={(e) => handleNativeShare(e)}
                     className="min-h-[40px] px-3 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
                     title="Trigger browser Native Share API to distribute wishlist URL across social media or messaging apps"
                   >
-                    <Share2 className="w-4 h-4 shrink-0" />
+                    <motion.span
+                      animate={products.length > 0 ? {
+                        scale: [1, 1.22, 1],
+                      } : {}}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 1.8,
+                        ease: 'easeInOut',
+                      }}
+                      className="inline-flex items-center justify-center"
+                    >
+                      <Share2 className="w-4 h-4 shrink-0" />
+                    </motion.span>
                     <span>Native Share (Apps)</span>
                   </button>
 
@@ -587,11 +767,23 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                 <button
                   type="button"
                   id="wishlist-footer-native-share-btn"
-                  onClick={handleNativeShare}
+                  onClick={(e) => handleNativeShare(e)}
                   className="px-2.5 py-1 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold flex items-center gap-1.5 transition cursor-pointer"
                   title="Share wishlist via Native Share"
                 >
-                  <Share2 className="w-3.5 h-3.5" />
+                  <motion.span
+                    animate={products.length > 0 ? {
+                      scale: [1, 1.2, 1],
+                    } : {}}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.8,
+                      ease: 'easeInOut',
+                    }}
+                    className="inline-flex items-center justify-center text-rose-600"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                  </motion.span>
                   <span>Share Wishlist</span>
                 </button>
               </div>
