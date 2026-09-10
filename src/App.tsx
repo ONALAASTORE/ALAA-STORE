@@ -32,6 +32,7 @@ import { FilterPanelContent } from './components/FilterPanelContent';
 import { getProductImages } from './utils/productImages';
 import { CategoryIcon } from './utils/categoryIcons';
 import { Showroom2027View } from './components/showroom2027/Showroom2027View';
+import { decodeWishlistIds } from './utils/wishlistShare';
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
@@ -174,6 +175,10 @@ export function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
+  // Shared Wishlist from URL state (?wishlist=...)
+  const [sharedWishlistIds, setSharedWishlistIds] = useState<string[] | null>(null);
+  const [isViewingSharedWishlist, setIsViewingSharedWishlist] = useState(false);
+
   // Recently Viewed products list (stored in sessionStorage, max 5 items)
   const [recentlyViewedIds, setRecentlyViewedIds] = useState<string[]>(() => {
     try {
@@ -286,6 +291,17 @@ export function App() {
         const found = productsList.find((p) => p.id === prodId);
         if (found) {
           setSelectedProduct(found);
+        }
+      }
+
+      // Support shared wishlist link (?wishlist=...)
+      const encodedWishlist = params.get('wishlist');
+      if (encodedWishlist) {
+        const decoded = decodeWishlistIds(encodedWishlist);
+        if (decoded.length > 0) {
+          setSharedWishlistIds(decoded);
+          setIsViewingSharedWishlist(true);
+          setIsWishlistOpen(true);
         }
       }
     } catch {
@@ -514,6 +530,21 @@ export function App() {
     );
   };
 
+  const handleSaveSharedWishlist = () => {
+    if (sharedWishlistIds && sharedWishlistIds.length > 0) {
+      setWishlistIds((prev) => Array.from(new Set([...prev, ...sharedWishlistIds])));
+      setIsViewingSharedWishlist(false);
+    }
+  };
+
+  const handleAddAllWishlistToCart = (productsToAdd: Product[]) => {
+    productsToAdd.forEach((p) => {
+      handleAddToCart(p, p.variants?.[0], 1);
+    });
+    setIsWishlistOpen(false);
+    setIsCartOpen(true);
+  };
+
   // Compare operations
   const handleToggleCompare = (product: Product) => {
     setComparedProducts((prev) => {
@@ -627,10 +658,14 @@ export function App() {
     return () => cancelAnimationFrame(rafId);
   }, [filteredProducts, filterState]);
 
-  // Wishlist products
-  const wishlistedProducts = useMemo(() => {
+  // Wishlist products (personal or shared list if visiting a friend's link)
+  const displayedWishlistProducts = useMemo(() => {
+    if (isViewingSharedWishlist && sharedWishlistIds && sharedWishlistIds.length > 0) {
+      const matched = productsList.filter((p) => sharedWishlistIds.includes(p.id));
+      if (matched.length > 0) return matched;
+    }
     return productsList.filter((p) => wishlistIds.includes(p.id));
-  }, [productsList, wishlistIds]);
+  }, [productsList, wishlistIds, isViewingSharedWishlist, sharedWishlistIds]);
 
   const featuredList = useMemo(() => {
     const list = productsList.filter((p) => p.isFeatured);
@@ -1123,19 +1158,32 @@ export function App() {
       {/* Wishlist Modal */}
       <WishlistModal
         isOpen={isWishlistOpen}
-        onClose={() => setIsWishlistOpen(false)}
-        products={wishlistedProducts}
+        onClose={() => {
+          setIsWishlistOpen(false);
+          setIsViewingSharedWishlist(false);
+        }}
+        products={displayedWishlistProducts}
         currency={currency}
-        onRemoveFromWishlist={handleToggleWishlist}
+        onRemoveFromWishlist={(productId) => {
+          handleToggleWishlist(productId);
+          if (isViewingSharedWishlist && sharedWishlistIds) {
+            setSharedWishlistIds((prev) => (prev ? prev.filter((id) => id !== productId) : null));
+          }
+        }}
         onAddToCart={(p) => {
           handleAddToCart(p, p.variants?.[0], 1);
           setIsWishlistOpen(false);
           setIsCartOpen(true);
         }}
+        onAddAllToCart={handleAddAllWishlistToCart}
         onQuickView={(p) => {
           setIsWishlistOpen(false);
           handleOpenProductDetail(p);
         }}
+        isSharedWishlist={isViewingSharedWishlist}
+        onSaveSharedWishlist={handleSaveSharedWishlist}
+        onViewMyWishlist={() => setIsViewingSharedWishlist(false)}
+        myWishlistCount={wishlistIds.length}
       />
 
       {/* Contact Modal */}
