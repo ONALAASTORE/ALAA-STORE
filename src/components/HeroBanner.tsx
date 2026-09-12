@@ -1,21 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, 
   Truck, 
-  CreditCard, 
   ArrowRight, 
-  Flame, 
+  Play, 
   MessageCircle, 
-  CheckCircle2,
-  Play,
-  Video,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  ShieldCheck,
+  Smartphone,
+  Headphones
 } from 'lucide-react';
+import { getProductImages } from '../utils/productImages';
 import { Currency, Product } from '../types';
 import { formatPrice } from '../utils/currency';
-import { getEmbedVideoUrl, isDirectVideoFile } from '../utils/video';
+import { getEmbedVideoUrl } from '../utils/video';
 import { buildWhatsAppLink } from '../utils/phone';
-import { Brand3DBadge } from './brand';
 
 interface HeroBannerProps {
   featuredProducts: Product[];
@@ -26,300 +27,311 @@ interface HeroBannerProps {
   marketingVideoTitle?: string;
   isMarketingVideoActive?: boolean;
   whatsappNumber?: string;
+  theme?: 'dark' | 'light';
+  onNavigateToOffers?: () => void;
 }
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   featuredProducts,
   currency,
   onSelectProduct,
+  onSelectCategory,
   marketingVideoUrl,
   marketingVideoTitle,
   isMarketingVideoActive = true,
   whatsappNumber = '+961 71 135 241',
+  onNavigateToOffers,
 }) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const heroProduct = featuredProducts[0]; // iPhone 16 Pro Max
+  const [isPaused, setIsPaused] = useState(false);
+
+  const heroProduct = featuredProducts[0];
+  const secondProduct = featuredProducts[1] || featuredProducts[0];
+  const thirdProduct = featuredProducts[2] || featuredProducts[0];
+
   const isVideoVisible = Boolean(isMarketingVideoActive && marketingVideoUrl && marketingVideoUrl.trim().length > 0);
   const embedUrl = isVideoVisible && marketingVideoUrl ? getEmbedVideoUrl(marketingVideoUrl) : '';
-  const whatsappHref = buildWhatsAppLink(
-    whatsappNumber,
-    'Hello On Alaa Store, I want to order or ask about a device'
-  );
+
+  const slides = [
+    {
+      id: 'slide-flash-sale',
+      tag: 'TECH MEGA SALE // SERIES 2026',
+      tagIcon: Flame,
+      title: 'Mega Tech Deals & Flagships in Lebanon',
+      titleHighlight: 'Up to 40% OFF',
+      description: 'Official Agency Sealed smartphones, Apple Silicon MacBooks, high-performance GaN chargers, and wireless ANC audio with door-to-door delivery across all Lebanon.',
+      primaryBtnText: 'Shop Flash Deals',
+      primaryAction: () => {
+        if (onNavigateToOffers) onNavigateToOffers();
+        else if (heroProduct) onSelectProduct(heroProduct);
+      },
+      secondaryBtnText: 'WhatsApp Order',
+      secondaryHref: buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store, I am inquiring about the Mega Tech Deals advertised on the homepage.'),
+      badgeText: '100% Agency Sealed',
+      bgGradient: 'from-blue-950/70 via-[#101015] to-[#0A0A0C]',
+      featuredProduct: heroProduct,
+      accentColor: 'text-blue-400',
+    },
+    {
+      id: 'slide-flagship-phones',
+      tag: 'NEW ARRIVALS // SMARTPHONES & TABLETS',
+      tagIcon: Smartphone,
+      title: 'Flagship Smartphones, iPhones & Galaxy Ultra',
+      titleHighlight: 'Cash on Delivery',
+      description: 'Dual SIM & eSIM unlocked devices with Lebanon agency warranty. Pay comfortably in USD or Lebanese Pounds at daily market rate.',
+      primaryBtnText: 'Explore Smartphones',
+      primaryAction: () => {
+        if (onSelectCategory) onSelectCategory('smartphones');
+      },
+      secondaryBtnText: 'Instant WA Quote',
+      secondaryHref: buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store, I would like to check current iPhone and Samsung smartphone pricing in Lebanon.'),
+      badgeText: 'Official Agency Stock',
+      bgGradient: 'from-[#0C1528] via-[#101118] to-[#090A0E]',
+      featuredProduct: secondProduct,
+      accentColor: 'text-cyan-400',
+    },
+    {
+      id: 'slide-audio-gaming',
+      tag: 'PRO AUDIO & NEXT-GEN GAMING GEAR',
+      tagIcon: Headphones,
+      title: 'Studio Noise Cancelling & High-Power Gaming',
+      titleHighlight: 'Sound & Speed',
+      description: 'Experience Sony ANC headphones, Marshall speakers, PS5 Pro consoles, and ultra-durable fast GaN powerbanks with instant Lebanon dispatch.',
+      primaryBtnText: 'View Audio & Gaming',
+      primaryAction: () => {
+        if (onSelectCategory) onSelectCategory('audio');
+      },
+      secondaryBtnText: 'Direct Inquiry',
+      secondaryHref: buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store, I am inquiring about audio gear and gaming consoles.'),
+      badgeText: 'Express 24h Delivery',
+      bgGradient: 'from-[#121020] via-[#101018] to-[#090A0D]',
+      featuredProduct: thirdProduct,
+      accentColor: 'text-blue-400',
+    },
+  ];
+
+  // Auto-advance slides every 6.5 seconds unless hovered/paused
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, [isPaused, slides.length]);
+
+  const activeSlide = slides[currentSlide];
+  const TagIcon = activeSlide.tagIcon;
 
   return (
-    <div className="space-y-6">
-      {/* Main Hero Card */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white shadow-xl">
-        {/* Subtle grid background */}
-        <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px] opacity-15" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 lg:py-14 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+    <section 
+      className="space-y-4"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {/* Dynamic Slide Container */}
+      <div 
+        id="hero-banner-main"
+        className={`relative overflow-hidden rounded-2xl border border-zinc-800/90 bg-gradient-to-r ${activeSlide.bgGradient} text-white shadow-2xl transition-all duration-500`}
+      >
+        {/* Subtle electric blue top border glow */}
+        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-14 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[420px]">
           
-          {/* Left Hero Content */}
-          <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-center lg:text-left">
-            <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
-              <Brand3DBadge variant="hero" />
+          {/* Left Column: Headline, Highlights & Direct Action */}
+          <div className="lg:col-span-7 space-y-5 text-left z-10">
+            
+            {/* Tag / Eyebrow */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono tracking-tight uppercase bg-blue-600/20 border border-blue-500/40 text-blue-300">
+                <TagIcon className="w-3.5 h-3.5 text-blue-400" />
+                <span>{activeSlide.tag}</span>
+              </span>
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-mono tracking-tight bg-[#16161C] border border-zinc-700 text-zinc-300">
+                🇱🇧 LEBANON WIDE DELIVERY
+              </span>
             </div>
 
-            <h1 className="text-fluid-hero font-black tracking-tight font-display">
-              Latest Flagships & Tech <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300">
-                At The Best Prices in Lebanon
+            {/* Display Headline */}
+            <h1 className="text-fluid-hero font-black tracking-tight text-white leading-tight">
+              {activeSlide.title.split(' ')[0]} {activeSlide.title.split(' ')[1]}{' '}
+              <br className="hidden sm:inline" />
+              <span className="text-blue-500 font-extrabold">
+                {activeSlide.titleHighlight}
               </span>
             </h1>
 
-            <p className="text-slate-300 text-fluid-body max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Shop authentic smartphones, MacBooks, gaming consoles, audio gear & GaN chargers. Guaranteed official agency warranties with cash on delivery across Lebanon.
+            {/* Subtitle Description */}
+            <p className="text-fluid-body max-w-xl leading-relaxed text-sm sm:text-base text-zinc-300 font-normal">
+              {activeSlide.description}
             </p>
 
-            {/* Quick Benefits Badges */}
-            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5 pt-2 text-xs font-semibold text-slate-300 max-w-lg mx-auto lg:mx-0">
-              <div className="flex items-center gap-2 bg-slate-800/60 backdrop-blur-xs border border-slate-700/60 p-2.5 rounded-xl">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>100% Sealed & Original</span>
-              </div>
-              <div className="flex items-center gap-2 bg-slate-800/60 backdrop-blur-xs border border-slate-700/60 p-2.5 rounded-xl">
-                <Truck className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>Fast All-Lebanon Delivery</span>
-              </div>
-              <div className="flex items-center gap-2 bg-slate-800/60 backdrop-blur-xs border border-slate-700/60 p-2.5 rounded-xl xs:col-span-2 sm:col-span-1">
-                <CreditCard className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>USD or L.L. Cash / Whish</span>
-              </div>
-            </div>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2 flex-wrap">
+              <button
+                type="button"
+                onClick={activeSlide.primaryAction}
+                className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs sm:text-sm uppercase tracking-wider px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/40 flex items-center gap-2 cursor-pointer"
+              >
+                <span>{activeSlide.primaryBtnText}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-2.5 sm:gap-3 pt-3">
-              {heroProduct && (
-                <button
-                  id="hero-buy-featured-btn"
-                  onClick={() => onSelectProduct(heroProduct)}
-                  className="min-h-[48px] bg-blue-600 hover:bg-blue-500 active:scale-98 text-white font-bold text-sm px-6 py-3 rounded-xl transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Explore {heroProduct.name}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
+              <a
+                href={activeSlide.secondaryHref}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-[#18181E] hover:bg-[#202028] text-white border border-zinc-700 hover:border-emerald-500 text-xs sm:text-sm font-semibold uppercase tracking-wider px-5 py-3.5 rounded-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
+                <span>{activeSlide.secondaryBtnText}</span>
+              </a>
 
               {isVideoVisible && (
                 <button
+                  type="button"
                   onClick={() => setIsVideoModalOpen(true)}
-                  className="min-h-[48px] bg-slate-800/90 hover:bg-slate-700 active:scale-98 text-slate-100 font-bold text-sm px-4 py-3 rounded-xl transition flex items-center justify-center gap-2 border border-slate-700 shadow-md cursor-pointer group"
+                  className="p-3.5 rounded-xl border border-zinc-700 bg-[#16161C] hover:bg-[#22222A] text-zinc-300 hover:text-white transition cursor-pointer"
+                  title="Watch Store Tech Showcase Video"
                 >
-                  <span className="w-6 h-6 rounded-full bg-[#FF0000] text-white flex items-center justify-center group-hover:scale-110 transition shadow-md shadow-red-600/40">
-                    <Play className="w-3 h-3 fill-white ml-0.5" />
-                  </span>
-                  <span>Watch Video Showcase</span>
+                  <Play className="w-4 h-4 text-blue-400" />
                 </button>
               )}
+            </div>
 
-              <a
-                href={whatsappHref}
-                target="_blank"
-                rel="noreferrer"
-                className="min-h-[48px] bg-emerald-600/90 hover:bg-emerald-600 active:scale-98 text-white font-bold text-sm px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 border border-emerald-500/30"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Order via WhatsApp</span>
-              </a>
+            {/* Trust Badges */}
+            <div className="pt-2 flex items-center gap-4 text-xs font-mono text-zinc-400">
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="w-4 h-4 text-blue-400" />
+                <span>100% Genuine Sealed</span>
+              </span>
+              <span className="text-zinc-600">//</span>
+              <span className="flex items-center gap-1">
+                <Truck className="w-4 h-4 text-blue-400" />
+                <span>COD in USD or L.L.</span>
+              </span>
             </div>
           </div>
 
-          {/* Right Hero Product Card Showcase */}
-          {heroProduct && (
-            <div className="lg:col-span-5">
+          {/* Right Column: Featured Electronics Showcase Card */}
+          <div className="lg:col-span-5 flex justify-center lg:justify-end">
+            {activeSlide.featuredProduct && (
               <div 
-                onClick={() => onSelectProduct(heroProduct)}
-                className="relative bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 hover:border-blue-500/60 transition cursor-pointer group shadow-2xl backdrop-blur-md"
+                onClick={() => onSelectProduct(activeSlide.featuredProduct!)}
+                className="group relative bg-[#16161A]/90 backdrop-blur-md border border-zinc-700/80 hover:border-blue-500 rounded-2xl p-4 sm:p-5 w-full max-w-sm transition-all duration-300 shadow-2xl hover:shadow-blue-600/20 cursor-pointer"
               >
-                <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 items-end">
-                  <span className="bg-rose-500 text-white font-black text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-xs">
-                    <Flame className="w-3 h-3 fill-white" />
-                    Hot Release
-                  </span>
-                  <span className="bg-slate-900/90 border border-slate-700 text-amber-300 font-bold text-[11px] px-2 py-0.5 rounded-md">
-                    Agency Warranty
+                {/* Floating Tag */}
+                <div className="absolute top-3 left-3 z-10">
+                  <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                    Featured Deal
                   </span>
                 </div>
 
-                <div className="relative aspect-4/3 rounded-xl overflow-hidden bg-slate-900/80 flex items-center justify-center p-4">
+                {/* Product Image */}
+                <div className="w-full h-56 sm:h-64 rounded-xl bg-[#0F0F14] p-4 flex items-center justify-center overflow-hidden mb-3">
                   <img
-                    src={heroProduct.image}
-                    alt={heroProduct.name}
-                    className="w-full h-full object-cover object-center rounded-lg group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
+                    src={getProductImages(activeSlide.featuredProduct)[0] || activeSlide.featuredProduct.image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80'}
+                    alt={activeSlide.featuredProduct.name}
+                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-108"
                   />
                 </div>
 
-                <div className="mt-4 space-y-1.5">
-                  <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
-                    {heroProduct.brand} • {heroProduct.category}
-                  </div>
-                  <h3 className="font-bold text-lg text-white group-hover:text-blue-300 transition">
-                    {heroProduct.name}
+                {/* Info & Price */}
+                <div className="text-left space-y-1">
+                  <span className="text-[10px] font-mono text-zinc-400 uppercase">
+                    {activeSlide.featuredProduct.brand} • {activeSlide.featuredProduct.warranty || 'Official Warranty'}
+                  </span>
+                  <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+                    {activeSlide.featuredProduct.name}
                   </h3>
-                  
-                  <div className="flex items-baseline justify-between pt-2 border-t border-slate-700/60">
-                    <div>
-                      <div className="text-2xl font-black text-white font-display">
-                        {formatPrice(heroProduct.basePriceUSD, currency)}
-                      </div>
-                      {currency === 'USD' && (
-                        <div className="text-xs text-slate-400 font-medium">
-                          ≈ {formatPrice(heroProduct.basePriceUSD, 'LBP')}
-                        </div>
-                      )}
-                    </div>
-
-                    <span className="text-xs font-bold text-blue-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                      View Specs & Options →
+                  <div className="flex items-baseline justify-between pt-1 font-mono">
+                    <span className="text-base sm:text-lg font-extrabold text-blue-400">
+                      {formatPrice(activeSlide.featuredProduct.promotionalPriceUSD || activeSlide.featuredProduct.basePriceUSD, currency)}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 group-hover:text-white transition-colors flex items-center gap-1 font-sans">
+                      <span>View Details</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
+        </div>
+
+        {/* Carousel Slide Indicators & Controls */}
+        <div className="absolute bottom-3 left-0 right-0 px-4 sm:px-8 flex items-center justify-between pointer-events-none">
+          {/* Slide Dots */}
+          <div className="flex items-center gap-2 pointer-events-auto">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`h-2 rounded-full transition-all cursor-pointer ${
+                  currentSlide === index
+                    ? 'w-8 bg-blue-500'
+                    : 'w-2 bg-zinc-600 hover:bg-zinc-400'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Prev / Next Buttons */}
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            <button
+              onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
+              className="w-8 h-8 rounded-lg bg-[#14141A]/80 hover:bg-blue-600 border border-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
+              className="w-8 h-8 rounded-lg bg-[#14141A]/80 hover:bg-blue-600 border border-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Marketing Video Interactive Section if active */}
-      {isVideoVisible && (
-        <div className="space-y-4">
-          {/* 3D Brand Badge Banner above Video Showcase */}
-          <div className="flex justify-center sm:justify-start">
-            <Brand3DBadge variant="video-showcase" />
-          </div>
-
-          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-900/90 border border-slate-800 p-5 sm:p-6 shadow-xl backdrop-blur-md">
-            <div className="flex flex-col md:flex-row items-center gap-5 justify-between mb-4">
-              <div className="space-y-1 text-center md:text-left">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF0000]/15 border border-[#FF0000]/30 text-[#FF0000] text-xs font-bold uppercase tracking-wider">
-                  <Video className="w-3.5 h-3.5" />
-                  <span>Featured Tech & Flagship Showcase</span>
-                </div>
-                <h3 className="text-lg sm:text-xl font-black text-white font-display">
-                  {marketingVideoTitle || 'Featured Video Tour'}
-                </h3>
-              </div>
-              
-              <button
-                onClick={() => setIsVideoModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition border border-slate-700 shadow-md cursor-pointer shrink-0"
-              >
-                <Play className="w-3.5 h-3.5 fill-white text-[#FF0000]" />
-                <span>Open in Fullscreen Theater</span>
-              </button>
-            </div>
-
-            <div className="relative aspect-video max-w-4xl mx-auto rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-2xl">
-              {isDirectVideoFile(marketingVideoUrl || '') ? (
-                <video 
-                  src={marketingVideoUrl} 
-                  controls 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <iframe
-                  src={embedUrl}
-                  title={marketingVideoTitle || 'Featured Video'}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Video Modal Player */}
-      {isVideoModalOpen && isVideoVisible && (
+      {/* Video Modal if active */}
+      {isVideoModalOpen && embedUrl && (
         <div 
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
           onClick={() => setIsVideoModalOpen(false)}
         >
           <div 
-            className="relative w-full max-w-5xl bg-slate-950 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-3"
+            className="bg-[#16161A] border border-zinc-800 rounded-2xl max-w-3xl w-full p-4 relative shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
-              <h4 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
-                <Video className="w-4 h-4 text-[#FF0000]" />
-                <span>{marketingVideoTitle || 'Video Showcase'}</span>
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800">
+              <h4 className="text-sm font-bold text-white">
+                {marketingVideoTitle || 'ON ALAA STORE Tech Showcase'}
               </h4>
               <button
                 onClick={() => setIsVideoModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-slate-800">
-              {isDirectVideoFile(marketingVideoUrl || '') ? (
-                <video 
-                  src={marketingVideoUrl} 
-                  autoPlay 
-                  controls 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <iframe
-                  src={`${embedUrl}${embedUrl.includes('?') ? '&' : '?'}autoplay=1`}
-                  title={marketingVideoTitle || 'Video Showcase'}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              )}
+            <div className="aspect-video w-full rounded-xl overflow-hidden bg-black">
+              <iframe
+                src={embedUrl}
+                title="Store Showcase"
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           </div>
         </div>
       )}
-
-      {/* 4 Feature Value Props */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 flex items-center gap-3.5 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <Truck className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-sm text-slate-900">All-Lebanon Delivery</h4>
-            <p className="text-xs text-slate-500">Fast delivery across all cities & governorates</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 flex items-center gap-3.5 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-sm text-slate-900">100% Agency Warranty</h4>
-            <p className="text-xs text-slate-500">Official distributor warranty support</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 flex items-center gap-3.5 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <CreditCard className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-sm text-slate-900">Cash on Delivery</h4>
-            <p className="text-xs text-slate-500">Pay in USD, LBP, or Whish upon receipt</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200/80 flex items-center gap-3.5 shadow-xs">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-            <MessageCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-sm text-slate-900">Instant WhatsApp Order</h4>
-            <p className="text-xs text-slate-500">Quick 1-click booking with our team</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 };

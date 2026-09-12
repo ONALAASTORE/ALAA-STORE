@@ -1,179 +1,131 @@
 import React from 'react';
 import { 
-  Store, 
-  SlidersHorizontal, 
-  Heart, 
-  ArrowLeftRight, 
-  ShoppingCart,
+  Home, 
+  LayoutGrid, 
+  ShoppingCart, 
+  User, 
   Flame
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
   cartCount: number;
-  wishlistCount: number;
-  compareCount: number;
-  activeFilterCount: number;
-  onOpenMobileFilters: () => void;
+  wishlistCount?: number;
+  onOpenMobileFilters?: () => void;
   onOpenCart: () => void;
   onOpenWishlist: () => void;
-  onOpenCompare: () => void;
   onScrollToTop: () => void;
+  onOpenCategories?: () => void;
+  onOpenAccount?: () => void;
   onNavigateToOffers?: () => void;
   isOffersActive?: boolean;
   offersCount?: number;
+  theme?: 'dark' | 'light';
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   cartCount,
-  wishlistCount,
-  compareCount,
-  activeFilterCount,
-  onOpenMobileFilters,
   onOpenCart,
   onOpenWishlist,
-  onOpenCompare,
   onScrollToTop,
+  onOpenCategories,
+  onOpenAccount,
   onNavigateToOffers,
   isOffersActive = false,
   offersCount = 0,
+  theme = 'dark',
 }) => {
+  const isDark = theme === 'dark';
+
   return (
     <nav 
       aria-label="Mobile Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(15,23,42,0.08)] md:hidden pb-safe transition-all duration-200"
+      id="mobile-bottom-navigation-bar"
+      className={`fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-lg md:hidden pb-safe transition-colors duration-200 ${
+        isDark 
+          ? 'bg-[#0B0B0C]/95 border-zinc-800/90 text-zinc-400' 
+          : 'bg-white/95 border-zinc-200/90 text-zinc-600'
+      }`}
     >
       <div className="max-w-md mx-auto grid grid-cols-5 px-1 py-1">
         
-        {/* 1. Store / Catalog Home */}
+        {/* 1. Home (Ishtari style) */}
         <button
-          id="mobile-nav-store"
+          id="mobile-nav-home"
           type="button"
           onClick={onScrollToTop}
-          className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 ${
-            !isOffersActive ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600 font-semibold'
+          className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl ${
+            !isOffersActive 
+              ? 'text-blue-500 font-bold' 
+              : 'hover:text-zinc-200 text-zinc-400'
           }`}
-          aria-label="Storefront Top"
+          aria-label="Home"
         >
-          <Store className="w-5 h-5" />
-          <span className="text-[10px] tracking-tight">Store</span>
+          <Home className="w-4 h-4" />
+          <span className="text-[10px] tracking-tight">Home</span>
         </button>
 
-        {/* 2. Offers OR Filters */}
-        {onNavigateToOffers ? (
-          <button
-            id="mobile-nav-offers"
-            type="button"
-            onClick={onNavigateToOffers}
-            className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-rose-50/60 relative ${
-              isOffersActive ? 'text-rose-600 font-black' : 'text-rose-500 hover:text-rose-600 font-bold'
-            }`}
-            aria-label="Special Offers"
-          >
-            <div className="relative">
-              <Flame className={`w-5 h-5 ${isOffersActive ? 'fill-rose-500 text-rose-500' : 'fill-rose-100 text-rose-500 animate-pulse'}`} />
-              {offersCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white font-black text-[9px] px-1 h-3.5 min-w-3.5 rounded-full flex items-center justify-center shadow-xs">
-                  {offersCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] tracking-tight">Offers</span>
-          </button>
-        ) : (
-          <button
-            id="mobile-nav-filters"
-            type="button"
-            onClick={onOpenMobileFilters}
-            className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
-            aria-label="Filter products"
-          >
-            <div className="relative">
-              <SlidersHorizontal className="w-5 h-5" />
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                  {activeFilterCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-bold tracking-tight">Filters</span>
-          </button>
-        )}
-
-        {/* 3. Wishlist */}
+        {/* 2. Categories (Ishtari style) */}
         <button
-          id="mobile-nav-wishlist"
+          id="mobile-nav-categories"
           type="button"
-          onClick={onOpenWishlist}
-          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-rose-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
-          aria-label="Saved Wishlist"
+          onClick={onOpenCategories || onScrollToTop}
+          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl hover:text-blue-400 text-zinc-400"
+          aria-label="Categories"
+        >
+          <LayoutGrid className="w-4 h-4" />
+          <span className="text-[10px] tracking-tight">Categories</span>
+        </button>
+
+        {/* 3. Flash Offers / Deals */}
+        <button
+          id="mobile-nav-offers"
+          type="button"
+          onClick={onNavigateToOffers || onScrollToTop}
+          className={`min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl relative ${
+            isOffersActive ? 'text-amber-400 font-bold' : 'hover:text-amber-400 text-zinc-400'
+          }`}
+          aria-label="Offers"
         >
           <div className="relative">
-            <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
-            {wishlistCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                {wishlistCount}
+            <Flame className="w-4 h-4" />
+            {offersCount > 0 && (
+              <span className="absolute -top-1 -right-2 text-[9px] font-mono px-1 h-3.5 min-w-3.5 rounded-full flex items-center justify-center bg-amber-500 text-black font-bold">
+                {offersCount}
               </span>
             )}
           </div>
-          <span className="text-[10px] font-bold tracking-tight">Wishlist</span>
+          <span className="text-[10px] tracking-tight">Deals</span>
         </button>
 
-        {/* 4. Filters or Compare */}
-        {onNavigateToOffers ? (
-          <button
-            id="mobile-nav-filters"
-            type="button"
-            onClick={onOpenMobileFilters}
-            className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
-            aria-label="Filter products"
-          >
-            <div className="relative">
-              <SlidersHorizontal className="w-5 h-5" />
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                  {activeFilterCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-bold tracking-tight">Filters</span>
-          </button>
-        ) : (
-          <button
-            id="mobile-nav-compare"
-            type="button"
-            onClick={onOpenCompare}
-            className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-slate-600 hover:text-blue-600 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-slate-50 relative"
-            aria-label="Compare Devices"
-          >
-            <div className="relative">
-              <ArrowLeftRight className="w-5 h-5" />
-              {compareCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-                  {compareCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-bold tracking-tight">Compare</span>
-          </button>
-        )}
-
-        {/* 5. Cart Drawer */}
+        {/* 4. Cart (Ishtari style prominent cart) */}
         <button
           id="mobile-nav-cart"
           type="button"
           onClick={onOpenCart}
-          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 text-blue-600 hover:text-blue-700 active:scale-95 transition-all cursor-pointer rounded-xl hover:bg-blue-50/60 relative"
+          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl relative text-zinc-200"
           aria-label="Shopping Cart"
         >
           <div className="relative">
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-4 h-4" />
             {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 bg-[#FF0000] text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs animate-bounce">
+              <span className="absolute -top-1.5 -right-2.5 text-[9px] font-mono px-1.5 h-4 min-w-4 rounded-full flex items-center justify-center font-black bg-blue-600 text-white shadow-md shadow-blue-600/50">
                 {cartCount}
               </span>
             )}
           </div>
-          <span className="text-[10px] font-black tracking-tight">Cart</span>
+          <span className="text-[10px] font-bold tracking-tight">Cart</span>
+        </button>
+
+        {/* 5. Profile / Account (Ishtari style) */}
+        <button
+          id="mobile-nav-profile"
+          type="button"
+          onClick={onOpenAccount || onOpenWishlist}
+          className="min-h-[48px] min-w-[48px] flex flex-col items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer rounded-xl hover:text-blue-400 text-zinc-400"
+          aria-label="My Profile & Orders"
+        >
+          <User className="w-4 h-4" />
+          <span className="text-[10px] tracking-tight">Profile</span>
         </button>
 
       </div>

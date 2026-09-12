@@ -13,6 +13,7 @@ interface MobileFilterDrawerProps {
   itemCount: number;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
+  theme?: 'dark' | 'light';
 }
 
 export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = ({
@@ -24,18 +25,21 @@ export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = ({
   itemCount,
   onResetFilters,
   hasActiveFilters,
+  theme = 'dark',
 }) => {
+  const isDark = theme === 'dark';
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden lg:hidden">
+        <div className="fixed inset-0 z-50 overflow-hidden lg:hidden font-mono">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/80 backdrop-blur-xs"
           />
 
           {/* Drawer container */}
@@ -45,53 +49,74 @@ export const MobileFilterDrawer: React.FC<MobileFilterDrawerProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between overflow-hidden"
+              className={`w-screen max-w-md border-l flex flex-col justify-between overflow-hidden ${
+                isDark 
+                  ? 'bg-zinc-950 border-zinc-800 text-zinc-100' 
+                  : 'bg-white border-zinc-200 text-zinc-900'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Drawer Header */}
-              <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/90 backdrop-blur-xs">
-                <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
-                  <SlidersHorizontal className="w-4 h-4 text-blue-600" />
-                  <span>Filter Products</span>
-                  <span className="text-xs font-normal text-slate-500">
-                    ({itemCount} available)
+              <div className={`p-4 border-b flex items-center justify-between ${
+                isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-zinc-50'
+              }`}>
+                <div className="flex items-center gap-2 font-semibold text-xs uppercase tracking-tight">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>CATALOG FILTERS</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    [{itemCount} ITEMS]
                   </span>
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-10 h-10 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition cursor-pointer"
+                  className={`w-8 h-8 rounded-md border flex items-center justify-center transition-micro cursor-pointer ${
+                    isDark 
+                      ? 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white' 
+                      : 'border-zinc-200 bg-white text-zinc-600 hover:text-zinc-950'
+                  }`}
                   aria-label="Close filters"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Drawer Scrollable Body */}
-              <div className="p-5 overflow-y-auto flex-1 overscroll-contain">
+              <div className="p-4 overflow-y-auto flex-1 overscroll-contain">
                 <FilterPanelContent
                   filterState={filterState}
                   setFilterState={setFilterState}
                   currency={currency}
                   onResetFilters={onResetFilters}
                   hasActiveFilters={hasActiveFilters}
+                  theme={theme}
                 />
               </div>
 
               {/* Drawer Footer with Actions */}
-              <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center gap-3 pb-safe">
+              <div className={`p-4 border-t flex items-center gap-2 pb-safe ${
+                isDark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-zinc-50'
+              }`}>
                 {hasActiveFilters && (
                   <button
                     onClick={onResetFilters}
-                    className="flex-1 py-3 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer min-h-[48px] flex items-center justify-center"
+                    className={`flex-1 py-2.5 px-3 border text-xs font-mono rounded-md transition-micro cursor-pointer min-h-[44px] flex items-center justify-center ${
+                      isDark 
+                        ? 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800' 
+                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100'
+                    }`}
                   >
-                    Reset All
+                    RESET ALL
                   </button>
                 )}
                 <button
                   onClick={onClose}
-                  className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer min-h-[48px] flex items-center justify-center"
+                  className={`flex-1 py-2.5 px-3 border text-xs font-mono font-semibold rounded-md transition-micro cursor-pointer min-h-[44px] flex items-center justify-center ${
+                    isDark 
+                      ? 'bg-zinc-100 text-zinc-950 border-zinc-100 hover:bg-white' 
+                      : 'bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-800'
+                  }`}
                 >
-                  Show {itemCount} Items
+                  SHOW {itemCount} ITEMS
                 </button>
               </div>
             </motion.div>

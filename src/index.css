@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+:root {
+  --bg-main: #0B0B0C;         /* Deep Black / Midnight Charcoal */
+  --bg-card: #16161A;         /* Dark gray surface for cards and containers */
+  --text-primary: #FFFFFF;    /* High-contrast crisp white */
+  --text-secondary: #A1A1AA;  /* Light zinc/gray for secondary text */
+  --accent-blue: #0066FF;     /* Vibrant Electric Blue */
+  --accent-cyan: #00D2FF;     /* Neon Cyan accent */
+  --border-color: #27272A;    /* Subtle dark border */
+}
+
+@theme {
+  --color-bg-main: var(--bg-main);
+  --color-bg-card: var(--bg-card);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-border-subtle: var(--border-color);
+}
+
 @layer base {
   html, body {
     width: 100%;
@@ -22,6 +42,8 @@
   }
 
   body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
     font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     letter-spacing: -0.011em;
   }
@@ -46,12 +68,29 @@
   }
 }
 
-/* LayerX Tech-Forward Glassmorphic & Layered Utilities */
+/* LayerX & Electric Blue Tech Utilities */
 .glass-layerx-dark {
-  background: rgba(18, 18, 20, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(18, 18, 22, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glow-electric-blue {
+  box-shadow: 0 0 25px -5px rgba(0, 102, 255, 0.35);
+}
+
+.glow-electric-blue-sm {
+  box-shadow: 0 0 15px -3px rgba(0, 102, 255, 0.25);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 15px -3px rgba(0, 210, 255, 0.3);
+}
+
+.electric-blue-border-hover:hover {
+  border-color: rgba(0, 102, 255, 0.7);
+  box-shadow: 0 4px 20px -2px rgba(0, 102, 255, 0.2);
 }
 
 .glass-layerx-light {
@@ -156,4 +195,74 @@
 .light *:focus-visible {
   outline: 1px solid rgba(0, 0, 0, 0.35);
   outline-offset: 2px;
+}
+
+/* Subtle WhatsApp Floating Button Pulse & Gentle Bounce */
+@keyframes wa-subtle-pulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  25% {
+    transform: translateY(-2px) scale(1.035);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.28);
+  }
+  45% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  60% {
+    transform: translateY(-1px) scale(1.018);
+    box-shadow: 0 3px 8px rgba(37, 211, 102, 0.2);
+  }
+  80% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.animate-wa-pulse {
+  animation: wa-subtle-pulse 3.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  will-change: transform, box-shadow;
+}
+
+.animate-wa-pulse:hover {
+  animation-play-state: paused;
+  transform: translateY(-1.5px) scale(1.04);
+}
+
+/* Professional Skeleton Screen Shimmer Keyframes & Classes */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-skeleton {
+  background: linear-gradient(
+    90deg,
+    #F1F5F9 0%,
+    #E2E8F0 25%,
+    #F8FAFC 50%,
+    #E2E8F0 75%,
+    #F1F5F9 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.dark .animate-skeleton {
+  background: linear-gradient(
+    90deg,
+    #27272A 0%,
+    #3F3F46 25%,
+    #52525B 50%,
+    #3F3F46 75%,
+    #27272A 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

@@ -10,6 +10,7 @@ interface FilterPanelContentProps {
   currency: Currency;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
+  theme?: 'dark' | 'light';
 }
 
 export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
@@ -18,43 +19,51 @@ export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
   currency,
   onResetFilters,
   hasActiveFilters,
+  theme = 'dark',
 }) => {
+  const isDark = theme === 'dark';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 font-mono">
       {/* Header with Title & Reset Button */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-blue-600" />
-          <span>Refine Catalog</span>
+      <div className={`flex items-center justify-between pb-3 border-b ${
+        isDark ? 'border-zinc-800' : 'border-zinc-200'
+      }`}>
+        <h3 className={`text-xs font-bold uppercase tracking-tight flex items-center gap-2 ${
+          isDark ? 'text-zinc-200' : 'text-zinc-900'
+        }`}>
+          <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+          <span>FILTER PARAMETERS</span>
         </h3>
         {hasActiveFilters && (
           <button
             onClick={onResetFilters}
-            className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer flex items-center gap-1"
+            className="text-[11px] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer flex items-center gap-1 font-mono uppercase"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Reset All</span>
+            <span>RESET</span>
           </button>
         )}
       </div>
 
       {/* Brand Filter */}
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-          Brand / Manufacturer
+        <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-tight block">
+          MANUFACTURER
         </label>
-        <div className="space-y-1 max-h-64 overflow-y-auto pr-1.5 scrollbar-thin">
+        <div className="space-y-1 max-h-56 overflow-y-auto pr-1 scrollbar-thin">
           {BRANDS.map((brand) => (
             <button
               key={brand}
               onClick={() => setFilterState((prev) => ({ ...prev, brand }))}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer min-h-[38px] flex items-center ${
+              className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs font-mono transition-micro cursor-pointer flex items-center justify-between ${
                 filterState.brand === brand
-                  ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? (isDark ? 'bg-zinc-100 text-zinc-950 font-bold' : 'bg-zinc-900 text-white font-bold')
+                  : (isDark ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100')
               }`}
             >
-              {brand}
+              <span>{brand.toUpperCase()}</span>
+              {filterState.brand === brand && <span>•</span>}
             </button>
           ))}
         </div>
@@ -75,66 +84,70 @@ export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
         minLimit={0}
         maxLimit={3000}
         step={25}
+        className={isDark ? 'border-zinc-800' : 'border-zinc-200'}
       />
 
       {/* Condition Filter */}
-      <div className="space-y-2 pt-3 border-t border-slate-100">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-          Item Condition
+      <div className={`space-y-2 pt-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+        <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-tight block">
+          HARDWARE STATE
         </label>
         <div className="space-y-1">
           {[
-            { id: 'all', label: 'All Conditions' },
-            { id: 'Brand New (Sealed)', label: 'Brand New (Sealed)' },
-            { id: 'Open Box', label: 'Open Box / Like New' },
-            { id: 'Certified Pre-Owned', label: 'Certified Pre-Owned' },
+            { id: 'all', label: 'ALL CONDITIONS' },
+            { id: 'Brand New (Sealed)', label: 'BRAND NEW (SEALED)' },
+            { id: 'Open Box', label: 'OPEN BOX / LIKE NEW' },
+            { id: 'Certified Pre-Owned', label: 'CERTIFIED PRE-OWNED' },
           ].map((cond) => (
             <button
               key={cond.id}
               onClick={() => setFilterState((prev) => ({ ...prev, condition: cond.id }))}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer min-h-[38px] flex items-center ${
+              className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs font-mono transition-micro cursor-pointer flex items-center justify-between ${
                 filterState.condition === cond.id
-                  ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? (isDark ? 'bg-zinc-100 text-zinc-950 font-bold' : 'bg-zinc-900 text-white font-bold')
+                  : (isDark ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100')
               }`}
             >
-              {cond.label}
+              <span>{cond.label}</span>
+              {filterState.condition === cond.id && <span>•</span>}
             </button>
           ))}
         </div>
       </div>
 
       {/* Availability Filter */}
-      <div className="pt-3 border-t border-slate-100">
-        <label className="flex items-center gap-2.5 cursor-pointer min-h-[44px] select-none">
+      <div className={`pt-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+        <label className="flex items-center gap-2.5 cursor-pointer select-none text-xs font-mono">
           <input
             type="checkbox"
             checked={filterState.onlyInStock}
             onChange={(e) => setFilterState((prev) => ({ ...prev, onlyInStock: e.target.checked }))}
-            className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+            className="w-4 h-4 rounded bg-zinc-950 border-zinc-700 text-zinc-100 focus:ring-0 cursor-pointer accent-zinc-500"
           />
-          <span className="text-xs font-semibold text-slate-700">
-            Show In-Stock Only
+          <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>
+            IN-STOCK ONLY
           </span>
         </label>
       </div>
 
       {/* WhatsApp Help banner in sidebar */}
-      <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 space-y-2 text-xs">
-        <div className="font-bold text-emerald-900 flex items-center gap-1.5">
-          <MessageCircle className="w-4 h-4 text-emerald-600" />
-          <span>Looking for a specific device?</span>
+      <div className={`p-3.5 rounded-xl border space-y-1.5 text-xs font-mono ${
+        isDark ? 'bg-zinc-900/40 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
+      }`}>
+        <div className={`font-semibold flex items-center gap-1.5 ${isDark ? 'text-zinc-200' : 'text-zinc-900'}`}>
+          <MessageCircle className="w-3.5 h-3.5 text-zinc-400" />
+          <span>CUSTOM HARDWARE?</span>
         </div>
-        <p className="text-emerald-800 text-[11px] leading-relaxed">
-          We can source customized specs or special colors from authorized distributors in Lebanon.
+        <p className="text-zinc-500 text-[11px] leading-relaxed">
+          Need specific memory, GPU configuration, or unlisted colors? We source directly from authorized Lebanese distributors.
         </p>
         <a
-          href="https://wa.me/96171135241?text=Hello%20On%20Alaa%20Store%2C%20I%20am%20looking%20for%20a%20specific%20device"
+          href="https://wa.me/96171135241?text=Hello%20On%20Alaa%20Store%2C%20I%20am%20looking%20for%20a%20custom%20device%20spec"
           target="_blank"
           rel="noreferrer"
-          className="inline-block font-bold text-emerald-700 hover:underline text-[11px]"
+          className="inline-block text-zinc-300 hover:text-white underline text-[11px] pt-0.5"
         >
-          Contact WhatsApp Rep →
+          CONTACT DISPATCH DESK →
         </a>
       </div>
     </div>

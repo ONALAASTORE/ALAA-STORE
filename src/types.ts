@@ -120,6 +120,7 @@ export interface Product {
   isNewArrival?: boolean;
   tags?: string[];
   freeDelivery?: boolean;
+  has3DModel?: boolean;
 }
 
 export interface CartItem {
@@ -170,4 +171,7 @@ export interface ProductReview {
   date: string;
   city?: string;
   verifiedBuyer?: boolean;
+  photos?: string[];
+  helpfulCount?: number;
+  variantInfo?: string;
 }

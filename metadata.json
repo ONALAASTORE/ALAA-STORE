@@ -1,6 +1,6 @@
 {
-  "name": "Remix on-alaa-store",
-  "description": "Premium electronics and smart devices storefront with cutting-edge 2027 3D showroom for the Lebanese market with dual USD/LBP pricing, WhatsApp ordering, and fast delivery.",
+  "name": "ON ALAA STORE | Premium Electronics & Tech in Lebanon",
+  "description": "Premium electronics and smart devices storefront for the Lebanese market with dual USD/LBP pricing, WhatsApp ordering, and fast delivery.",
   "requestFramePermissions": [
     "microphone",
     "camera"

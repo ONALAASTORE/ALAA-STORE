@@ -4,12 +4,9 @@ import {
   ArrowLeftRight, 
   Eye, 
   ShoppingCart, 
-  Star, 
   ShieldCheck, 
-  Truck,
-  Check,
-  Images,
-  Tag,
+  Check, 
+  Images, 
   MessageCircle
 } from 'lucide-react';
 import { Product, Currency, ProductVariant } from '../types';
@@ -27,6 +24,7 @@ interface ProductCardProps {
   isCompared: boolean;
   onToggleCompare: (product: Product) => void;
   whatsappNumber?: string;
+  theme?: 'dark' | 'light';
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -39,7 +37,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isCompared,
   onToggleCompare,
   whatsappNumber = '+961 71 135 241',
+  theme = 'dark',
 }) => {
+  const isDark = theme === 'dark';
+
   const variants = React.useMemo(() => {
     if (Array.isArray(product.variants) && product.variants.length > 0) {
       return product.variants;
@@ -56,7 +57,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const [selectedVariantIndex, setSelectedVariantIndex] = React.useState(0);
   const activeVariant = variants[selectedVariantIndex] || variants[0];
-
   const [addedAnimation, setAddedAnimation] = React.useState(false);
 
   // Multi-image handling
@@ -64,23 +64,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const primaryImage = productImages[0] || DEFAULT_PRODUCT_IMAGE;
   const secondaryImage = productImages.length > 1 ? productImages[1] : null;
 
-  // Availability status: 'In Stock', 'Low Stock', 'Out of Stock'
+  // Availability status
   const isOutOfStock = !product.inStock || (product.stockCount !== undefined && product.stockCount <= 0);
   const isLowStock = !isOutOfStock && product.stockCount !== undefined && product.stockCount > 0 && product.stockCount <= 5;
 
-  // Promotional pricing & Discount calculation (fetched directly from product object)
+  // Price calculations
   const basePrice = activeVariant.priceUSD || product.basePriceUSD;
   const originalPrice = product.originalPriceUSD;
   const promotionalPrice = product.promotionalPriceUSD ?? product.promotionalPrice ?? product.salePriceUSD;
   const explicitDiscount = product.discountPercentage;
   const isOnSale = product.onSale;
 
-  // Effective selling price: uses promotionalPrice if explicitly set and lower than basePrice
   const effectivePrice = (promotionalPrice !== undefined && promotionalPrice < basePrice)
     ? promotionalPrice
     : basePrice;
 
-  // Check if product has a promotional price / discount from the product object
   const hasPromotionalPrice = Boolean(
     (originalPrice !== undefined && originalPrice > effectivePrice) ||
     (promotionalPrice !== undefined && promotionalPrice < (originalPrice ?? product.basePriceUSD)) ||
@@ -88,7 +86,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     isOnSale
   );
 
-  // Calculate discount percentage if original price or explicit discount is available
   const discountPercent = (() => {
     if (explicitDiscount !== undefined && explicitDiscount > 0) {
       return Math.round(explicitDiscount);
@@ -100,14 +97,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     return null;
   })();
 
-  // Strike-through comparison price (shows regular price when on sale/discount)
   const strikePrice = (promotionalPrice !== undefined && promotionalPrice < basePrice)
     ? basePrice
     : (originalPrice !== undefined && originalPrice > effectivePrice ? originalPrice : undefined);
 
   const whatsappBuyLink = buildWhatsAppLink(
     whatsappNumber || '+961 71 135 241',
-    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n• Product: ${product.name}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice}\n\nPlease confirm availability and delivery details.`
+    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n• Product: ${product.name}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice}\n\nPlease confirm availability and dispatch details.`
+  );
+
+  const whatsappInquiryLink = buildWhatsAppLink(
+    whatsappNumber || '+961 71 135 241',
+    `Hello On Alaa Store! 🇱🇧\n\nI have a quick inquiry about this product:\n• Product: ${product.name}\n• Brand: ${product.brand}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice} USD (${formatPrice(effectivePrice, 'LBP')})\n• Warranty: ${product.warranty || 'Agency Sealed'}\n\nCould you please confirm if it is currently in stock at the warehouse and available for fast dispatch to my area? Thank you!`
   );
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -125,80 +126,74 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <div 
       id={`product-card-${product.id}`}
       onClick={() => onQuickView(product)}
-      className="group bg-white rounded-2xl border border-slate-200/90 hover:border-blue-400 hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer relative"
+      className={`group rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer relative shadow-sm hover:shadow-xl ${
+        isDark 
+          ? 'bg-[#141418] hover:bg-[#181822] border-zinc-800 hover:border-blue-500/80 text-zinc-100 hover:shadow-blue-500/10' 
+          : 'bg-white hover:bg-zinc-50 border-zinc-200 hover:border-blue-400 text-zinc-900 hover:shadow-blue-500/10'
+      }`}
     >
-      {/* Badges Overlay */}
-      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start pointer-events-none">
-        {/* Availability Status Badge */}
+      {/* Badges Overlay (Technical tags) */}
+      <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 items-start pointer-events-none font-mono text-[10px]">
         {isOutOfStock ? (
-          <span className="bg-rose-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-200" />
-            Out of Stock
+          <span className="px-2 py-0.5 rounded border border-zinc-800 bg-zinc-950/90 text-zinc-500 uppercase tracking-tight">
+            [ OUT OF STOCK ]
           </span>
         ) : isLowStock ? (
-          <span className="bg-amber-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-            Low Stock ({product.stockCount})
+          <span className="px-2 py-0.5 rounded border border-zinc-700 bg-zinc-950/90 text-zinc-300 uppercase tracking-tight flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
+            <span>LOW [{product.stockCount}]</span>
           </span>
         ) : (
-          <span className="bg-emerald-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
-            In Stock
+          <span className="px-1.5 py-0.5 rounded border border-zinc-800/80 bg-zinc-950/80 text-zinc-400 uppercase text-[9px]">
+            SEALED
           </span>
         )}
 
-        {/* Sale / Discount Promotional Price Badge */}
-        {hasPromotionalPrice && (
+        {hasPromotionalPrice && discountPercent && discountPercent > 0 && (
           <span 
             id={`sale-discount-badge-${product.id}`}
             data-testid="sale-discount-badge"
-            className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs animate-in fade-in"
-            title="Promotional Price / Discount Active"
+            className="px-2 py-0.5 rounded-md bg-blue-600 text-white uppercase font-mono font-bold shadow-md shadow-blue-600/40 text-[10px]"
           >
-            <Tag className="w-2.5 h-2.5 shrink-0" />
-            <span>Sale</span>
-            {discountPercent && discountPercent > 0 && (
-              <span>-{discountPercent}%</span>
-            )}
-            <span className="sr-only">Discount</span>
-          </span>
-        )}
-
-        {product.isHotDeal && (
-          <span className="bg-rose-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide shadow-xs">
-            Deal
-          </span>
-        )}
-        {product.isNewArrival && (
-          <span className="bg-blue-600 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide shadow-xs">
-            New
-          </span>
-        )}
-        {product.freeDelivery && (
-          <span className="bg-emerald-700 text-white font-bold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-xs">
-            <Truck className="w-2.5 h-2.5" />
-            Free Delivery
+            -{discountPercent}%
           </span>
         )}
       </div>
 
-      {/* Action Buttons Overlay (Wishlist, Compare, Quick View) */}
-      <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 sm:gap-1.5 opacity-95 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Action Buttons Overlay (Wishlist, Compare, Quick View, WhatsApp Inquiry) */}
+      <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+        <a
+          id={`floating-wa-inquiry-btn-${product.id}`}
+          href={whatsappInquiryLink}
+          onClick={(e) => e.stopPropagation()}
+          target="_blank"
+          rel="noreferrer"
+          className={`animate-wa-pulse w-7 h-7 rounded-md flex items-center justify-center border transition-micro cursor-pointer ${
+            isDark 
+              ? 'border-emerald-800/80 bg-zinc-950/90 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/80 hover:border-emerald-600' 
+              : 'border-emerald-200 bg-white/95 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 shadow-2xs'
+          }`}
+          title="Ask on WhatsApp"
+          aria-label={`Ask about ${product.name} on WhatsApp`}
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+        </a>
+
         <button
           id={`wishlist-btn-${product.id}`}
           onClick={(e) => {
             e.stopPropagation();
             onToggleWishlist(product.id);
           }}
-          className={`w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer active:scale-95 ${
+          className={`w-7 h-7 rounded-md flex items-center justify-center border transition-micro cursor-pointer ${
             isWishlisted 
-              ? 'border-rose-300 text-rose-500 bg-rose-50' 
-              : 'border-slate-200 text-slate-600 hover:text-rose-500'
+              ? 'border-zinc-500 bg-zinc-800 text-zinc-100' 
+              : (isDark ? 'border-zinc-800 bg-zinc-950/90 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700' : 'border-zinc-200 bg-white/90 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300')
           }`}
           title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           aria-label="Wishlist"
         >
-          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
 
         <button
@@ -207,15 +202,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onToggleCompare(product);
           }}
-          className={`w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border transition cursor-pointer active:scale-95 ${
+          className={`w-7 h-7 rounded-md flex items-center justify-center border transition-micro cursor-pointer ${
             isCompared 
-              ? 'border-blue-300 text-blue-600 bg-blue-50' 
-              : 'border-slate-200 text-slate-600 hover:text-blue-600'
+              ? 'border-zinc-500 bg-zinc-800 text-zinc-100' 
+              : (isDark ? 'border-zinc-800 bg-zinc-950/90 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700' : 'border-zinc-200 bg-white/90 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300')
           }`}
           title={isCompared ? "Remove from comparison" : "Compare specifications"}
           aria-label="Compare"
         >
-          <ArrowLeftRight className="w-4 h-4" />
+          <ArrowLeftRight className="w-3.5 h-3.5" />
         </button>
 
         <button
@@ -224,21 +219,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onQuickView(product);
           }}
-          className="w-11 h-11 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/95 backdrop-blur-xs shadow-md border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer active:scale-95"
+          className={`w-7 h-7 rounded-md flex items-center justify-center border transition-micro cursor-pointer ${
+            isDark ? 'border-zinc-800 bg-zinc-950/90 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700' : 'border-zinc-200 bg-white/90 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300'
+          }`}
           title="Quick preview"
           aria-label="Quick view"
         >
-          <Eye className="w-4 h-4" />
+          <Eye className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Product Image Stage */}
-      <div className="relative aspect-square bg-slate-50 overflow-hidden p-6 flex items-center justify-center group/img">
+      <div className={`relative aspect-square overflow-hidden p-5 flex items-center justify-center transition-colors ${
+        isDark ? 'bg-zinc-950/50' : 'bg-zinc-100/50'
+      }`}>
         <img
           src={primaryImage}
           alt={product.name}
-          className={`w-full h-full object-contain object-center transition-all duration-500 ${
-            secondaryImage ? 'group-hover/img:opacity-0 group-hover/img:scale-95 group-hover:scale-105' : 'group-hover:scale-108'
+          className={`w-full h-full object-contain object-center transition-all duration-300 ${
+            secondaryImage ? 'group-hover:opacity-0 group-hover:scale-95 group-hover:scale-102' : 'group-hover:scale-105'
           }`}
           loading="lazy"
           referrerPolicy="no-referrer"
@@ -250,7 +249,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <img
             src={secondaryImage}
             alt={`${product.name} alternate view`}
-            className="w-full h-full object-contain object-center absolute inset-0 p-6 transition-all duration-500 opacity-0 scale-95 group-hover/img:opacity-100 group-hover/img:scale-108"
+            className="w-full h-full object-contain object-center absolute inset-0 p-5 transition-all duration-300 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-105"
             loading="lazy"
             referrerPolicy="no-referrer"
             onError={(e) => {
@@ -259,42 +258,69 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           />
         )}
         {productImages.length > 1 && (
-          <div className="absolute bottom-2.5 right-2.5 z-10 bg-slate-900/75 backdrop-blur-xs text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 opacity-80 group-hover:opacity-100 transition shadow-xs pointer-events-none">
-            <Images className="w-3 h-3" />
+          <div className="absolute bottom-2 right-2 z-10 bg-zinc-950/80 border border-zinc-800 text-zinc-400 text-[9px] font-mono px-1 py-0.5 rounded flex items-center gap-1 opacity-70 group-hover:opacity-100 transition pointer-events-none">
+            <Images className="w-2.5 h-2.5" />
             <span>{productImages.length}</span>
           </div>
         )}
+
+        {/* Floating Quick-Action WhatsApp Inquiry Pill on Card Image */}
+        <div className="absolute bottom-2 left-2 z-10">
+          <a
+            id={`floating-wa-inquiry-pill-${product.id}`}
+            href={whatsappInquiryLink}
+            onClick={(e) => e.stopPropagation()}
+            target="_blank"
+            rel="noreferrer"
+            className={`animate-wa-pulse inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-medium shadow-xs transition-micro cursor-pointer active:scale-95 border backdrop-blur-xs ${
+              isDark
+                ? 'bg-zinc-950/90 hover:bg-emerald-950 text-emerald-400 border-emerald-900/60 hover:border-emerald-600'
+                : 'bg-white/95 hover:bg-emerald-50 text-emerald-700 border-emerald-300/80 hover:border-emerald-500 shadow-2xs'
+            }`}
+            title={`Ask specifically about ${product.name} on WhatsApp`}
+            aria-label={`Ask about ${product.name} on WhatsApp`}
+          >
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+            </span>
+            <MessageCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span className="tracking-tight uppercase font-semibold">WA Inquiry</span>
+          </a>
+        </div>
       </div>
 
       {/* Product Information Body */}
-      <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white">
+      <div className={`p-3.5 flex-1 flex flex-col justify-between space-y-2.5 border-t transition-colors ${
+        isDark ? 'border-zinc-800/80 bg-zinc-900/30' : 'border-zinc-200/80 bg-white'
+      }`}>
         <div>
-          {/* Brand & Rating */}
-          <div className="flex items-center justify-between text-xs mb-1">
-            <span className="font-bold text-blue-600 uppercase tracking-wider text-[11px]">
+          {/* Brand & Stock Reference */}
+          <div className="flex items-center justify-between text-[11px] font-mono mb-1">
+            <span className={`uppercase tracking-wider font-semibold ${isDark ? 'text-zinc-300' : 'text-[#333333]'}`}>
               {product.brand}
             </span>
-            <div className="flex items-center gap-1 text-slate-600">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="font-bold text-slate-800">{product.rating}</span>
-              <span className="text-slate-400">({product.reviewCount})</span>
-            </div>
+            <span className={`text-[10px] ${isDark ? 'text-zinc-500' : 'text-[#555555]'}`}>
+              {product.category.toUpperCase()}
+            </span>
           </div>
 
           {/* Product Title */}
-          <h3 className="font-bold text-slate-900 text-sm line-clamp-2 group-hover:text-blue-600 transition min-h-[2.5rem]">
+          <h3 className={`font-semibold text-xs sm:text-sm line-clamp-2 transition-colors min-h-[2.5rem] tracking-tight ${
+            isDark ? 'text-zinc-100 group-hover:text-white' : 'text-[#000000] group-hover:text-[#0052CC]'
+          }`}>
             {product.name}
           </h3>
 
-          {/* Condition & Warranty Subtitle */}
-          <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-500 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          {/* Warranty / Specs Subtitle */}
+          <div className={`flex items-center gap-1.5 mt-1 text-[10px] font-mono ${isDark ? 'text-zinc-400' : 'text-[#555555]'}`}>
+            <ShieldCheck className={`w-3 h-3 shrink-0 ${isDark ? 'text-zinc-400' : 'text-[#0052CC]'}`} />
             <span className="truncate">{product.warranty}</span>
           </div>
 
-          {/* Variant Selector (if multiple variants) */}
+          {/* Variant Selector */}
           {product.variants.length > 1 && (
-            <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+            <div className="mt-2 flex items-center gap-1 flex-wrap">
               {product.variants.slice(0, 4).map((variant, idx) => (
                 <button
                   key={variant.id}
@@ -303,95 +329,79 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     e.stopPropagation();
                     setSelectedVariantIndex(idx);
                   }}
-                  className={`text-[10px] sm:text-[11px] font-semibold min-h-[30px] px-2.5 py-1 rounded-lg border transition cursor-pointer active:scale-95 ${
+                  className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-micro cursor-pointer ${
                     selectedVariantIndex === idx
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold shadow-2xs'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      ? (isDark ? 'border-zinc-400 bg-zinc-100 text-zinc-950 font-bold' : 'border-[#0052CC] bg-[#0052CC] text-white font-bold')
+                      : (isDark ? 'border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:text-zinc-200' : 'border-zinc-200 bg-[#FAFAFA] text-[#333333] hover:border-zinc-300')
                   }`}
                 >
                   {variant.storage || variant.name.split('-')[0]}
                 </button>
               ))}
               {product.variants.length > 4 && (
-                <span className="text-[10px] text-slate-400">+{product.variants.length - 4}</span>
+                <span className={`text-[9px] font-mono ${isDark ? 'text-zinc-500' : 'text-[#555555]'}`}>+{product.variants.length - 4}</span>
               )}
-            </div>
-          )}
-
-          {/* Color Swatch Dots Preview */}
-          {product.colorOptions && product.colorOptions.length > 0 && (
-            <div className="mt-2 flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-400 font-medium">Colors:</span>
-              <div className="flex items-center gap-1">
-                {product.colorOptions.slice(0, 5).map((col) => (
-                  <span
-                    key={col.name}
-                    className="w-2.5 h-2.5 rounded-full border border-slate-200 shadow-2xs inline-block"
-                    style={{ backgroundColor: col.hex }}
-                    title={col.name}
-                  />
-                ))}
-                {product.colorOptions.length > 5 && (
-                  <span className="text-[9px] text-slate-400 font-semibold">+{product.colorOptions.length - 5}</span>
-                )}
-              </div>
             </div>
           )}
         </div>
 
         {/* Pricing & Add to Cart Action */}
-        <div className="pt-2 border-t border-slate-100 space-y-2">
-          <div className="flex items-baseline justify-between gap-1 flex-wrap">
+        <div className={`pt-2 border-t space-y-2 ${isDark ? 'border-zinc-800/80' : 'border-zinc-200/80'}`}>
+          <div className="flex items-baseline justify-between gap-1 flex-wrap font-mono">
             <div>
               <div className="flex items-baseline gap-1.5 flex-wrap">
-                <span className="font-extrabold text-slate-900 text-sm sm:text-base font-display">
+                <span className={`font-bold text-sm sm:text-base ${isDark ? 'text-zinc-100' : 'text-[#000000]'}`}>
                   {formatPrice(effectivePrice, currency)}
                 </span>
                 {strikePrice && (
-                  <span className="text-[11px] text-slate-400 line-through">
+                  <span className={`text-[10px] line-through ${isDark ? 'text-zinc-500' : 'text-[#555555]'}`}>
                     {formatPrice(strikePrice, currency)}
                   </span>
                 )}
               </div>
               {currency === 'USD' && (
-                <span className="text-[10px] text-slate-400 font-medium block">
+                <span className={`text-[10px] block ${isDark ? 'text-zinc-500' : 'text-[#555555]'}`}>
                   ≈ {formatPrice(effectivePrice, 'LBP')}
                 </span>
               )}
             </div>
             {hasPromotionalPrice && discountPercent && discountPercent > 0 && (
-              <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                -{discountPercent}%
+              <span className={`text-[10px] border px-1.5 py-0.5 rounded font-mono ${
+                isDark 
+                  ? 'text-zinc-400 border-zinc-800 bg-zinc-950' 
+                  : 'text-[#0052CC] border-[#0052CC]/30 bg-blue-50/50 font-semibold'
+              }`}>
+                SAVE {discountPercent}%
               </span>
             )}
           </div>
 
-          {/* Dual Action Buttons (Mobile-first, touch-friendly min-h-[44px]) */}
-          <div className="grid grid-cols-2 gap-1.5">
+          {/* Dual Action Buttons */}
+          <div className="grid grid-cols-2 gap-1.5 font-mono">
             <button
               id={`add-cart-btn-${product.id}`}
               onClick={handleAdd}
               disabled={isOutOfStock}
-              className={`min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs ${
+              className={`min-h-[38px] px-2 py-1.5 rounded-xl text-xs font-bold uppercase tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border ${
                 isOutOfStock
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 col-span-2'
+                  ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed border-zinc-800 col-span-2'
                   : addedAnimation 
-                    ? 'bg-emerald-600 text-white cursor-pointer ring-2 ring-emerald-500/30' 
-                    : 'bg-slate-900 hover:bg-blue-600 text-white cursor-pointer active:scale-95'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30' 
+                    : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-600/30'
               }`}
               aria-label={isOutOfStock ? "Sold out" : `Add ${product.name} to cart`}
             >
               {isOutOfStock ? (
-                <span>Sold Out</span>
+                <span>SOLD OUT</span>
               ) : addedAnimation ? (
                 <>
                   <Check className="w-3.5 h-3.5" />
-                  <span>Added</span>
+                  <span>ADDED</span>
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-3.5 h-3.5" />
-                  <span>Add</span>
+                  <span>ADD</span>
                 </>
               )}
             </button>
@@ -403,12 +413,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 onClick={(e) => e.stopPropagation()}
                 target="_blank"
                 rel="noreferrer"
-                className="min-h-[44px] px-2 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center justify-center gap-1 shadow-xs active:scale-95 text-center cursor-pointer"
+                className={`min-h-[38px] px-2 py-1.5 rounded-lg text-xs font-medium uppercase tracking-tight border transition-micro flex items-center justify-center gap-1 cursor-pointer active:scale-98 ${
+                  isDark 
+                    ? 'border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 text-zinc-300 hover:text-white hover:border-zinc-700' 
+                    : 'border-zinc-200 bg-[#FAFAFA] hover:bg-zinc-100 text-[#333333] hover:text-[#000000] hover:border-zinc-300'
+                }`}
                 title="Order immediately on WhatsApp"
                 aria-label={`Order ${product.name} directly on WhatsApp`}
               >
-                <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">WhatsApp</span>
+                <MessageCircle className={`w-3 h-3 shrink-0 ${isDark ? 'text-zinc-400' : 'text-[#0052CC]'}`} />
+                <span className="truncate">WA ORDER</span>
               </a>
             )}
           </div>

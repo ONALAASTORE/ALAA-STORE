@@ -24,7 +24,7 @@ export const LogoAvatar: React.FC<LogoAvatarProps> = ({
   showHoverEffect = true,
   onClick,
   alt = 'ON ALAA STORE Official Logo Avatar',
-  withGlow = true,
+  withGlow = false,
 }) => {
   return (
     <div
@@ -33,39 +33,18 @@ export const LogoAvatar: React.FC<LogoAvatarProps> = ({
       aria-label={alt}
       role="img"
       className={`relative rounded-full select-none shrink-0 ${SIZE_MAP[size]} ${
-        showHoverEffect ? 'logo-avatar-interactive cursor-pointer' : ''
+        showHoverEffect ? 'hover:opacity-90 active:scale-95 transition-micro cursor-pointer' : ''
       } ${className}`}
-      style={{
-        perspective: '800px',
-        transformStyle: 'preserve-3d',
-      }}
     >
-      {/* Outer 3D Ambient Red Glow Halo */}
-      {withGlow && (
-        <div 
-          className="absolute -inset-1.5 rounded-full bg-gradient-to-tr from-[#FF0000]/35 via-[#FF0000]/15 to-transparent blur-md -z-10 pointer-events-none animate-pulse opacity-90" 
-        />
-      )}
-
-      {/* 3D Elevated Medallion Container with metallic/glass ring border & shadow */}
-      <div
-        className={`w-full h-full rounded-full p-[2px] bg-gradient-to-b from-white/90 via-slate-200/90 to-slate-400/90 border border-white/40 shadow-xl ${
-          size === 'xl' || size === '2xl' ? 'logo-avatar-3d-shadow-lg' : 'logo-avatar-3d-shadow'
-        } relative overflow-hidden flex items-center justify-center`}
-      >
-        {/* Inner White Ceramic/Glass Disc */}
-        <div className="w-full h-full rounded-full bg-white flex items-center justify-center relative overflow-hidden p-0.5 shadow-inner">
-          
-          {/* Top Gloss Arc Reflection (Physical 3D Glass Highlight) */}
-          <div className="absolute top-0 inset-x-0 h-[45%] bg-gradient-to-b from-white/90 via-white/20 to-transparent rounded-t-full pointer-events-none z-10" />
-          
-          {/* Render Primary Logo Asset: Exact Vector matching uploaded picture */}
-          <div className="w-full h-full flex items-center justify-center scale-95 transition-transform duration-300">
+      {/* 1px Ultra-thin technical border ring */}
+      <div className={`w-full h-full rounded-full p-[1.5px] bg-zinc-800 border border-zinc-700/80 shadow-xs relative overflow-hidden flex items-center justify-center ${
+        withGlow ? 'ring-1 ring-zinc-500/40' : ''
+      }`}>
+        {/* Inner Clean White Disc */}
+        <div className="w-full h-full rounded-full bg-white flex items-center justify-center relative overflow-hidden p-0.5">
+          <div className="w-full h-full flex items-center justify-center scale-95 transition-transform duration-200">
             <BrandLogoImage className="w-full h-full object-contain" />
           </div>
-
-          {/* Bottom subtle edge shadow inside disc */}
-          <div className="absolute bottom-0 inset-x-0 h-2 bg-gradient-to-t from-slate-300/30 to-transparent rounded-b-full pointer-events-none" />
         </div>
       </div>
     </div>

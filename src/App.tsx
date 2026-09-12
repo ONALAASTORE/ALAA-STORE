@@ -35,6 +35,10 @@ import { Showroom2027View } from './components/showroom2027/Showroom2027View';
 import { decodeWishlistIds } from './utils/wishlistShare';
 import { SpecialOffersPage } from './components/SpecialOffersPage';
 import { getDiscountedProducts } from './utils/dealUtils';
+import { AccountModal } from './components/AccountModal';
+import { CategoryQuickLinks } from './components/CategoryQuickLinks';
+import { FlashDealsRow } from './components/FlashDealsRow';
+import { ProductFeedTabs } from './components/ProductFeedTabs';
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
@@ -84,8 +88,31 @@ const pageTransitionVariants: Variants = {
 };
 
 const CURRENCY_STORAGE_KEY = 'on_alaa_store_currency';
+const THEME_STORAGE_KEY = 'on_alaa_store_theme';
 
 export function App() {
+  // Theme state ('dark' | 'light') with modern blue & black tech aesthetic default
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      return saved === 'light' || saved === 'dark' ? saved : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   // Routing View state ('store' | 'offers' | 'admin-login' | 'admin')
   const [currentRoute, setCurrentRoute] = useState<'store' | 'offers' | 'admin-login' | 'admin'>(() => {
     const hash = window.location.hash.toLowerCase();
@@ -179,6 +206,7 @@ export function App() {
   const [isTradeInOpen, setIsTradeInOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   // Shared Wishlist from URL state (?wishlist=...)
   const [sharedWishlistIds, setSharedWishlistIds] = useState<string[] | null>(null);
@@ -200,13 +228,13 @@ export function App() {
       .filter((p): p is Product => Boolean(p));
   }, [recentlyViewedIds, productsList]);
 
-  // 2027 Cutting-Edge 3D Showroom Mode state
+  // 2027 Cutting-Edge 3D Showroom Mode state (Default to Ishtari storefront layout)
   const [showroomMode, setShowroomMode] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem(SHOWROOM_STORAGE_KEY);
-      return saved !== 'false'; // Default to 2027 Cutting-Edge 3D Showroom!
+      return saved === 'true'; // Default to false (Ishtari Storefront Mode)
     } catch {
-      return true;
+      return false;
     }
   });
 
@@ -736,8 +764,8 @@ export function App() {
   }, [filterState]);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      currentRoute === 'store' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'
+    <div className={`min-h-screen transition-colors duration-200 ${
+      theme === 'dark' ? 'bg-[#09090b] text-zinc-100' : 'bg-[#fafafa] text-zinc-900'
     }`}>
       <AnimatePresence mode="wait" initial={false}>
         {currentRoute === 'admin' ? (
@@ -780,10 +808,16 @@ export function App() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-[#FF0000] selection:text-white font-sans pb-24 md:pb-0"
+            className={`min-h-screen min-h-[100dvh] w-full overflow-x-hidden flex flex-col justify-between font-sans pb-24 md:pb-0 ${
+              theme === 'dark' 
+                ? 'bg-[#09090b] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950' 
+                : 'bg-[#FFFFFF] text-[#000000] selection:bg-[#0052CC] selection:text-white'
+            }`}
           >
             {/* Top Header */}
             <Header
+              theme={theme}
+              onToggleTheme={handleToggleTheme}
               currency={currency}
               onCurrencyChange={setCurrency}
               searchQuery=""
@@ -798,6 +832,7 @@ export function App() {
               }}
               products={productsList}
               onSelectProduct={handleOpenProductDetail}
+              onAddToCart={(p) => handleAddToCart(p, p.variants[0], 1)}
               cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
               onOpenCart={() => setIsCartOpen(true)}
               wishlistCount={wishlistIds.length}
@@ -806,6 +841,7 @@ export function App() {
               onOpenCompare={() => setIsCompareOpen(true)}
               onOpenTradeIn={() => setIsTradeInOpen(true)}
               onOpenContact={() => setIsContactOpen(true)}
+              onOpenAccount={() => setIsAccountOpen(true)}
               onOpenAdmin={handleNavigateToAdmin}
               topBannerText={storeSettings.topBannerText}
               isTopBannerActive={storeSettings.isTopBannerActive}
@@ -832,6 +868,7 @@ export function App() {
 
             {/* Footer */}
             <Footer
+              theme={theme}
               onSelectCategory={(catId) => {
                 setFilterState((prev) => ({ ...prev, category: catId }));
                 handleNavigateToStore();
@@ -848,14 +885,13 @@ export function App() {
 
             {/* Mobile Sticky Bottom Navigation Bar (< 768px) */}
             <MobileBottomNav
+              theme={theme}
               cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
               wishlistCount={wishlistIds.length}
-              compareCount={comparedProducts.length}
-              activeFilterCount={0}
-              onOpenMobileFilters={() => {}}
               onOpenCart={() => setIsCartOpen(true)}
               onOpenWishlist={() => setIsWishlistOpen(true)}
-              onOpenCompare={() => setIsCompareOpen(true)}
+              onOpenAccount={() => setIsAccountOpen(true)}
+              onOpenCategories={handleNavigateToStore}
               onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               onNavigateToOffers={handleNavigateToOffers}
               isOffersActive={true}
@@ -899,39 +935,48 @@ export function App() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-[#FF0000] selection:text-white font-sans pb-24 md:pb-0"
+            className={`min-h-screen min-h-[100dvh] w-full overflow-x-hidden flex flex-col justify-between font-sans pb-24 md:pb-0 ${
+              theme === 'dark' 
+                ? 'bg-[#09090b] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950' 
+                : 'bg-[#FFFFFF] text-[#000000] selection:bg-[#0052CC] selection:text-white'
+            }`}
           >
             {/* Top Header */}
             <Header
-        currency={currency}
-        onCurrencyChange={setCurrency}
-        searchQuery={filterState.searchQuery}
-        onSearchChange={(q) => setFilterState((prev) => ({ ...prev, searchQuery: q }))}
-        selectedCategory={filterState.category}
-        onSelectCategory={(catId) => setFilterState((prev) => ({ ...prev, category: catId }))}
-        products={productsList}
-        onSelectProduct={(p) => setSelectedProduct(p)}
-        cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
-        onOpenCart={() => setIsCartOpen(true)}
-        wishlistCount={wishlistIds.length}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
-        compareCount={comparedProducts.length}
-        onOpenCompare={() => setIsCompareOpen(true)}
-        onOpenTradeIn={() => setIsTradeInOpen(true)}
-        onOpenContact={() => setIsContactOpen(true)}
-        onOpenAdmin={handleNavigateToAdmin}
-        topBannerText={storeSettings.topBannerText}
-        isTopBannerActive={storeSettings.isTopBannerActive}
-        whatsappNumber={storeSettings.whatsappNumber}
-        onSwitchToShowroom={() => handleToggleShowroom(true)}
-        isOffersPage={false}
-        onNavigateToOffers={handleNavigateToOffers}
-        offersCount={discountedProductsCount}
-      />
+              theme={theme}
+              onToggleTheme={handleToggleTheme}
+              currency={currency}
+              onCurrencyChange={setCurrency}
+              searchQuery={filterState.searchQuery}
+              onSearchChange={(q) => setFilterState((prev) => ({ ...prev, searchQuery: q }))}
+              selectedCategory={filterState.category}
+              onSelectCategory={(catId) => setFilterState((prev) => ({ ...prev, category: catId }))}
+              products={productsList}
+              onSelectProduct={(p) => setSelectedProduct(p)}
+              onAddToCart={(p) => handleAddToCart(p, p.variants[0], 1)}
+              cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
+              onOpenCart={() => setIsCartOpen(true)}
+              wishlistCount={wishlistIds.length}
+              onOpenWishlist={() => setIsWishlistOpen(true)}
+              compareCount={comparedProducts.length}
+              onOpenCompare={() => setIsCompareOpen(true)}
+              onOpenTradeIn={() => setIsTradeInOpen(true)}
+              onOpenContact={() => setIsContactOpen(true)}
+              onOpenAccount={() => setIsAccountOpen(true)}
+              onOpenAdmin={handleNavigateToAdmin}
+              topBannerText={storeSettings.topBannerText}
+              isTopBannerActive={storeSettings.isTopBannerActive}
+              whatsappNumber={storeSettings.whatsappNumber}
+              onSwitchToShowroom={() => handleToggleShowroom(true)}
+              isOffersPage={false}
+              onNavigateToOffers={handleNavigateToOffers}
+              offersCount={discountedProductsCount}
+            />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex-1 space-y-6 sm:space-y-8 w-full">
-        {/* Dynamic Hero Banner with Marketing Video Showcase */}
+        {/* 1. Dynamic Hero Banner / Slider with Featured Tech & Video Showcase */}
         <HeroBanner
+          theme={theme}
           featuredProducts={featuredList}
           currency={currency}
           onSelectProduct={(p) => setSelectedProduct(p)}
@@ -940,13 +985,70 @@ export function App() {
           marketingVideoTitle={storeSettings.marketingVideoTitle}
           isMarketingVideoActive={storeSettings.isMarketingVideoActive}
           whatsappNumber={storeSettings.whatsappNumber}
+          onNavigateToOffers={handleNavigateToOffers}
         />
 
+        {/* 2. Horizontal Category Quick-Links Bar (Ishtari Style right below Hero) */}
+        <CategoryQuickLinks
+          selectedCategory={filterState.category}
+          onSelectCategory={(catId) => {
+            setFilterState((prev) => ({ ...prev, category: catId }));
+            const el = document.getElementById('catalog-feed-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+          onNavigateToOffers={handleNavigateToOffers}
+          discountedCount={discountedProductsCount}
+        />
+
+        {/* 3. Flash Deals Row with Live Countdown & Direct Buy */}
+        <FlashDealsRow
+          products={productsList}
+          currency={currency}
+          onSelectProduct={(p) => setSelectedProduct(p)}
+          onAddToCart={(p) => handleAddToCart(p, p.variants[0], 1)}
+          whatsappNumber={storeSettings.whatsappNumber}
+          onViewAllOffers={handleNavigateToOffers}
+        />
+
+        {/* 4. Product Feed Sections Organized by Tabs (Trending, Best Sellers, Audio, Smartphones, Gaming) */}
+        <ProductFeedTabs
+          products={productsList}
+          currency={currency}
+          onSelectProduct={(p) => setSelectedProduct(p)}
+          onAddToCart={(p, v) => handleAddToCart(p, v, 1)}
+          wishlistIds={wishlistIds}
+          onToggleWishlist={handleToggleWishlist}
+          comparedProducts={comparedProducts}
+          onToggleCompare={handleToggleCompare}
+          whatsappNumber={storeSettings.whatsappNumber}
+          theme={theme}
+          onViewCategory={(catId) => {
+            setFilterState((prev) => ({ ...prev, category: catId }));
+            const el = document.getElementById('catalog-feed-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+
+        {/* 5. Complete Catalog & Advanced Filter Grid */}
+        <div id="catalog-feed-section" className="space-y-4 pt-4 border-t border-zinc-800/80">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base sm:text-lg font-bold text-white uppercase tracking-tight flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <span>Full Electronics Catalog</span>
+            </h2>
+            <span className="text-xs font-mono text-zinc-400">
+              {filteredProducts.length} Items Available
+            </span>
+          </div>
+
         {/* Filter Controls Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          
+        <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 rounded-xl border backdrop-blur-md font-mono ${
+          theme === 'dark' 
+            ? 'bg-zinc-900/40 border-zinc-800/80' 
+            : 'bg-white/80 border-zinc-200/80'
+        }`}>
           {/* Category Chips Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
             {CATEGORIES.map((cat) => {
               const isSelected = filterState.category === cat.id;
               return (
@@ -954,19 +1056,25 @@ export function App() {
                   key={cat.id}
                   id={`cat-chip-${cat.id}`}
                   onClick={() => setFilterState((prev) => ({ ...prev, category: cat.id }))}
-                  className={`px-3.5 py-2.5 sm:py-2 min-h-[44px] sm:min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 shadow-2xs shrink-0 ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-mono whitespace-nowrap transition-micro cursor-pointer flex items-center gap-1.5 border shrink-0 ${
                     isSelected
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      ? (theme === 'dark' 
+                          ? 'bg-zinc-100 text-zinc-950 font-bold border-zinc-100' 
+                          : 'bg-zinc-950 text-white font-bold border-zinc-950')
+                      : (theme === 'dark'
+                          ? 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border-zinc-800/80 hover:border-zinc-700'
+                          : 'bg-white text-zinc-600 hover:text-zinc-950 border-zinc-200 hover:border-zinc-300')
                   }`}
                 >
                   <CategoryIcon
                     nameOrId={cat.iconName || cat.id}
                     className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                      isSelected ? 'text-white' : 'text-slate-500'
+                      isSelected 
+                        ? (theme === 'dark' ? 'text-zinc-950' : 'text-white')
+                        : 'text-zinc-400'
                     }`}
                   />
-                  <span>{cat.name}</span>
+                  <span>{cat.name.toUpperCase()}</span>
                 </button>
               );
             })}
@@ -974,30 +1082,40 @@ export function App() {
 
           {/* Sort & Mobile Filter Buttons */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
               <select
                 value={filterState.sortBy}
                 onChange={(e) => setFilterState((prev) => ({ ...prev, sortBy: e.target.value as any }))}
-                className="bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 min-h-[44px] outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                className={`border text-xs font-mono rounded-md px-2.5 py-1.5 outline-none cursor-pointer ${
+                  theme === 'dark' 
+                    ? 'bg-zinc-900 border-zinc-800 text-zinc-200 focus:border-zinc-500' 
+                    : 'bg-white border-zinc-300 text-zinc-800 focus:border-zinc-700'
+                }`}
               >
-                <option value="featured">Featured First</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating">Top Customer Rated</option>
-                <option value="newest">New Arrivals</option>
+                <option value="featured">FEATURED FIRST</option>
+                <option value="price-asc">PRICE: LOW TO HIGH</option>
+                <option value="price-desc">PRICE: HIGH TO LOW</option>
+                <option value="rating">TOP RATED</option>
+                <option value="newest">NEW ARRIVALS</option>
               </select>
             </div>
 
             <button
               onClick={() => setMobileFilterOpen(true)}
-              className="lg:hidden flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-200 min-h-[48px] min-w-[48px] cursor-pointer transition"
+              className={`lg:hidden flex items-center justify-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-md border cursor-pointer transition-micro ${
+                theme === 'dark' 
+                  ? 'bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-800' 
+                  : 'bg-white hover:bg-zinc-50 text-zinc-800 border-zinc-200'
+              }`}
               aria-label="Open filter menu"
             >
-              <SlidersHorizontal className="w-4 h-4 text-blue-600" />
-              <span>Filters</span>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+              <span>FILTERS</span>
               {activeFilterCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className={`w-3.5 h-3.5 rounded-full text-[9px] font-mono flex items-center justify-center font-bold ${
+                  theme === 'dark' ? 'bg-zinc-100 text-zinc-950' : 'bg-zinc-950 text-white'
+                }`}>
                   {activeFilterCount}
                 </span>
               )}
@@ -1010,13 +1128,18 @@ export function App() {
           
           {/* Desktop Filter Sidebar (Hidden on Mobile/Tablet, visible on LG+) */}
           <aside className="hidden lg:block lg:col-span-3 space-y-6 sticky top-24">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className={`p-4 rounded-xl border ${
+              theme === 'dark' 
+                ? 'bg-zinc-900/40 border-zinc-800/80 backdrop-blur-md' 
+                : 'bg-white/80 border-zinc-200/80 backdrop-blur-md'
+            }`}>
               <FilterPanelContent
                 filterState={filterState}
                 setFilterState={setFilterState}
                 currency={currency}
                 onResetFilters={handleResetFilters}
                 hasActiveFilters={hasActiveFilters}
+                theme={theme}
               />
             </div>
           </aside>
@@ -1025,21 +1148,23 @@ export function App() {
           <div className="lg:col-span-9 space-y-6">
             
             {/* Active Filters / Result count */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-zinc-500">
               <div className="flex items-center gap-2">
                 <span>
-                  Showing <strong className="text-slate-900 font-bold">{filteredProducts.length}</strong> items in catalog
+                  SHOWING <strong className={theme === 'dark' ? 'text-zinc-200' : 'text-zinc-900'}>{filteredProducts.length}</strong> ITEMS IN CATALOG
                 </span>
 
                 {/* Mobile 1-col vs 2-col toggle button */}
-                <div className="flex sm:hidden items-center border border-slate-200 rounded-lg p-0.5 bg-slate-50 ml-1">
+                <div className={`flex sm:hidden items-center border rounded-md p-0.5 ml-1 ${
+                  theme === 'dark' ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
+                }`}>
                   <button
                     type="button"
                     onClick={() => setMobileGridCols(1)}
-                    className={`p-1.5 rounded-md transition cursor-pointer ${
+                    className={`p-1 rounded transition-micro cursor-pointer ${
                       mobileGridCols === 1
-                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                        : 'text-slate-400 hover:text-slate-600'
+                        ? (theme === 'dark' ? 'bg-zinc-800 text-zinc-100' : 'bg-white text-zinc-950')
+                        : 'text-zinc-500'
                     }`}
                     title="1 Column View"
                     aria-label="1 Column Layout"
@@ -1049,10 +1174,10 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => setMobileGridCols(2)}
-                    className={`p-1.5 rounded-md transition cursor-pointer ${
+                    className={`p-1 rounded transition-micro cursor-pointer ${
                       mobileGridCols === 2
-                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                        : 'text-slate-400 hover:text-slate-600'
+                        ? (theme === 'dark' ? 'bg-zinc-800 text-zinc-100' : 'bg-white text-zinc-950')
+                        : 'text-zinc-500'
                     }`}
                     title="2 Columns View"
                     aria-label="2 Columns Layout"
@@ -1063,12 +1188,14 @@ export function App() {
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {filterState.searchQuery && (
-                  <span className="inline-flex items-center gap-1 bg-slate-200/80 px-2.5 py-1 rounded-full text-slate-800 font-medium">
-                    <span>Search: "{filterState.searchQuery}"</span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
+                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                  }`}>
+                    <span>QUERY: "{filterState.searchQuery}"</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, searchQuery: '' }))}
-                      className="hover:text-red-500 transition cursor-pointer"
+                      className="hover:text-red-400 transition cursor-pointer"
                       title="Clear search"
                     >
                       <X className="w-3 h-3" />
@@ -1076,12 +1203,14 @@ export function App() {
                   </span>
                 )}
                 {(filterState.minPriceUSD > 0 || filterState.maxPriceUSD < 3000) && (
-                  <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-full text-blue-700 font-medium">
-                    <span>Price: ${filterState.minPriceUSD} – ${filterState.maxPriceUSD}</span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
+                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                  }`}>
+                    <span>PRICE: ${filterState.minPriceUSD}–${filterState.maxPriceUSD}</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, minPriceUSD: 0, maxPriceUSD: 3000 }))}
-                      className="hover:text-blue-900 transition cursor-pointer"
+                      className="hover:text-red-400 transition cursor-pointer"
                       title="Reset price filter"
                     >
                       <X className="w-3 h-3" />
@@ -1089,12 +1218,14 @@ export function App() {
                   </span>
                 )}
                 {filterState.brand !== 'All Brands' && (
-                  <span className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full text-slate-700 font-medium">
-                    <span>{filterState.brand}</span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
+                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                  }`}>
+                    <span>{filterState.brand.toUpperCase()}</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, brand: 'All Brands' }))}
-                      className="hover:text-red-500 transition cursor-pointer"
+                      className="hover:text-red-400 transition cursor-pointer"
                       title="Clear brand filter"
                     >
                       <X className="w-3 h-3" />
@@ -1102,12 +1233,14 @@ export function App() {
                   </span>
                 )}
                 {filterState.condition !== 'all' && (
-                  <span className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full text-slate-700 font-medium">
-                    <span>{filterState.condition}</span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
+                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                  }`}>
+                    <span>{filterState.condition.toUpperCase()}</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, condition: 'all' }))}
-                      className="hover:text-red-500 transition cursor-pointer"
+                      className="hover:text-red-400 transition cursor-pointer"
                       title="Clear condition filter"
                     >
                       <X className="w-3 h-3" />
@@ -1115,12 +1248,14 @@ export function App() {
                   </span>
                 )}
                 {filterState.onlyInStock && (
-                  <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-emerald-700 font-medium">
-                    <span>In Stock</span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
+                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                  }`}>
+                    <span>IN-STOCK</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, onlyInStock: false }))}
-                      className="hover:text-emerald-900 transition cursor-pointer"
+                      className="hover:text-red-400 transition cursor-pointer"
                       title="Clear in-stock filter"
                     >
                       <X className="w-3 h-3" />
@@ -1165,6 +1300,7 @@ export function App() {
                       key={product.id}
                       product={product}
                       currency={currency}
+                      theme={theme}
                       isWishlisted={wishlistIds.includes(product.id)}
                       isCompared={comparedProducts.some((p) => p.id === product.id)}
                       onToggleWishlist={handleToggleWishlist}
@@ -1180,7 +1316,9 @@ export function App() {
 
             {/* Recently Viewed Products Horizontal Slider */}
             {recentlyViewedProducts.length > 0 && (
-              <div className="mt-12 pt-8 border-t border-slate-200/80">
+              <div className={`mt-12 pt-8 border-t ${
+                theme === 'dark' ? 'border-zinc-800/80' : 'border-zinc-200/80'
+              }`}>
                 <RecentlyViewedSlider
                   products={recentlyViewedProducts}
                   currency={currency}
@@ -1201,10 +1339,12 @@ export function App() {
           </div>
 
         </div>
+        </div>
       </main>
 
       {/* Footer */}
       <Footer
+        theme={theme}
         onSelectCategory={(catId) => {
           setFilterState((prev) => ({ ...prev, category: catId }));
           window.scrollTo({ top: 400, behavior: 'smooth' });
@@ -1221,6 +1361,7 @@ export function App() {
 
       {/* Mobile Filter Slide-Over Drawer (< 1024px) */}
       <MobileFilterDrawer
+        theme={theme}
         isOpen={mobileFilterOpen}
         onClose={() => setMobileFilterOpen(false)}
         filterState={filterState}
@@ -1233,14 +1374,16 @@ export function App() {
 
       {/* Mobile Sticky Bottom Navigation Bar (< 768px) */}
       <MobileBottomNav
+        theme={theme}
         cartCount={cartItems.reduce((s, i) => s + i.quantity, 0)}
         wishlistCount={wishlistIds.length}
-        compareCount={comparedProducts.length}
-        activeFilterCount={activeFilterCount}
-        onOpenMobileFilters={() => setMobileFilterOpen(true)}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenCompare={() => setIsCompareOpen(true)}
+        onOpenAccount={() => setIsAccountOpen(true)}
+        onOpenCategories={() => {
+          const el = document.getElementById('category-quick-links-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}
         onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         onNavigateToOffers={handleNavigateToOffers}
         isOffersActive={false}
@@ -1356,6 +1499,13 @@ export function App() {
         onClose={() => setIsContactOpen(false)}
         whatsappNumber={storeSettings.whatsappNumber}
         supportEmail={storeSettings.supportEmail}
+      />
+
+      {/* Ishtari Account / Order Tracking Modal */}
+      <AccountModal
+        isOpen={isAccountOpen}
+        onClose={() => setIsAccountOpen(false)}
+        whatsappNumber={storeSettings.whatsappNumber}
       />
     </div>
   );

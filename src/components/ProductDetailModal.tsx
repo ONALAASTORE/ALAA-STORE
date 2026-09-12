@@ -18,7 +18,11 @@ import {
   Images,
   ZoomIn,
   Scan,
-  CircleDot
+  CircleDot,
+  Camera,
+  Zap,
+  Box,
+  Sparkles
 } from 'lucide-react';
 import { Product, Currency, ProductVariant, ProductReview } from '../types';
 import { formatPrice } from '../utils/currency';
@@ -26,10 +30,12 @@ import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages'
 import { buildWhatsAppLink } from '../utils/phone';
 import { extractProductVariantConfig, findBestMatchingVariant } from '../utils/variantUtils';
 import { VisualStarRating } from './VisualStarRating';
-import { ProductReviewsSection } from './ProductReviewsSection';
+import { CustomerReviews } from './CustomerReviews';
 import { SpecsAccordion } from './SpecsAccordion';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { getStoredReviews, saveStoredReviews, INITIAL_REVIEWS_SEED } from '../data/initialReviews';
+import { ProductDetailModalSkeleton } from './ProductDetailModalSkeleton';
+import { Model3DViewerModal, is3DSupported } from './Model3DViewerModal';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -41,6 +47,7 @@ interface ProductDetailModalProps {
   isCompared: boolean;
   onToggleCompare: (product: Product) => void;
   whatsappNumber?: string;
+  isLoading?: boolean;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -53,14 +60,21 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   isCompared,
   onToggleCompare,
   whatsappNumber = '+961 71 135 241',
+  isLoading = false,
 }) => {
-  if (!product) return null;
+  if (isLoading || !product) {
+    return <ProductDetailModalSkeleton onClose={onClose} />;
+  }
 
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'specs' | 'features' | 'delivery' | 'reviews'>('specs');
   const [added, setAdded] = useState(false);
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'shared'>('idle');
+  const [is3DModalOpen, setIs3DModalOpen] = useState(false);
+
+  // Check if current product qualifies for 3D/AR spatial preview
+  const supports3D = useMemo(() => is3DSupported(product), [product]);
 
   // Extract structured variant configuration (Storage options & Color options)
   const variantConfig = useMemo(() => {
@@ -372,6 +386,103 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
+
+  // Handler and precomputed link for 'Direct WhatsApp Buy'
+  // Skips the shopping cart entirely and directly triggers buildWhatsAppLink with the specific selected variant
+  const handleDirectWhatsAppBuy = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    if (!product || !currentVariant) return;
+
+    const variantDetails: string[] = [];
+    if (currentVariant.name && currentVariant.name !== 'Standard Option') {
+      variantDetails.push(currentVariant.name);
+    }
+    if (currentVariant.storage) {
+      variantDetails.push(`Storage: ${currentVariant.storage}`);
+    }
+    if (currentVariant.color) {
+      variantDetails.push(`Color: ${currentVariant.color}`);
+    }
+
+    const variantSummary = variantDetails.length > 0 
+      ? variantDetails.join(' | ') 
+      : (currentVariant.name || 'Standard Specification');
+
+    const unitPrice = currentVariant.priceUSD;
+    const totalPrice = unitPrice * quantity;
+    const lbpEstimate = (totalPrice * 89500).toLocaleString();
+
+    const directBuyMessage = 
+      `*DIRECT WHATSAPP BUY (FAST CHECKOUT)* ⚡\n` +
+      `Hello ON-ALAA-STORE! 🇱🇧\n` +
+      `I would like to purchase this product directly (skipping cart):\n\n` +
+      `📦 *Product:* ${product.name}\n` +
+      `🎯 *Selected Variant:* ${variantSummary}\n` +
+      `🔢 *Quantity:* ${quantity}\n` +
+      `💵 *Unit Price:* $${unitPrice}\n` +
+      `💰 *Total Amount:* $${totalPrice} (≈ ${lbpEstimate} L.L.)\n` +
+      `🏷️ *Product SKU/ID:* ${product.id} / ${currentVariant.id}\n` +
+      `🚚 *Delivery Estimate:* ${estimatedDeliveryTime} (Lebanon Nationwide Express)\n` +
+      `💳 *Payment Method:* Cash on Delivery (COD in USD or L.L.)\n\n` +
+      `📍 *My Delivery Details:*\n` +
+      `- Full Name: \n` +
+      `- City & Region (Lebanon): \n` +
+      `- Delivery Address: \n` +
+      `- Contact Phone Number: \n\n` +
+      `Please confirm stock availability and proceed with express delivery!`;
+
+    const directUrl = buildWhatsAppLink(whatsappNumber, directBuyMessage);
+    if (typeof window !== 'undefined') {
+      window.open(directUrl, '_blank', 'noopener,noreferrer');
+    }
+    return directUrl;
+  };
+
+  const directWhatsAppBuyHref = useMemo(() => {
+    if (!product || !currentVariant) return '#';
+
+    const variantDetails: string[] = [];
+    if (currentVariant.name && currentVariant.name !== 'Standard Option') {
+      variantDetails.push(currentVariant.name);
+    }
+    if (currentVariant.storage) {
+      variantDetails.push(`Storage: ${currentVariant.storage}`);
+    }
+    if (currentVariant.color) {
+      variantDetails.push(`Color: ${currentVariant.color}`);
+    }
+
+    const variantSummary = variantDetails.length > 0 
+      ? variantDetails.join(' | ') 
+      : (currentVariant.name || 'Standard Specification');
+
+    const unitPrice = currentVariant.priceUSD;
+    const totalPrice = unitPrice * quantity;
+    const lbpEstimate = (totalPrice * 89500).toLocaleString();
+
+    const directBuyMessage = 
+      `*DIRECT WHATSAPP BUY (FAST CHECKOUT)* ⚡\n` +
+      `Hello ON-ALAA-STORE! 🇱🇧\n` +
+      `I would like to purchase this product directly (skipping cart):\n\n` +
+      `📦 *Product:* ${product.name}\n` +
+      `🎯 *Selected Variant:* ${variantSummary}\n` +
+      `🔢 *Quantity:* ${quantity}\n` +
+      `💵 *Unit Price:* $${unitPrice}\n` +
+      `💰 *Total Amount:* $${totalPrice} (≈ ${lbpEstimate} L.L.)\n` +
+      `🏷️ *Product SKU/ID:* ${product.id} / ${currentVariant.id}\n` +
+      `🚚 *Delivery Estimate:* ${estimatedDeliveryTime} (Lebanon Nationwide Express)\n` +
+      `💳 *Payment Method:* Cash on Delivery (COD in USD or L.L.)\n\n` +
+      `📍 *My Delivery Details:*\n` +
+      `- Full Name: \n` +
+      `- City & Region (Lebanon): \n` +
+      `- Delivery Address: \n` +
+      `- Contact Phone Number: \n\n` +
+      `Please confirm stock availability and proceed with express delivery!`;
+
+    return buildWhatsAppLink(whatsappNumber, directBuyMessage);
+  }, [product, currentVariant, quantity, whatsappNumber, estimatedDeliveryTime]);
 
   const handleShare = async () => {
     // Generate clean product link with the active '?product=ID' query parameter
@@ -704,6 +815,23 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <span className="hidden sm:inline">{lensMode === 'lens' ? 'Lens' : 'Stage'}</span>
                     </button>
 
+                    {/* View in 3D / AR Quick Button */}
+                    {supports3D && (
+                      <button
+                        type="button"
+                        id="stage-3d-ar-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIs3DModalOpen(true);
+                        }}
+                        className="h-7 px-2 sm:px-2.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-xs flex items-center gap-1 transition cursor-pointer"
+                        title="View in 3D & Augmented Reality"
+                      >
+                        <Box className="w-3 h-3" />
+                        <span>3D/AR</span>
+                      </button>
+                    )}
+
                     {/* Lightbox Fullscreen Action Button */}
                     <button
                       type="button"
@@ -845,6 +973,37 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </div>
             )}
 
+            {/* View in 3D / AR Interactive Banner Button */}
+            {supports3D && (
+              <button
+                type="button"
+                id="btn-view-in-3d-ar"
+                onClick={() => setIs3DModalOpen(true)}
+                className="w-full group p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-zinc-950 via-slate-900 to-blue-950 text-white border border-blue-500/30 hover:border-blue-400 shadow-md hover:shadow-blue-500/20 transition-all duration-300 flex items-center justify-between cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
+                    <Box className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-white tracking-tight">View in 3D / AR</span>
+                      <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        Interactive
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-300">
+                      Rotate 360°, inspect hardware nodes, or test scale in your space
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-bold text-blue-400 group-hover:text-blue-300 group-hover:translate-x-0.5 transition-all shrink-0">
+                  <span className="hidden sm:inline">Launch</span>
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                </div>
+              </button>
+            )}
+
             {/* Quick Guarantees Card */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2 text-xs text-slate-700">
               <div className="flex items-center gap-2 font-semibold text-slate-900">
@@ -935,6 +1094,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   reviewCount={currentProductReviews.length || product.reviewCount}
                   onClick={() => setActiveTab('reviews')}
                 />
+                <button
+                  type="button"
+                  id="modal-social-proof-pill"
+                  onClick={() => setActiveTab('reviews')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/90 hover:bg-blue-100 text-blue-700 border border-blue-200/80 font-bold transition cursor-pointer shadow-2xs"
+                  title="View verified customer unboxing photos and feedback"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Verified Reviews</span>
+                  <span className="text-blue-300">•</span>
+                  <Camera className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Buyer Photos</span>
+                </button>
                 <span className="bg-emerald-50 text-emerald-800 px-2 py-1 rounded-md border border-emerald-200/60 font-semibold">
                   {product.condition}
                 </span>
@@ -1240,18 +1412,30 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </button>
 
                 <a
-                  id="modal-whatsapp-order-btn"
-                  href={buildWhatsAppLink(
-                    whatsappNumber,
-                    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n- Item: ${product.name}\n- Variant: ${currentVariant.name}\n- Price: $${currentVariant.priceUSD}\n- Qty: ${quantity}\n- Est. Delivery: ${estimatedDeliveryTime}\n\nPlease let me know delivery timeframe and payment details.`
-                  )}
+                  id="modal-direct-whatsapp-buy-btn"
+                  data-testid="modal-direct-whatsapp-buy-btn"
+                  href={directWhatsAppBuyHref}
+                  onClick={handleDirectWhatsAppBuy}
                   target="_blank"
-                  rel="noreferrer"
-                  className="py-3.5 px-4 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-500/20"
+                  rel="noopener noreferrer"
+                  className="py-3.5 px-4 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25 hover:shadow-lg hover:shadow-emerald-600/30 cursor-pointer group"
+                  title="Direct WhatsApp Buy: Skip cart and order this specific variant directly on WhatsApp"
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Order via WhatsApp</span>
+                  <MessageCircle className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                  <span className="font-extrabold tracking-tight">Direct WhatsApp Buy</span>
+                  <span className="text-[10px] uppercase font-black bg-emerald-700/80 px-1.5 py-0.5 rounded text-emerald-100 shrink-0">
+                    Skip Cart
+                  </span>
                 </a>
+              </div>
+
+              {/* Express COD Purchase Notice */}
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-[11px] text-emerald-900">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <Zap className="w-3.5 h-3.5 text-emerald-600 shrink-0 fill-emerald-600/20" />
+                  Direct WhatsApp Buy orders <span className="font-bold text-slate-900 underline decoration-emerald-500/50">{currentVariant.name}</span> instantly without adding to cart
+                </span>
+                <span className="font-bold text-emerald-700 whitespace-nowrap ml-2">Cash on Delivery</span>
               </div>
 
               {/* Share Product Link Button */}
@@ -1283,6 +1467,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   </>
                 )}
               </button>
+
+              {/* View in 3D / AR Interactive Button */}
+              {supports3D && (
+                <button
+                  id="modal-view-in-3d-ar-btn"
+                  type="button"
+                  onClick={() => setIs3DModalOpen(true)}
+                  className="w-full py-2.5 px-4 rounded-xl font-black text-xs bg-gradient-to-r from-zinc-950 via-slate-900 to-blue-950 hover:from-black hover:to-blue-900 text-white border border-blue-500/30 hover:border-blue-400 shadow-sm transition flex items-center justify-center gap-2 cursor-pointer group"
+                >
+                  <Box className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                  <span>View in 3D & Augmented Reality</span>
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                </button>
+              )}
             </div>
 
           </div>
@@ -1322,7 +1520,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 activeTab === 'reviews' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <span>Customer Reviews</span>
+              <span>Verified Customer Reviews</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold transition-colors ${
                 activeTab === 'reviews' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
               }`}>
@@ -1362,7 +1560,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           )}
 
           {activeTab === 'reviews' && (
-            <ProductReviewsSection
+            <CustomerReviews
               product={product}
               reviews={currentProductReviews}
               onAddReview={handleAddReview}
@@ -1461,6 +1659,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         )}
 
       </motion.div>
+
+      {/* 3D Model & Augmented Reality Spatial Viewer Modal */}
+      <AnimatePresence>
+        {is3DModalOpen && (
+          <Model3DViewerModal
+            product={product}
+            currency={currency}
+            onClose={() => setIs3DModalOpen(false)}
+            onAddToCart={onAddToCart}
+            whatsappNumber={whatsappNumber}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

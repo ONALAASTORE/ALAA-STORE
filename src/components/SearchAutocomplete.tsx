@@ -19,12 +19,15 @@ import {
   Layers,
   Loader2,
   Mic,
-  AlertCircle
+  AlertCircle,
+  ShoppingCart,
+  Check
 } from 'lucide-react';
 import { Product, Currency } from '../types';
 import { CATEGORIES } from '../data/categories';
 import { formatPrice } from '../utils/currency';
 import { debounce } from '../utils/debounce';
+import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
 
 interface SearchAutocompleteProps {
   searchQuery: string;
@@ -32,6 +35,7 @@ interface SearchAutocompleteProps {
   products: Product[];
   onSelectProduct?: (product: Product) => void;
   onSelectCategory?: (categoryId: string) => void;
+  onAddToCart?: (product: Product) => void;
   currency: Currency;
   placeholder?: string;
   className?: string;
@@ -67,6 +71,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   products = [],
   onSelectProduct,
   onSelectCategory,
+  onAddToCart,
   currency,
   placeholder = 'Search iPhone 16 Pro, S25 Ultra, PS5 Pro, MacBook, Sony...',
   className = '',
@@ -77,6 +82,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [focusedViaSlash, setFocusedViaSlash] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(RECENT_SEARCHES_KEY);
@@ -309,21 +315,43 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filtered results calculations
-  const queryTrimmed = searchQuery.trim().toLowerCase();
+  // Filtered results calculations - using active typed inputValue for INSTANT real-time suggestions
+  const queryTrimmed = (inputValue || '').trim().toLowerCase();
 
   const matchingProducts = useMemo(() => {
     if (!queryTrimmed) return [];
+    
+    // Relevance scoring to bring the best matches to the top immediately as user types
     return products
-      .filter((p) => {
-        const matchName = p.name.toLowerCase().includes(queryTrimmed);
-        const matchBrand = p.brand.toLowerCase().includes(queryTrimmed);
-        const matchCategory = p.category.toLowerCase().includes(queryTrimmed);
-        const matchTags = p.tags?.some((t) => t.toLowerCase().includes(queryTrimmed));
-        const matchFeatures = p.features?.some((f) => f.toLowerCase().includes(queryTrimmed));
-        return matchName || matchBrand || matchCategory || matchTags || matchFeatures;
+      .map((p) => {
+        const nameLower = (p.name || '').toLowerCase();
+        const brandLower = (p.brand || '').toLowerCase();
+        const categoryLower = (p.category || '').toLowerCase();
+        const tagsLower = (p.tags || []).map((t) => t.toLowerCase());
+        const featuresLower = (p.features || []).map((f) => f.toLowerCase());
+        
+        let score = 0;
+        // Exact name prefix
+        if (nameLower.startsWith(queryTrimmed)) score += 120;
+        else if (nameLower.includes(queryTrimmed)) score += 80;
+        
+        // Brand matches
+        if (brandLower.startsWith(queryTrimmed)) score += 60;
+        else if (brandLower.includes(queryTrimmed)) score += 40;
+
+        // Tags & Categories
+        if (tagsLower.some((t) => t.startsWith(queryTrimmed))) score += 35;
+        else if (tagsLower.some((t) => t.includes(queryTrimmed))) score += 20;
+
+        if (categoryLower.includes(queryTrimmed)) score += 15;
+        if (featuresLower.some((f) => f.includes(queryTrimmed))) score += 10;
+        
+        return { product: p, score };
       })
-      .slice(0, 6);
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.product)
+      .slice(0, 8);
   }, [products, queryTrimmed]);
 
   const matchingCategories = useMemo(() => {
@@ -417,6 +445,17 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
   };
 
+  const handleQuickAddToCart = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    if (onAddToCart) {
+      onAddToCart(product);
+      setAddedProductId(product.id);
+      setTimeout(() => setAddedProductId(null), 1500);
+    } else if (onSelectProduct) {
+      onSelectProduct(product);
+    }
+  };
+
   const handleSuggestionClick = (term: string) => {
     debouncedSearch.cancel();
     setIsSearching(false);
@@ -445,15 +484,18 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }, 50);
   };
 
-  // Helper to highlight matching characters
+  // Helper to highlight matching characters in real-time with modern vibrant electric blue
   const highlightMatch = (text: string, query: string) => {
     if (!query.trim()) return text;
     const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
     return parts.map((part, i) =>
       part.toLowerCase() === query.toLowerCase() ? (
-        <span key={i} className="text-[#FF0000] font-bold underline decoration-[#FF0000]/40">
+        <mark 
+          key={i} 
+          className="bg-blue-100 text-blue-700 font-black rounded-xs px-0.5 not-italic"
+        >
           {part}
-        </span>
+        </mark>
       ) : (
         part
       )
@@ -722,97 +764,169 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                 </div>
               )}
 
-              {/* Product Match List */}
+              {/* Real-time Product Match List */}
               {matchingProducts.length > 0 ? (
                 <div className="p-2 space-y-1">
-                  <div className="px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <span>Matching Electronics ({matchingProducts.length})</span>
-                    <span className="text-[10px] text-slate-400 lowercase font-normal">click to view details</span>
+                  <div className="px-3 py-1.5 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/70 rounded-lg">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                      <span className="text-slate-800">Matching Products ({matchingProducts.length})</span>
+                      <span className="bg-blue-600 text-white text-[9px] font-mono px-1.5 py-0.2 rounded-full font-black">
+                        LIVE
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-normal">click to view details</span>
                   </div>
 
-                  {matchingProducts.map((product, idx) => (
-                    <div
-                      key={product.id}
-                      id={`search-item-${product.id}`}
-                      onClick={() => handleProductClick(product)}
-                      className={`group flex items-center gap-3 p-2.5 rounded-xl transition cursor-pointer ${
-                        selectedIndex === idx
-                          ? 'bg-blue-50/80 border border-blue-200'
-                          : 'hover:bg-slate-50 border border-transparent'
-                      }`}
-                    >
-                      {/* Product Thumbnail */}
-                      <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200/80 p-1 shrink-0 overflow-hidden flex items-center justify-center relative">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-contain group-hover:scale-105 transition-transform"
-                          onError={(e) => {
-                            // Fallback if image load fails
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
+                  {matchingProducts.map((product, idx) => {
+                    const thumb = getProductImages(product)[0] || product.image || DEFAULT_PRODUCT_IMAGE;
+                    const priceUSD = product.promotionalPriceUSD || product.basePriceUSD;
+                    const isPromo = Boolean(product.promotionalPriceUSD && product.promotionalPriceUSD < product.basePriceUSD);
+                    const isRecentlyAdded = addedProductId === product.id;
 
-                      {/* Info & Price */}
-                      <div className="flex-1 min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
-                            {product.brand}
-                          </span>
-                          <span className="text-[10px] font-semibold text-slate-500">
-                            {product.condition}
-                          </span>
-                          {product.inStock && (
-                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-                              <CheckCircle2 className="w-2.5 h-2.5" />
-                              <span>In Stock</span>
+                    return (
+                      <div
+                        key={product.id}
+                        id={`search-item-${product.id}`}
+                        onClick={() => handleProductClick(product)}
+                        className={`group flex items-center gap-3 p-2.5 rounded-xl transition cursor-pointer ${
+                          selectedIndex === idx
+                            ? 'bg-blue-50/90 border border-blue-200 shadow-xs'
+                            : 'hover:bg-slate-50 border border-transparent'
+                        }`}
+                      >
+                        {/* Product Thumbnail */}
+                        <div className="w-13 h-13 rounded-lg bg-white border border-slate-200/90 p-1 shrink-0 overflow-hidden flex items-center justify-center relative">
+                          <img
+                            src={thumb}
+                            alt={product.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-contain group-hover:scale-106 transition-transform duration-300"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          {isPromo && (
+                            <span className="absolute top-0.5 right-0.5 bg-rose-600 text-white text-[8px] font-black px-1 rounded">
+                              SALE
                             </span>
                           )}
                         </div>
 
-                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                          {highlightMatch(product.name, searchQuery)}
-                        </h4>
-
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="font-extrabold text-blue-600">
-                            {formatPrice(product.basePriceUSD, currency)}
-                          </span>
-                          {currency === 'USD' && (
-                            <span className="text-[10px] text-slate-400">
-                              (≈ {Math.round(product.basePriceUSD * 89500).toLocaleString()} L.L.)
+                        {/* Info & Price */}
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-slate-100 text-slate-800">
+                              {product.brand}
                             </span>
-                          )}
+                            <span className="text-[9px] font-semibold text-slate-500">
+                              {product.condition}
+                            </span>
+                            {product.warranty && (
+                              <span className="text-[9px] font-medium text-slate-400 hidden sm:inline">
+                                • {product.warranty}
+                              </span>
+                            )}
+                            {product.inStock ? (
+                              <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5 ml-auto sm:ml-0">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
+                                <span>In Stock</span>
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-bold text-amber-600">
+                                Pre-order
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                            {highlightMatch(product.name, inputValue)}
+                          </h4>
+
+                          <div className="flex items-baseline gap-2 text-xs flex-wrap">
+                            <span className="font-extrabold text-blue-600">
+                              {formatPrice(priceUSD, currency)}
+                            </span>
+                            {isPromo && (
+                              <span className="text-[10px] text-slate-400 line-through font-mono">
+                                {formatPrice(product.basePriceUSD, currency)}
+                              </span>
+                            )}
+                            {currency === 'USD' && (
+                              <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                                (≈ {Math.round(priceUSD * 89500).toLocaleString()} L.L.)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Instant Quick Add to Cart Button */}
+                        <div className="shrink-0 flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => handleQuickAddToCart(e, product)}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                              isRecentlyAdded
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 active:scale-95'
+                            }`}
+                            title="Add directly to cart"
+                          >
+                            {isRecentlyAdded ? (
+                              <>
+                                <Check className="w-3 h-3" />
+                                <span className="hidden sm:inline">Added</span>
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart className="w-3 h-3" />
+                                <span className="hidden sm:inline">ADD</span>
+                              </>
+                            )}
+                          </button>
+
+                          <div className="p-1 rounded-lg text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all">
+                            <ArrowRight className="w-4 h-4" />
+                          </div>
                         </div>
                       </div>
-
-                      {/* Action Arrow */}
-                      <div className="shrink-0 p-1.5 rounded-lg text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-100/50 transition">
-                        <ArrowRight className="w-4 h-4" />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="p-6 text-center space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                <div className="p-6 text-center space-y-3">
+                  <div className="w-11 h-11 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center">
                     <Search className="w-5 h-5" />
                   </div>
-                  <div className="text-xs font-bold text-slate-700">
-                    No exact products matching "{searchQuery}"
+                  <div className="space-y-1">
+                    <div className="text-xs font-bold text-slate-800">
+                      No matching products for "{inputValue}"
+                    </div>
+                    <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                      Try searching by brand (Apple, Samsung, Sony), chip, or check spelling.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                    Try checking for typos or searching by brand (e.g. Apple, Samsung, Sony) or device category.
-                  </p>
+
+                  {/* Quick Suggestions Pills */}
+                  <div className="pt-2 flex items-center justify-center gap-1.5 flex-wrap">
+                    {['iPhone 16', 'Galaxy S25', 'PS5 Pro', 'AirPods'].map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onClick={() => handleSuggestionClick(term)}
+                        className="text-[10px] font-semibold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-full border border-slate-200 transition cursor-pointer"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
               {/* Bottom "View All Results" Bar */}
               <div 
                 onClick={() => {
-                  saveRecentSearch(searchQuery);
+                  saveRecentSearch(inputValue);
                   setIsOpen(false);
                   scrollToCatalog();
                 }}
@@ -820,9 +934,9 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <CornerDownLeft className="w-3.5 h-3.5 text-blue-600" />
-                  <span>View all results for "{searchQuery}"</span>
+                  <span>View full catalog results for "{inputValue}"</span>
                 </div>
-                <span className="text-[10px] font-semibold bg-white border border-slate-200 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-semibold bg-white border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs">
                   Press Enter ↵
                 </span>
               </div>

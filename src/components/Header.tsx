@@ -3,17 +3,18 @@ import {
   ShoppingCart, 
   Heart, 
   ArrowLeftRight, 
-  HelpCircle, 
-  MessageCircle,
-  Truck,
-  ShieldCheck,
-  Menu,
-  X,
-  Calculator,
-  Sparkles,
-  Coins,
-  Check,
-  Flame
+  Menu, 
+  X, 
+  ShieldCheck, 
+  Coins, 
+  Calculator, 
+  MessageCircle, 
+  Sun, 
+  Moon, 
+  Check, 
+  HelpCircle,
+  Box,
+  User
 } from 'lucide-react';
 import { Currency, Product } from '../types';
 import { CATEGORIES } from '../data/categories';
@@ -33,6 +34,7 @@ interface HeaderProps {
   onSelectCategory: (catId: string) => void;
   products?: Product[];
   onSelectProduct?: (product: Product) => void;
+  onAddToCart?: (product: Product) => void;
   cartCount: number;
   onOpenCart: () => void;
   wishlistCount: number;
@@ -41,6 +43,7 @@ interface HeaderProps {
   onOpenCompare: () => void;
   onOpenTradeIn: () => void;
   onOpenContact: () => void;
+  onOpenAccount?: () => void;
   onOpenAdmin?: () => void;
   topBannerText?: string;
   isTopBannerActive?: boolean;
@@ -49,6 +52,8 @@ interface HeaderProps {
   isOffersPage?: boolean;
   onNavigateToOffers?: () => void;
   offersCount?: number;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -60,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectCategory,
   products = PRODUCTS,
   onSelectProduct,
+  onAddToCart,
   cartCount,
   onOpenCart,
   wishlistCount,
@@ -68,99 +74,109 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCompare,
   onOpenTradeIn,
   onOpenContact,
+  onOpenAccount,
   onOpenAdmin,
-  topBannerText = 'Available delivery to all Lebanon 🚚 (Beirut, Tripoli, Saida, Bekaa)',
+  topBannerText = 'Lebanon Delivery: Beirut, Tripoli, Saida, Bekaa & Mount Lebanon',
   isTopBannerActive = true,
   whatsappNumber = '+961 71 135 241',
   onSwitchToShowroom,
   isOffersPage = false,
   onNavigateToOffers,
   offersCount = 0,
+  theme = 'dark',
+  onToggleTheme,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isDark = theme === 'dark';
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs">
-      {/* Top Notification Bar - Lebanese Market Focus */}
+    <header 
+      id="main-header" 
+      className={`sticky top-0 z-40 transition-colors duration-200 ${
+        isDark 
+          ? 'bg-[#09090b]/80 border-b border-zinc-800/80 backdrop-blur-md text-zinc-100' 
+          : 'bg-white/85 border-b border-zinc-200/80 backdrop-blur-md text-zinc-900'
+      }`}
+    >
+      {/* Top Technical Status Ticker (1-line restrained status bar) */}
       {isTopBannerActive && (
-        <div className="bg-slate-900 text-slate-200 text-xs py-2 px-4">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
-            <div className="flex items-center gap-4 flex-wrap justify-center">
-              <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                <Truck className="w-3.5 h-3.5" />
-                <span>{topBannerText}</span>
+        <div 
+          id="top-technical-ticker"
+          className={`text-[11px] font-mono tracking-tight py-1.5 px-4 border-b transition-colors ${
+            isDark 
+              ? 'bg-zinc-950/90 text-zinc-400 border-zinc-800/60' 
+              : 'bg-zinc-100/90 text-zinc-600 border-zinc-200/60'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-3 overflow-x-auto scrollbar-none whitespace-nowrap">
+              <span className="flex items-center gap-1.5 text-zinc-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>{topBannerText.toUpperCase()}</span>
               </span>
-              <span className="hidden md:inline-block text-slate-500">•</span>
-              <span className="hidden md:flex items-center gap-1 text-slate-300">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                <span>100% Official Agency Warranties</span>
+              <span className="text-zinc-600 dark:text-zinc-700">//</span>
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-zinc-400" />
+                <span>100% AGENCY SEALED</span>
               </span>
-              <span className="hidden lg:inline-block text-slate-500">•</span>
-              <div className="hidden lg:flex items-center gap-1.5 text-amber-300 font-medium">
-                <Coins className="w-3.5 h-3.5 text-amber-400" />
-                <span>Rate: 1$ = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.</span>
-              </div>
+              <span className="hidden md:inline text-zinc-600 dark:text-zinc-700">//</span>
+              <span className="hidden md:flex items-center gap-1 text-zinc-400">
+                <Coins className="w-3 h-3 text-zinc-400" />
+                <span>RATE: $1 = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.</span>
+              </span>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              {/* Top Banner Quick Currency Switcher */}
-              <div 
-                className="flex items-center bg-slate-800 border border-slate-700/80 rounded-lg p-0.5 text-[11px] font-bold shadow-2xs"
-                title="Toggle global store currency"
+            <div className="flex items-center gap-3 shrink-0">
+              {onSwitchToShowroom && (
+                <button 
+                  id="showroom-top-btn"
+                  onClick={onSwitchToShowroom}
+                  className="hover:text-zinc-100 transition-colors cursor-pointer hidden sm:flex items-center gap-1 text-[11px] uppercase font-mono"
+                  title="Enter 3D Spatial Showroom"
+                >
+                  <Box className="w-3 h-3" />
+                  <span>3D ROOM</span>
+                </button>
+              )}
+              {onSwitchToShowroom && <span className="hidden sm:inline text-zinc-600 dark:text-zinc-700">//</span>}
+              <button 
+                id="contact-top-btn"
+                onClick={onOpenContact}
+                className="hover:text-zinc-100 transition-colors cursor-pointer flex items-center gap-1 text-[11px] uppercase font-mono"
+                title="Customer Support"
               >
-                <button
-                  type="button"
-                  onClick={() => onCurrencyChange('USD')}
-                  className={`px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1 ${
-                    currency === 'USD'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Switch to US Dollars ($)"
-                >
-                  <span>$ USD</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onCurrencyChange('LBP')}
-                  className={`px-2 py-0.5 rounded-md transition cursor-pointer flex items-center gap-1 ${
-                    currency === 'LBP'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Switch to Lebanese Pounds (L.L.)"
-                >
-                  <span>L.L. (LBP)</span>
-                </button>
-              </div>
-
+                <HelpCircle className="w-3 h-3" />
+                <span>SUPPORT</span>
+              </button>
+              <span className="text-zinc-600 dark:text-zinc-700">//</span>
               <button 
                 id="trade-in-top-btn"
                 onClick={onOpenTradeIn}
-                className="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200 font-semibold px-2 py-0.5 rounded-sm bg-amber-950/40 hover:bg-amber-900/50 transition cursor-pointer"
+                className="hover:text-zinc-100 transition-colors cursor-pointer flex items-center gap-1 text-[11px] uppercase font-mono"
               >
                 <Calculator className="w-3 h-3" />
-                <span>Trade-In</span>
+                <span>TRADE-IN</span>
               </button>
+              <span className="text-zinc-600 dark:text-zinc-700">//</span>
               {onOpenAdmin && (
                 <button 
                   id="admin-top-btn"
                   onClick={onOpenAdmin}
-                  className="inline-flex items-center gap-1 text-slate-300 hover:text-white font-semibold px-2 py-0.5 rounded-sm bg-slate-800 hover:bg-slate-700 transition cursor-pointer"
+                  className="hover:text-zinc-100 transition-colors cursor-pointer flex items-center gap-1 text-[11px] uppercase font-mono"
                   title="Admin Portal"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF0000]"></span>
-                  <span>Admin</span>
+                  <span>ADMIN</span>
                 </button>
               )}
+              {onOpenAdmin && <span className="text-zinc-600 dark:text-zinc-700">//</span>}
               <a 
                 href={buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store, I have an inquiry about a product')} 
                 target="_blank" 
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-semibold transition"
+                className="hover:text-zinc-100 transition-colors flex items-center gap-1 text-[11px] font-mono text-zinc-400"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>WhatsApp: {whatsappNumber}</span>
+                <MessageCircle className="w-3 h-3 text-zinc-400" />
+                <span>WA: {whatsappNumber}</span>
               </a>
             </div>
           </div>
@@ -168,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-3.5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3">
         <div className="flex items-center justify-between gap-3 sm:gap-6">
           
           {/* Brand Logo & Name */}
@@ -176,10 +192,12 @@ export const Header: React.FC<HeaderProps> = ({
             <button 
               id="mobile-menu-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="w-12 h-12 flex items-center justify-center text-slate-700 hover:text-slate-900 md:hidden rounded-xl hover:bg-slate-100 active:bg-slate-200 active:scale-95 transition cursor-pointer -ml-2"
+              className={`w-10 h-10 flex items-center justify-center md:hidden rounded-lg transition-micro cursor-pointer -ml-1 ${
+                isDark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+              }`}
               aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
             <button 
@@ -188,25 +206,23 @@ export const Header: React.FC<HeaderProps> = ({
                 onSelectCategory('all');
                 onSearchChange('');
               }}
-              className="flex items-center gap-2 sm:gap-3 text-left group cursor-pointer"
+              className="flex items-center gap-2.5 text-left group cursor-pointer"
               title="ON ALAA STORE Homepage"
             >
-              {/* 3D Elevated Logo Avatar */}
-              <LogoAvatar size="md" withGlow={true} />
-              
-              {/* 3D Dynamic Brand Typography */}
+              <LogoAvatar size="sm" withGlow={false} />
               <Brand3DText 
-                size="md" 
+                size="sm" 
+                isDarkTheme={isDark} 
                 withLebanonBadge={true} 
-                withTagline={true} 
+                withTagline={false} 
               />
             </button>
           </div>
 
-          {/* Dedicated Always-Visible Persistent Search Bar (Desktop & Tablet Large) */}
+          {/* Dedicated Always-Visible Persistent Search Bar */}
           <div 
             id="header-search-container" 
-            className="flex-1 max-w-xl lg:max-w-2xl hidden md:block rounded-2xl transition-all focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:animate-pulse"
+            className="flex-1 max-w-lg lg:max-w-xl hidden md:block"
           >
             <SearchAutocomplete
               searchQuery={searchQuery}
@@ -214,89 +230,93 @@ export const Header: React.FC<HeaderProps> = ({
               products={products}
               onSelectProduct={onSelectProduct}
               onSelectCategory={onSelectCategory}
+              onAddToCart={onAddToCart}
               currency={currency}
-              placeholder="Search iPhone 16 Pro, S25 Ultra, PS5 Pro, MacBook, Sony..."
+              placeholder="Search flagship devices, chips, models... (Press /)"
               idPrefix="header-desktop"
             />
           </div>
 
-          {/* Currency Switcher & User Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Technical Controls & User Actions */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             
-            {/* Prominent Global Store Currency Switcher Toggle */}
+            {/* Minimalist Segmented Currency Selector */}
             <div 
-              id="header-currency-toggle-container"
-              className="flex items-center gap-1.5 bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl border border-slate-200/90 shadow-xs"
+              role="radiogroup" 
+              aria-label="Store Currency"
+              className={`flex items-center p-0.5 rounded-lg border text-[11px] font-mono transition-colors ${
+                isDark 
+                  ? 'bg-zinc-900/90 border-zinc-800 text-zinc-400' 
+                  : 'bg-zinc-100 border-zinc-200 text-zinc-600'
+              }`}
             >
-              {/* Live Rate Reference Chip (Visible on Desktop XL) */}
-              <div 
-                className="hidden xl:flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-slate-500 bg-white rounded-xl border border-slate-200/60 shadow-2xs"
-                title="Current Official Lebanese Market Reference Rate"
+              <button
+                type="button"
+                role="radio"
+                aria-checked={currency === 'USD'}
+                id="currency-usd-btn"
+                onClick={() => onCurrencyChange('USD')}
+                className={`px-2 py-1 rounded-md transition-micro cursor-pointer font-mono font-medium ${
+                  currency === 'USD'
+                    ? (isDark ? 'bg-zinc-100 text-zinc-950 shadow-2xs font-semibold' : 'bg-white text-zinc-950 shadow-2xs font-semibold')
+                    : 'hover:text-zinc-200'
+                }`}
+                title="US Dollars"
               >
-                <Coins className="w-3.5 h-3.5 text-amber-500" />
-                <span>1$ = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.</span>
-              </div>
-
-              {/* Segmented Toggle Control */}
-              <div 
-                role="radiogroup" 
-                aria-label="Global Store Currency Selector"
-                className="flex items-center bg-white p-0.5 rounded-xl border border-slate-200/80 shadow-inner"
+                USD
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={currency === 'LBP'}
+                id="currency-lbp-btn"
+                onClick={() => onCurrencyChange('LBP')}
+                className={`px-2 py-1 rounded-md transition-micro cursor-pointer font-mono font-medium ${
+                  currency === 'LBP'
+                    ? (isDark ? 'bg-zinc-100 text-zinc-950 shadow-2xs font-semibold' : 'bg-white text-zinc-950 shadow-2xs font-semibold')
+                    : 'hover:text-zinc-200'
+                }`}
+                title="Lebanese Pounds (L.L.)"
               >
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={currency === 'USD'}
-                  id="currency-usd-btn"
-                  onClick={() => onCurrencyChange('USD')}
-                  className={`min-h-[34px] sm:min-h-[36px] px-2.5 sm:px-3.5 py-1 text-xs font-black rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 select-none ${
-                    currency === 'USD'
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 active:scale-95'
-                  }`}
-                  title="Switch to US Dollars ($ USD) across the entire store"
-                >
-                  <span className="text-sm leading-none" aria-hidden="true">🇺🇸</span>
-                  <span>$ USD</span>
-                </button>
-
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={currency === 'LBP'}
-                  id="currency-lbp-btn"
-                  onClick={() => onCurrencyChange('LBP')}
-                  className={`min-h-[34px] sm:min-h-[36px] px-2.5 sm:px-3.5 py-1 text-xs font-black rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 select-none ${
-                    currency === 'LBP'
-                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 active:scale-95'
-                  }`}
-                  title="Switch to Lebanese Pounds (L.L. / 89,500 LBP/$) across the entire store"
-                >
-                  <span className="text-sm leading-none" aria-hidden="true">🇱🇧</span>
-                  <span className="hidden xs:inline sm:inline">LBP</span>
-                  <span>(L.L.)</span>
-                </button>
-              </div>
+                LBP
+              </button>
             </div>
 
-            {/* Special Offers Page Trigger */}
+            {/* Dark / Light Theme Toggle Button */}
+            {onToggleTheme && (
+              <button
+                id="header-theme-toggle-btn"
+                type="button"
+                onClick={onToggleTheme}
+                className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-micro cursor-pointer ${
+                  isDark
+                    ? 'border-zinc-800 bg-zinc-900/80 text-zinc-300 hover:text-zinc-100 hover:border-zinc-700'
+                    : 'border-zinc-200 bg-zinc-100 text-zinc-700 hover:text-zinc-900 hover:border-zinc-300'
+                }`}
+                title={isDark ? "Switch to Minimal Light Mode" : "Switch to Tech Dark Mode"}
+                aria-label="Toggle visual theme"
+              >
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            )}
+
+            {/* Special Archive / Offers Link */}
             {onNavigateToOffers && (
               <button
                 id="header-offers-btn"
                 onClick={onNavigateToOffers}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs transition cursor-pointer active:scale-95 shadow-2xs ${
+                className={`hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono tracking-tight uppercase border transition-micro cursor-pointer ${
                   isOffersPage
-                    ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/90'
+                    ? (isDark ? 'bg-zinc-100 text-zinc-950 border-zinc-100 font-semibold' : 'bg-zinc-900 text-white border-zinc-900 font-semibold')
+                    : (isDark ? 'border-zinc-800 hover:border-zinc-700 bg-zinc-900/50 text-zinc-300 hover:text-white' : 'border-zinc-200 hover:border-zinc-300 bg-zinc-50 text-zinc-700 hover:text-zinc-950')
                 }`}
                 title="View Special Offers & Discounted Products"
               >
-                <Flame className={`w-3.5 h-3.5 ${isOffersPage ? 'fill-white text-white' : 'fill-rose-500 text-rose-500 animate-pulse'}`} />
-                <span>Offers</span>
-                {offersCount !== undefined && offersCount > 0 && (
-                  <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
-                    isOffersPage ? 'bg-white/20 text-white' : 'bg-rose-600 text-white'
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
+                <span>OFFERS</span>
+                {offersCount > 0 && (
+                  <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${
+                    isOffersPage ? 'bg-zinc-950 text-zinc-100' : 'bg-zinc-800 text-zinc-300'
                   }`}>
                     {offersCount}
                   </span>
@@ -304,77 +324,80 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* 2027 3D Showroom Mode Switcher */}
-            {onSwitchToShowroom && (
-              <button
-                id="header-2027-showroom-btn"
-                onClick={onSwitchToShowroom}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#00F0FF] via-[#7B2FFF] to-[#FFD700] text-slate-950 font-black text-xs hover:brightness-110 active:scale-95 transition shadow-[0_0_15px_rgba(0,240,255,0.35)] cursor-pointer"
-                title="Enter 2027 Futuristic 3D Holographic Showroom"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>2027 3D Showroom</span>
-              </button>
-            )}
-
-            {/* Compare Tool Button */}
+            {/* Compare Specifications Button */}
             <button
               id="header-compare-btn"
               onClick={onOpenCompare}
-              className={`p-2 rounded-xl border transition relative hidden md:flex items-center justify-center cursor-pointer ${
+              className={`w-9 h-9 rounded-lg border hidden md:flex items-center justify-center transition-micro relative cursor-pointer ${
                 compareCount > 0 
-                  ? 'border-blue-300 bg-blue-50 text-blue-600' 
-                  : 'border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'border-blue-500 text-white bg-blue-600/30' 
+                  : (isDark ? 'border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-800' : 'border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300')
               }`}
               title="Compare Specifications"
+              aria-label="Compare specifications"
             >
-              <ArrowLeftRight className="w-5 h-5" />
+              <ArrowLeftRight className="w-4 h-4" />
               {compareCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-blue-600 text-white font-mono text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-xs">
                   {compareCount}
                 </span>
               )}
             </button>
 
-            {/* Wishlist Button */}
+            {/* Saved Wishlist Button */}
             <button
               id="header-wishlist-btn"
               onClick={onOpenWishlist}
-              className={`p-2 rounded-xl border transition relative hidden sm:flex items-center justify-center cursor-pointer ${
+              className={`w-9 h-9 rounded-lg border hidden sm:flex items-center justify-center transition-micro relative cursor-pointer ${
                 wishlistCount > 0 
-                  ? 'border-rose-300 bg-rose-50 text-rose-600' 
-                  : 'border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'border-blue-500 text-white bg-blue-600/30' 
+                  : (isDark ? 'border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-800' : 'border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300')
               }`}
               title="Saved Wishlist"
+              aria-label="Wishlist"
             >
-              <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'fill-rose-500' : ''}`} />
+              <Heart className={`w-4 h-4 ${wishlistCount > 0 ? 'fill-blue-500 text-blue-500' : ''}`} />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-blue-600 text-white font-mono text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-xs">
                   {wishlistCount}
                 </span>
               )}
             </button>
 
-            {/* Cart Drawer Trigger */}
+            {/* User Profile / Account Button (Ishtari style) */}
+            {onOpenAccount && (
+              <button
+                id="header-account-btn"
+                onClick={onOpenAccount}
+                className={`w-9 h-9 rounded-lg border hidden sm:flex items-center justify-center transition-micro cursor-pointer ${
+                  isDark
+                    ? 'border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-800'
+                    : 'border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300'
+                }`}
+                title="Account, Orders & Delivery Profile"
+                aria-label="User Account"
+              >
+                <User className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Primary Action: Vibrant Electric Blue Cart Trigger */}
             <button
               id="header-cart-btn"
               onClick={onOpenCart}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3 sm:px-3.5 py-2 rounded-xl font-semibold text-sm transition shadow-sm shadow-blue-500/25 cursor-pointer"
+              className="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold tracking-tight transition-all flex items-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 active:scale-95 text-white shadow-lg shadow-blue-600/30"
+              aria-label="Open Cart"
             >
-              <div className="relative">
-                <ShoppingCart className="w-4 h-4" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2.5 -right-2.5 bg-amber-400 text-slate-950 font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-blue-600">
-                    {cartCount}
-                  </span>
-                )}
-              </div>
-              <span className="hidden sm:inline font-bold">Cart</span>
+              <ShoppingCart className="w-4 h-4" />
+              <span className="hidden sm:inline">CART</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black bg-white text-blue-600 shadow-xs">
+                {cartCount}
+              </span>
             </button>
           </div>
         </div>
 
-        {/* Dedicated Always-Visible Persistent Search Bar for Mobile & Compact Screens */}
+        {/* Mobile Search Input Bar */}
         <div className="mt-2.5 md:hidden">
           <SearchAutocomplete
             searchQuery={searchQuery}
@@ -382,40 +405,20 @@ export const Header: React.FC<HeaderProps> = ({
             products={products}
             onSelectProduct={onSelectProduct}
             onSelectCategory={onSelectCategory}
+            onAddToCart={onAddToCart}
             currency={currency}
-            placeholder="Search electronics, brands, models..."
+            placeholder="Search flagships, chips, devices..."
             isMobile={true}
             idPrefix="header-mobile"
           />
         </div>
       </div>
 
-      {/* Category Pills Bar */}
-      <div className="bg-slate-50/90 border-t border-slate-200/60 overflow-x-auto scrollbar-none py-2 px-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-1.5 sm:gap-2">
-          {/* Special Offers Pill */}
-          {onNavigateToOffers && (
-            <button
-              id="cat-nav-btn-offers"
-              onClick={onNavigateToOffers}
-              className={`whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                isOffersPage
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 shadow-2xs'
-              }`}
-            >
-              <Flame className={`w-3.5 h-3.5 shrink-0 ${isOffersPage ? 'fill-white text-white' : 'fill-rose-500 text-rose-500'}`} />
-              <span>🔥 Special Offers</span>
-              {offersCount !== undefined && offersCount > 0 && (
-                <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
-                  isOffersPage ? 'bg-white/20 text-white' : 'bg-rose-600 text-white'
-                }`}>
-                  {offersCount}
-                </span>
-              )}
-            </button>
-          )}
-
+      {/* Category Pills Bar (Subtle, technical 1px row) */}
+      <div className={`border-t overflow-x-auto scrollbar-none py-2 px-4 transition-colors ${
+        isDark ? 'bg-zinc-950/60 border-zinc-800/80' : 'bg-white border-zinc-200/80'
+      }`}>
+        <div className="max-w-7xl mx-auto flex items-center gap-1.5">
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat.id;
             return (
@@ -423,19 +426,19 @@ export const Header: React.FC<HeaderProps> = ({
                 key={cat.id}
                 id={`cat-nav-btn-${cat.id}`}
                 onClick={() => onSelectCategory(cat.id)}
-                className={`whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                className={`whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-mono transition-micro cursor-pointer flex items-center gap-1.5 shrink-0 ${
                   isSelected
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
+                    ? 'bg-[#2563EB] text-white font-semibold shadow-xs'
+                    : (isDark ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent hover:border-zinc-800' : 'text-[#333333] hover:text-[#111111] hover:bg-[#F8F9FA] border border-transparent hover:border-zinc-200')
                 }`}
               >
                 <CategoryIcon
                   nameOrId={cat.iconName || cat.id}
-                  className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                    isSelected ? 'text-white' : 'text-slate-500'
+                  className={`w-3.5 h-3.5 shrink-0 ${
+                    isSelected ? 'text-white' : (isDark ? 'text-zinc-400' : 'text-[#555555]')
                   }`}
                 />
-                <span>{cat.name}</span>
+                <span>{cat.name.toUpperCase()}</span>
               </button>
             );
           })}
@@ -444,115 +447,120 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-slate-200 px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
-          {/* Dedicated Mobile Currency Switcher */}
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <Coins className="w-4 h-4 text-amber-500" />
-                <span>Store Currency</span>
-              </span>
-              <span className="text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                1 USD = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.
-              </span>
+        <div className={`md:hidden border-b px-4 py-4 space-y-3 transition-colors ${
+          isDark ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-900'
+        }`}>
+          {/* Mobile Currency & Theme Grid */}
+          <div className={`p-3 rounded-xl border space-y-2.5 font-mono text-xs ${
+            isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
+          }`}>
+            <div className="flex items-center justify-between text-zinc-400 text-[11px]">
+              <span>CURRENCY & THEME</span>
+              <span>$1 = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.</span>
             </div>
+            
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                id="mobile-currency-usd-btn"
-                onClick={() => {
-                  onCurrencyChange('USD');
-                }}
-                className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                onClick={() => onCurrencyChange('USD')}
+                className={`min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-mono font-medium flex items-center justify-center gap-1 transition-micro cursor-pointer ${
                   currency === 'USD'
-                    ? 'bg-blue-600 text-white shadow-xs scale-[1.01]'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                    ? (isDark ? 'bg-zinc-100 text-zinc-950 border-transparent font-semibold' : 'bg-zinc-900 text-white border-transparent font-semibold')
+                    : (isDark ? 'border-zinc-800 text-zinc-300' : 'border-zinc-200 text-zinc-700')
                 }`}
               >
-                <span>🇺🇸 $ USD</span>
+                <span>USD ($)</span>
                 {currency === 'USD' && <Check className="w-3.5 h-3.5 ml-1" />}
               </button>
+
               <button
                 type="button"
-                id="mobile-currency-lbp-btn"
-                onClick={() => {
-                  onCurrencyChange('LBP');
-                }}
-                className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                onClick={() => onCurrencyChange('LBP')}
+                className={`min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-mono font-medium flex items-center justify-center gap-1 transition-micro cursor-pointer ${
                   currency === 'LBP'
-                    ? 'bg-emerald-600 text-white shadow-xs scale-[1.01]'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                    ? (isDark ? 'bg-zinc-100 text-zinc-950 border-transparent font-semibold' : 'bg-zinc-900 text-white border-transparent font-semibold')
+                    : (isDark ? 'border-zinc-800 text-zinc-300' : 'border-zinc-200 text-zinc-700')
                 }`}
               >
-                <span>🇱🇧 L.L. (LBP)</span>
+                <span>LBP (L.L.)</span>
                 {currency === 'LBP' && <Check className="w-3.5 h-3.5 ml-1" />}
               </button>
             </div>
+
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className={`w-full min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center justify-between transition-micro cursor-pointer ${
+                  isDark ? 'border-zinc-800 text-zinc-300 hover:bg-zinc-800/50' : 'border-zinc-200 text-zinc-700 hover:bg-zinc-100'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                  <span>THEME MODE</span>
+                </span>
+                <span className="uppercase text-[10px] text-zinc-400 font-semibold">{theme}</span>
+              </button>
+            )}
           </div>
 
-          {/* Special Offers Mobile Banner */}
+          {/* Special Offers Mobile Link */}
           {onNavigateToOffers && (
             <button
-              id="mobile-menu-offers-btn"
               onClick={() => {
                 onNavigateToOffers();
                 setMobileMenuOpen(false);
               }}
-              className="w-full min-h-[48px] flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 active:scale-98 transition cursor-pointer"
+              className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-xs font-mono tracking-tight uppercase border flex items-center justify-between transition-micro ${
+                isDark ? 'border-zinc-800 bg-zinc-900/60 text-zinc-200' : 'border-zinc-200 bg-zinc-50 text-zinc-800'
+              }`}
             >
-              <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 fill-white animate-pulse" />
-                <span>Special Offers & Hot Deals</span>
-              </div>
-              {offersCount !== undefined && offersCount > 0 && (
-                <span className="bg-white/25 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                  {offersCount} Deals Live
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" />
+                <span>ARCHIVE OFFERS</span>
+              </span>
+              <span className="text-zinc-400">[{offersCount}] →</span>
             </button>
           )}
 
-          <div className="grid grid-cols-2 gap-2.5">
+          {/* User Account / Orders Mobile Button */}
+          {onOpenAccount && (
             <button
+              onClick={() => {
+                onOpenAccount();
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-xs font-mono tracking-tight uppercase border flex items-center justify-between transition-micro ${
+                isDark ? 'border-blue-900/60 bg-blue-950/30 text-blue-300' : 'border-blue-200 bg-blue-50 text-blue-700'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-400" />
+                <span>MY ACCOUNT & ORDERS</span>
+              </span>
+              <span>→</span>
+            </button>
+          )}
+
+          {/* Quick Support Links */}
+          <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono text-zinc-400">
+            <button 
               onClick={() => {
                 onOpenTradeIn();
                 setMobileMenuOpen(false);
               }}
-              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-amber-50 text-amber-800 font-bold text-xs border border-amber-200 active:bg-amber-100 cursor-pointer transition"
+              className="hover:text-zinc-100 transition-colors cursor-pointer"
             >
-              <Calculator className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Trade-In Value</span>
+              TRADE-IN ESTIMATOR
             </button>
-            <button
-              onClick={() => {
-                onOpenCompare();
-                setMobileMenuOpen(false);
-              }}
-              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-blue-50 text-blue-800 font-bold text-xs border border-blue-200 active:bg-blue-100 cursor-pointer transition"
+            <a 
+              href={buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store')}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-zinc-100 transition-colors"
             >
-              <ArrowLeftRight className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Compare ({compareCount})</span>
-            </button>
-            <button
-              onClick={() => {
-                onOpenWishlist();
-                setMobileMenuOpen(false);
-              }}
-              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-rose-50 text-rose-800 font-bold text-xs border border-rose-200 active:bg-rose-100 cursor-pointer transition"
-            >
-              <Heart className="w-4 h-4 text-rose-600 shrink-0" />
-              <span>Wishlist ({wishlistCount})</span>
-            </button>
-            <button
-              onClick={() => {
-                onOpenContact();
-                setMobileMenuOpen(false);
-              }}
-              className="min-h-[48px] flex items-center gap-2 p-3 rounded-xl bg-slate-50 text-slate-800 font-bold text-xs border border-slate-200 active:bg-slate-100 cursor-pointer transition"
-            >
-              <HelpCircle className="w-4 h-4 text-slate-600 shrink-0" />
-              <span>Store Branches</span>
-            </button>
+              WHATSAPP SUPPORT
+            </a>
           </div>
         </div>
       )}

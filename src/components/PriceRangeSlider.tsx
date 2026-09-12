@@ -45,45 +45,45 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
   };
 
   return (
-    <div className={`space-y-3 pt-3 border-t border-slate-100 ${className}`}>
+    <div className={`space-y-3 pt-3 border-t font-mono ${className}`}>
       {/* Header with Title and Reset */}
       <div className="flex items-center justify-between">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-          <DollarSign className="w-3.5 h-3.5 text-blue-600" />
-          <span>Price Range</span>
+        <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-tight flex items-center gap-1.5">
+          <DollarSign className="w-3.5 h-3.5 text-zinc-400" />
+          <span>PRICE RANGE</span>
         </label>
         {isFiltered && (
           <button
             type="button"
             onClick={handleReset}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition cursor-pointer"
+            className="inline-flex items-center gap-1 text-[10px] uppercase text-zinc-400 hover:text-zinc-100 transition cursor-pointer"
             title="Reset price range"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Reset</span>
+            <span>RESET</span>
           </button>
         )}
       </div>
 
       {/* Current Range Summary Display */}
-      <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg">
-        <span className="font-bold text-slate-800">
+      <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-zinc-950/70 border border-zinc-800 rounded-md text-zinc-200">
+        <span className="font-semibold">
           {formatPrice(minPriceUSD, currency)}
         </span>
-        <span className="text-slate-400 font-medium">to</span>
-        <span className="font-bold text-slate-800">
+        <span className="text-zinc-500 text-[10px]">TO</span>
+        <span className="font-semibold">
           {formatPrice(maxPriceUSD, currency)}
         </span>
       </div>
 
       {/* Dual Slider Range Track Container */}
-      <div className="relative h-7 flex items-center px-1">
+      <div className="relative h-6 flex items-center px-1">
         {/* Grey Background Track */}
-        <div className="absolute left-1 right-1 h-2 bg-slate-200/80 rounded-full overflow-hidden" />
+        <div className="absolute left-1 right-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden" />
 
-        {/* Active Blue Colored Track Between Min and Max */}
+        {/* Active Track Between Min and Max */}
         <div
-          className="absolute h-2 bg-blue-600 rounded-full transition-all duration-75 shadow-xs"
+          className="absolute h-1.5 bg-zinc-300 rounded-full transition-all duration-75 shadow-xs"
           style={{
             left: `calc(4px + ${minPercent}% * 0.96)`,
             width: `calc(${maxPercent - minPercent}% * 0.96)`,
@@ -99,7 +99,7 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
           step={step}
           value={minPriceUSD}
           onChange={(e) => handleMinChange(Number(e.target.value))}
-          className={`absolute left-0 w-full h-2 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4.5 [&::-webkit-slider-thumb]:h-4.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4.5 [&::-moz-range-thumb]:h-4.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-blue-600 [&::-moz-range-thumb]:shadow-md ${
+          className={`absolute left-0 w-full h-1.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-zinc-100 [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-xs [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-zinc-100 [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-zinc-900 ${
             minPriceUSD > maxLimit * 0.75 ? 'z-30' : 'z-20'
           }`}
           aria-label="Minimum price in USD"
@@ -114,19 +114,19 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
           step={step}
           value={maxPriceUSD}
           onChange={(e) => handleMaxChange(Number(e.target.value))}
-          className="absolute left-0 w-full h-2 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4.5 [&::-webkit-slider-thumb]:h-4.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-600 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4.5 [&::-moz-range-thumb]:h-4.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-blue-600 [&::-moz-range-thumb]:shadow-md z-25"
+          className="absolute left-0 w-full h-1.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-zinc-100 [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-xs [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-zinc-100 [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-zinc-900 z-25"
           aria-label="Maximum price in USD"
         />
       </div>
 
       {/* Manual Numeric Inputs for Precision */}
-      <div className="flex items-center justify-between gap-2 pt-0.5">
+      <div className="flex items-center justify-between gap-2 pt-0.5 text-xs">
         <div className="flex-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Min ($)
+          <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">
+            MIN ($)
           </span>
           <div className="relative flex items-center">
-            <span className="absolute left-2.5 text-xs font-semibold text-slate-400 pointer-events-none">$</span>
+            <span className="absolute left-2.5 text-zinc-500 pointer-events-none">$</span>
             <input
               type="number"
               id="price-min-number-input"
@@ -135,19 +135,19 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
               step={step}
               value={minPriceUSD}
               onChange={(e) => handleMinChange(Number(e.target.value) || 0)}
-              className="w-full pl-6 pr-2 py-1.5 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 focus:outline-none transition"
+              className="w-full pl-6 pr-2 py-1 text-xs font-mono text-zinc-200 bg-zinc-950 border border-zinc-800 rounded-md focus:border-zinc-500 focus:outline-none transition"
             />
           </div>
         </div>
 
-        <span className="text-slate-300 font-bold mt-4 select-none">—</span>
+        <span className="text-zinc-600 mt-4 select-none">—</span>
 
         <div className="flex-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Max ($)
+          <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">
+            MAX ($)
           </span>
           <div className="relative flex items-center">
-            <span className="absolute left-2.5 text-xs font-semibold text-slate-400 pointer-events-none">$</span>
+            <span className="absolute left-2.5 text-zinc-500 pointer-events-none">$</span>
             <input
               type="number"
               id="price-max-number-input"
@@ -156,7 +156,7 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
               step={step}
               value={maxPriceUSD}
               onChange={(e) => handleMaxChange(Number(e.target.value) || maxLimit)}
-              className="w-full pl-6 pr-2 py-1.5 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 focus:outline-none transition"
+              className="w-full pl-6 pr-2 py-1 text-xs font-mono text-zinc-200 bg-zinc-950 border border-zinc-800 rounded-md focus:border-zinc-500 focus:outline-none transition"
             />
           </div>
         </div>
@@ -164,15 +164,15 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
 
       {/* Quick Budget Presets */}
       <div className="space-y-1.5 pt-1">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-          Quick Budgets
+        <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">
+          PRESETS
         </span>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {[
-            { label: 'Under $300', min: 0, max: 300 },
-            { label: '$300–$800', min: 300, max: 800 },
-            { label: '$800–$1.5k', min: 800, max: 1500 },
-            { label: '$1.5k+', min: 1500, max: 3000 },
+            { label: '<$300', min: 0, max: 300 },
+            { label: '$300–800', min: 300, max: 800 },
+            { label: '$800–1.5K', min: 800, max: 1500 },
+            { label: '$1.5K+', min: 1500, max: 3000 },
           ].map((preset) => {
             const isActive = minPriceUSD === preset.min && maxPriceUSD === preset.max;
             return (
@@ -180,10 +180,10 @@ export const PriceRangeSlider: React.FC<PriceRangeSliderProps> = ({
                 key={preset.label}
                 type="button"
                 onClick={() => onChange(preset.min, preset.max)}
-                className={`px-2 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                className={`px-2 py-0.5 rounded text-[10px] font-mono transition-micro cursor-pointer border ${
                   isActive
-                    ? 'bg-blue-600 text-white font-bold shadow-2xs'
-                    : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600 hover:text-slate-900'
+                    ? 'bg-zinc-100 text-zinc-950 border-zinc-100 font-bold'
+                    : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                 }`}
               >
                 {preset.label}
