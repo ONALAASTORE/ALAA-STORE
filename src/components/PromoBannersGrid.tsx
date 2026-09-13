@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
 import { Currency } from '../types';
 
 interface PromoBannersGridProps {
