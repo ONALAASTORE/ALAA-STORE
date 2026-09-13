@@ -1,4 +1,5 @@
 import { Product } from '../types';
+import githubProductsJson from './products.json';
 
 const INITIAL_PRODUCTS: Product[] = [
   {
@@ -647,11 +648,18 @@ const INITIAL_PRODUCTS: Product[] = [
   }
 ];
 
-export const PRODUCTS: Product[] = INITIAL_PRODUCTS.map((p) => {
-  const images = p.galleryImages && p.galleryImages.length > 0 ? p.galleryImages : [p.image];
+const rawProductList: any[] = Array.isArray(githubProductsJson) && githubProductsJson.length > 0 
+  ? (githubProductsJson as any[]) 
+  : INITIAL_PRODUCTS;
+
+export const PRODUCTS: Product[] = rawProductList.map((p: any) => {
+  const images = Array.isArray(p.galleryImages) && p.galleryImages.length > 0 
+    ? p.galleryImages 
+    : [p.image];
   return {
     ...p,
+    galleryImages: images,
     imageUrls: p.imageUrls || images,
     image_urls: p.image_urls || images,
-  };
+  } as Product;
 });

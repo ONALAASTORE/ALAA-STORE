@@ -28,18 +28,21 @@ import {
   FileVideo,
   CheckCircle2,
   Send,
-  BarChart3
+  BarChart3,
+  FolderGit2,
+  DownloadCloud
 } from 'lucide-react';
 import { Product, StoreSettings, Currency } from '../../types';
 import { ProductFormModal } from './ProductFormModal';
 import { AdminAnalyticsTab } from './AdminAnalyticsTab';
+import { GitHubCatalogModal } from './GitHubCatalogModal';
 import { getEmbedVideoUrl, isDirectVideoFile } from '../../utils/video';
 import { formatPrice } from '../../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../../utils/productImages';
 import { LogoAvatar, Brand3DText } from '../brand';
 import { validatePhoneNumber, buildWhatsAppLink, formatWhatsAppDigits } from '../../utils/phone';
 import { CATEGORIES } from '../../data/categories';
-import { saveProductToFirestore, deleteProductFromFirestore } from '../../utils/firestore';
+import { saveProductToGitHubCatalog, deleteProductFromGitHubCatalog, downloadCatalogJson } from '../../utils/githubStore';
 import { AdminToastContainer, ToastItem } from './AdminToast';
 
 interface AdminDashboardProps {
@@ -71,6 +74,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Product Form Modal state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
 
   // Video Form state
   const [videoUrlInput, setVideoUrlInput] = useState(storeSettings.marketingVideoUrl);
@@ -168,10 +172,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (window.confirm(`Are you sure you want to delete "${productName}" from the catalog?`)) {
       const updated = products.filter((p) => p.id !== productId);
       onUpdateProducts(updated);
-      await deleteProductFromFirestore(productId).catch((e) => console.warn('Firestore delete note:', e));
+      await deleteProductFromGitHubCatalog(productId, products);
       addToast({
         title: 'Product Removed',
-        message: `"${productName}" was removed from the store and Firestore.`,
+        message: `"${productName}" was removed from the repository catalog.`,
         type: 'info',
         badge: 'Catalog Updated',
         icon: 'trash',
@@ -195,28 +199,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onUpdateProducts(updated);
 
     if (targetProduct) {
-      try {
-        await saveProductToFirestore(targetProduct);
-        addToast({
-          title: 'Inventory Update Succeeded',
-          message: `"${targetProduct.name}" is now marked as ${
-            newInStockState ? 'In Stock' : 'Out of Stock'
-          }. Firestore updated.`,
-          type: 'success',
-          badge: newInStockState ? 'In Stock' : 'Out of Stock',
-          icon: 'inventory',
-        });
-      } catch (err) {
-        addToast({
-          title: 'Inventory Update Succeeded',
-          message: `"${targetProduct.name}" marked as ${
-            newInStockState ? 'In Stock' : 'Out of Stock'
-          }.`,
-          type: 'info',
-          badge: 'Stock Updated',
-          icon: 'inventory',
-        });
-      }
+      await saveProductToGitHubCatalog(targetProduct, updated);
+      addToast({
+        title: 'Inventory Updated',
+        message: `"${targetProduct.name}" is now marked as ${
+          newInStockState ? 'In Stock' : 'Out of Stock'
+        }. Repository store updated.`,
+        type: 'success',
+        badge: newInStockState ? 'In Stock' : 'Out of Stock',
+        icon: 'inventory',
+      });
     }
   };
 
@@ -226,14 +218,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       id: `${product.id}-copy-${Date.now().toString().slice(-4)}`,
       name: `${product.name} (Copy)`,
     };
-    onUpdateProducts([duplicated, ...products]);
-    await saveProductToFirestore(duplicated).catch((e) => console.warn('Firestore sync note:', e));
+    const updated = [duplicated, ...products];
+    onUpdateProducts(updated);
+    await saveProductToGitHubCatalog(duplicated, updated);
     addToast({
-      title: 'Product Duplicated & Synced',
-      message: `"${duplicated.name}" cloned and saved to Firestore.`,
+      title: 'Product Cloned to Catalog',
+      message: `"${duplicated.name}" cloned. Remember to commit products.json to GitHub.`,
       type: 'success',
-      badge: 'Firestore Synced',
-      icon: 'firestore',
+      badge: 'GitHub Synced',
+      icon: 'github',
     });
   };
 
@@ -242,65 +235,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       // Update existing
       const updated = products.map((p) => (p.id === savedProduct.id ? savedProduct : p));
       onUpdateProducts(updated);
-      try {
-        const res = await saveProductToFirestore(savedProduct);
-        if (res.success) {
-          addToast({
-            title: 'Product Saved to Firestore',
-            message: `"${savedProduct.name}" changes saved and synchronized to Firestore successfully.`,
-            type: 'success',
-            badge: 'Firestore Synced',
-            icon: 'firestore',
-          });
-        } else {
-          addToast({
-            title: 'Product Updated',
-            message: `"${savedProduct.name}" updated successfully.`,
-            type: 'success',
-            badge: 'Saved',
-            icon: 'check',
-          });
-        }
-      } catch (err) {
-        addToast({
-          title: 'Product Updated',
-          message: `"${savedProduct.name}" updated in catalog.`,
-          type: 'success',
-          badge: 'Catalog Saved',
-          icon: 'check',
-        });
-      }
+      await saveProductToGitHubCatalog(savedProduct, updated);
+      addToast({
+        title: 'Product Saved to GitHub Catalog',
+        message: `"${savedProduct.name}" changes saved. Download products.json or push commit to GitHub.`,
+        type: 'success',
+        badge: 'Repo Synced',
+        icon: 'github',
+      });
     } else {
       // Add new
-      onUpdateProducts([savedProduct, ...products]);
-      try {
-        const res = await saveProductToFirestore(savedProduct);
-        if (res.success) {
-          addToast({
-            title: 'New Product Saved to Firestore',
-            message: `"${savedProduct.name}" has been added to your Firestore database and is now live.`,
-            type: 'success',
-            badge: 'Firestore Live',
-            icon: 'firestore',
-          });
-        } else {
-          addToast({
-            title: 'New Product Added',
-            message: `"${savedProduct.name}" has been added to the catalog.`,
-            type: 'success',
-            badge: 'Catalog Live',
-            icon: 'check',
-          });
-        }
-      } catch (err) {
-        addToast({
-          title: 'New Product Added',
-          message: `"${savedProduct.name}" added to catalog!`,
-          type: 'success',
-          badge: 'Catalog Live',
-          icon: 'check',
-        });
-      }
+      const updated = [savedProduct, ...products];
+      onUpdateProducts(updated);
+      await saveProductToGitHubCatalog(savedProduct, updated);
+      addToast({
+        title: 'New Product Saved to GitHub Catalog',
+        message: `"${savedProduct.name}" has been added to your repository store (${updated.length} items total). Ready for GitHub commit.`,
+        type: 'success',
+        badge: 'GitHub Stored',
+        icon: 'github',
+      });
     }
   };
 
@@ -624,13 +578,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           {activeTab === 'products' && (
-            <button
-              onClick={handleOpenAddProduct}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF0000] to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition cursor-pointer min-h-[44px] shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add New Product</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setIsGitHubModalOpen(true)}
+                className="flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-500/40 text-purple-200 text-xs font-bold transition cursor-pointer min-h-[44px] shadow-lg shadow-purple-950/30"
+                title="Bulk import products, scale to 50+ items, or download products.json"
+              >
+                <FolderGit2 className="w-4 h-4 text-purple-400" />
+                <span>GitHub & Bulk Upload</span>
+              </button>
+
+              <button
+                onClick={handleOpenAddProduct}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF0000] to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-bold shadow-lg shadow-red-600/30 transition cursor-pointer min-h-[44px]"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add New Product</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -706,6 +671,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => downloadCatalogJson(products, 'products.json')}
+                    className="text-[11px] font-bold text-purple-300 hover:text-white px-2.5 py-1 rounded-lg border border-purple-500/30 bg-purple-950/40 hover:bg-purple-900/60 flex items-center gap-1.5 transition cursor-pointer"
+                    title="Export products.json for your repository"
+                  >
+                    <DownloadCloud className="w-3 h-3 text-purple-400" />
+                    <span>Download products.json</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       if (window.confirm('Reset catalog to official baseline products?')) {
@@ -1825,6 +1799,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onClose={() => setIsProductModalOpen(false)}
           productToEdit={editingProduct}
           onSave={handleSaveProduct}
+        />
+      )}
+
+      {/* GitHub Repository Catalog & Bulk Upload Modal */}
+      {isGitHubModalOpen && (
+        <GitHubCatalogModal
+          isOpen={isGitHubModalOpen}
+          onClose={() => setIsGitHubModalOpen(false)}
+          products={products}
+          onUpdateProducts={onUpdateProducts}
+          onShowToast={(title, message, type, badge, icon) => {
+            addToast({
+              title,
+              message,
+              type: type || 'success',
+              badge: badge || 'GitHub Stored',
+              icon: icon || 'github'
+            });
+          }}
         />
       )}
     </div>

@@ -39,6 +39,7 @@ import { AccountModal } from './components/AccountModal';
 import { CategoryQuickLinks } from './components/CategoryQuickLinks';
 import { FlashDealsRow } from './components/FlashDealsRow';
 import { ProductFeedTabs } from './components/ProductFeedTabs';
+import { fetchGitHubCatalog } from './utils/githubStore';
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
@@ -143,7 +144,17 @@ export function App() {
   const [productsList, setProductsList] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : PRODUCTS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= PRODUCTS.length) {
+          return parsed;
+        }
+        // Merge missing products from repository catalog
+        const savedIds = new Set(parsed.map((p: any) => p.id));
+        const missing = PRODUCTS.filter((p) => !savedIds.has(p.id));
+        return [...parsed, ...missing];
+      }
+      return PRODUCTS;
     } catch {
       return PRODUCTS;
     }
@@ -270,6 +281,35 @@ export function App() {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Dynamically sync and hydrate from GitHub repository data store (public/data/products.json)
+  useEffect(() => {
+    let isMounted = true;
+    async function syncRepoCatalog() {
+      try {
+        const res = await fetchGitHubCatalog();
+        if (res.success && res.products.length > 0 && isMounted) {
+          setProductsList((prev) => {
+            if (prev.length < res.products.length) {
+              return res.products;
+            }
+            const prevIds = new Set(prev.map((p) => p.id));
+            const newFromRepo = res.products.filter((p) => !prevIds.has(p.id));
+            if (newFromRepo.length > 0) {
+              return [...prev, ...newFromRepo];
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.warn('Repository catalog sync note:', err);
+      }
+    }
+    syncRepoCatalog();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Save Products to local storage

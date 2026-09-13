@@ -6,7 +6,8 @@ import {
   Boxes, 
   AlertCircle, 
   X, 
-  Trash2
+  Trash2,
+  GitBranch
 } from 'lucide-react';
 
 export interface ToastItem {
@@ -15,7 +16,7 @@ export interface ToastItem {
   message: string;
   type?: 'success' | 'info' | 'warning' | 'error';
   badge?: string;
-  icon?: 'firestore' | 'inventory' | 'check' | 'alert' | 'trash';
+  icon?: 'firestore' | 'github' | 'inventory' | 'check' | 'alert' | 'trash';
   duration?: number;
 }
 
@@ -56,6 +57,12 @@ const ToastCard: React.FC<ToastCardProps> = ({ toast, onDismiss }) => {
 
   const renderIcon = () => {
     switch (toast.icon) {
+      case 'github':
+        return (
+          <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0 shadow-inner">
+            <GitBranch className="w-4 h-4 text-purple-400" />
+          </div>
+        );
       case 'firestore':
         return (
           <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 flex items-center justify-center shrink-0 shadow-inner">

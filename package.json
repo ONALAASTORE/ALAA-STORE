@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "vite build",
     "lint": "tsc --noEmit",
-    "preview": "vite preview --port 3000"
+    "preview": "vite preview --port 3000",
+    "products:import": "node scripts/bulk_import_products.js",
+    "products:export": "node scripts/export_products.js"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
