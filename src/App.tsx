@@ -40,6 +40,7 @@ import { CategoryQuickLinks } from './components/CategoryQuickLinks';
 import { FlashDealsRow } from './components/FlashDealsRow';
 import { ProductFeedTabs } from './components/ProductFeedTabs';
 import { fetchGitHubCatalog } from './utils/githubStore';
+import { subscribeToProducts, seedProductsIfEmpty } from './services/productService';
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
@@ -281,6 +282,33 @@ export function App() {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Real-time Cloud Firestore synchronization & auto-seed
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const unsubscribe = subscribeToProducts(
+      (firestoreProducts) => {
+        if (!isSubscribed) return;
+        if (firestoreProducts && firestoreProducts.length > 0) {
+          setProductsList(firestoreProducts);
+        } else {
+          // If Firestore collection is empty, automatically seed with the initial store catalog
+          seedProductsIfEmpty(PRODUCTS).catch((err) => {
+            console.warn('[Firestore] Initial seed note:', err);
+          });
+        }
+      },
+      (err) => {
+        console.warn('[Firestore] Real-time listener note:', err);
+      }
+    );
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
   }, []);
 
   // Dynamically sync and hydrate from GitHub repository data store (public/data/products.json)

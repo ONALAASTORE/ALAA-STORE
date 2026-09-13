@@ -32,10 +32,120 @@ import { extractProductVariantConfig, findBestMatchingVariant } from '../utils/v
 import { VisualStarRating } from './VisualStarRating';
 import { CustomerReviews } from './CustomerReviews';
 import { SpecsAccordion } from './SpecsAccordion';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { getStoredReviews, saveStoredReviews, INITIAL_REVIEWS_SEED } from '../data/initialReviews';
 import { ProductDetailModalSkeleton } from './ProductDetailModalSkeleton';
 import { Model3DViewerModal, is3DSupported } from './Model3DViewerModal';
+
+/**
+ * Fluid UI transition variants for ProductDetailModal
+ * Engineered to match the store's fluid iOS/Tailwind spring-cubic physics curve [0.16, 1, 0.3, 1]
+ */
+export const modalBackdropVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    transition: {
+      duration: 0.2,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.28,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.22,
+      ease: [0.4, 0, 0.6, 1],
+    },
+  },
+};
+
+export const modalDialogVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.95,
+    y: 24,
+    transition: {
+      duration: 0.2,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      damping: 26,
+      stiffness: 320,
+      mass: 0.8,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.96,
+    y: 16,
+    transition: {
+      duration: 0.22,
+      ease: [0.4, 0, 0.6, 1],
+    },
+  },
+};
+
+export const modalTabVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 8,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.22,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -6,
+    transition: {
+      duration: 0.16,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+};
+
+export const modalLightboxVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.97,
+    transition: {
+      duration: 0.18,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.26,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.97,
+    transition: {
+      duration: 0.2,
+      ease: [0.4, 0, 0.6, 1],
+    },
+  },
+};
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -575,19 +685,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={product.name}
+      variants={modalBackdropVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6"
       onClick={onClose}
     >
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 14 }}
-        animate={{ opacity: 1, scale: 1.0, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 14 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[95vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe"
+        variants={modalDialogVariants}
+        className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[95vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -1529,134 +1639,150 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </button>
           </div>
 
-          {activeTab === 'specs' && (
-            <SpecsAccordion
-              specs={product.specs}
-              productName={product.name}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              variants={modalTabVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              {activeTab === 'specs' && (
+                <SpecsAccordion
+                  specs={product.specs}
+                  productName={product.name}
+                />
+              )}
 
-          {activeTab === 'features' && (
-            <ul className="space-y-2.5 text-xs text-slate-700 bg-white p-4 rounded-xl border border-slate-200/80">
-              {product.features.map((feat, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span className="leading-relaxed">{feat}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+              {activeTab === 'features' && (
+                <ul className="space-y-2.5 text-xs text-slate-700 bg-white p-4 rounded-xl border border-slate-200/80">
+                  {product.features.map((feat, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-          {activeTab === 'delivery' && (
-            <div className="bg-white p-5 rounded-xl border border-slate-200/80 space-y-3 text-xs text-slate-700 leading-relaxed">
-              <h4 className="font-bold text-slate-900 text-sm">Delivery Guidelines for Lebanon</h4>
-              <p>
-                <strong>Dispatch & Coverage:</strong> Direct dispatch from Jadra Warehouse Store. Express delivery across Greater Beirut, Chouf, Mount Lebanon, Tripoli, Saida, Tyre, Nabatieh, and Bekaa within 24 to 48 hours.
-              </p>
-              <p>
-                <strong>Warranty Claims:</strong> All sealed items include official agent barcode stickers. You can claim service directly at authorized brand centers in Lebanon (e.g. Apple Authorized, CTC Samsung, Xiaomi Lebanon) or through our Jadra Warehouse Store counter.
-              </p>
-            </div>
-          )}
+              {activeTab === 'delivery' && (
+                <div className="bg-white p-5 rounded-xl border border-slate-200/80 space-y-3 text-xs text-slate-700 leading-relaxed">
+                  <h4 className="font-bold text-slate-900 text-sm">Delivery Guidelines for Lebanon</h4>
+                  <p>
+                    <strong>Dispatch & Coverage:</strong> Direct dispatch from Jadra Warehouse Store. Express delivery across Greater Beirut, Chouf, Mount Lebanon, Tripoli, Saida, Tyre, Nabatieh, and Bekaa within 24 to 48 hours.
+                  </p>
+                  <p>
+                    <strong>Warranty Claims:</strong> All sealed items include official agent barcode stickers. You can claim service directly at authorized brand centers in Lebanon (e.g. Apple Authorized, CTC Samsung, Xiaomi Lebanon) or through our Jadra Warehouse Store counter.
+                  </p>
+                </div>
+              )}
 
-          {activeTab === 'reviews' && (
-            <CustomerReviews
-              product={product}
-              reviews={currentProductReviews}
-              onAddReview={handleAddReview}
-            />
-          )}
+              {activeTab === 'reviews' && (
+                <CustomerReviews
+                  product={product}
+                  reviews={currentProductReviews}
+                  onAddReview={handleAddReview}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Fullscreen High-Resolution Lightbox Overlay */}
-        {isLightboxOpen && (
-          <div 
-            className="fixed inset-0 z-60 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-in fade-in duration-200"
-            onClick={() => setIsLightboxOpen(false)}
-          >
-            {/* Lightbox Top Bar */}
-            <div className="flex items-center justify-between z-20 text-white" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-white">{product.name}</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/80 font-mono">
-                  {activeImageIndex + 1} / {allImages.length}
-                </span>
+        <AnimatePresence>
+          {isLightboxOpen && (
+            <motion.div 
+              variants={modalLightboxVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-0 z-60 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6"
+              onClick={() => setIsLightboxOpen(false)}
+            >
+              {/* Lightbox Top Bar */}
+              <div className="flex items-center justify-between z-20 text-white" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-white">{product.name}</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-white/80 font-mono">
+                    {activeImageIndex + 1} / {allImages.length}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(false)}
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
+                  title="Close lightbox (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsLightboxOpen(false)}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
-                title="Close lightbox (Esc)"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Lightbox Center Image Stage */}
-            <div 
-              className="relative flex-1 flex items-center justify-center overflow-hidden my-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {allImages.length > 1 && (
-                <button
-                  type="button"
-                  onClick={handlePrevImage}
-                  className="absolute left-2 sm:left-6 z-20 w-12 h-12 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition cursor-pointer shadow-lg"
-                  title="Previous image (Left Arrow)"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-              )}
-
-              <img
-                src={allImages[activeImageIndex] || DEFAULT_PRODUCT_IMAGE}
-                alt={`${product.name} high-res view ${activeImageIndex + 1}`}
-                className="max-h-[75vh] max-w-[90vw] object-contain select-none"
-                referrerPolicy="no-referrer"
-              />
-
-              {allImages.length > 1 && (
-                <button
-                  type="button"
-                  onClick={handleNextImage}
-                  className="absolute right-2 sm:right-6 z-20 w-12 h-12 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition cursor-pointer shadow-lg"
-                  title="Next image (Right Arrow)"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              )}
-            </div>
-
-            {/* Lightbox Bottom Thumbnail Carousel */}
-            {allImages.length > 1 && (
+              {/* Lightbox Center Image Stage */}
               <div 
-                className="flex items-center justify-center gap-2 overflow-x-auto py-2 z-20 scrollbar-none"
+                className="relative flex-1 flex items-center justify-center overflow-hidden my-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                {allImages.map((img, i) => (
+                {allImages.length > 1 && (
                   <button
-                    key={i}
                     type="button"
-                    onClick={() => setActiveImageIndex(i)}
-                    className={`w-14 h-14 rounded-xl border-2 p-1 bg-white/5 shrink-0 transition overflow-hidden cursor-pointer ${
-                      activeImageIndex === i
-                        ? 'border-blue-500 ring-2 ring-blue-500/50 opacity-100 scale-105'
-                        : 'border-white/20 hover:border-white/50 opacity-60 hover:opacity-90'
-                    }`}
+                    onClick={handlePrevImage}
+                    className="absolute left-2 sm:left-6 z-20 w-12 h-12 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition cursor-pointer shadow-lg"
+                    title="Previous image (Left Arrow)"
                   >
-                    <img 
-                      src={img} 
-                      alt={`Thumbnail ${i + 1}`} 
-                      className="w-full h-full object-contain"
-                      referrerPolicy="no-referrer" 
-                    />
+                    <ChevronLeft className="w-6 h-6" />
                   </button>
-                ))}
+                )}
+
+                <img
+                  src={allImages[activeImageIndex] || DEFAULT_PRODUCT_IMAGE}
+                  alt={`${product.name} high-res view ${activeImageIndex + 1}`}
+                  className="max-h-[75vh] max-w-[90vw] object-contain select-none"
+                  referrerPolicy="no-referrer"
+                />
+
+                {allImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleNextImage}
+                    className="absolute right-2 sm:right-6 z-20 w-12 h-12 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition cursor-pointer shadow-lg"
+                    title="Next image (Right Arrow)"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Lightbox Bottom Thumbnail Carousel */}
+              {allImages.length > 1 && (
+                <div 
+                  className="flex items-center justify-center gap-2 overflow-x-auto py-2 z-20 scrollbar-none"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {allImages.map((img, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActiveImageIndex(i)}
+                      className={`w-14 h-14 rounded-xl border-2 p-1 bg-white/5 shrink-0 transition overflow-hidden cursor-pointer ${
+                        activeImageIndex === i
+                          ? 'border-blue-500 ring-2 ring-blue-500/50 opacity-100 scale-105'
+                          : 'border-white/20 hover:border-white/50 opacity-60 hover:opacity-90'
+                      }`}
+                    >
+                      <img 
+                        src={img} 
+                        alt={`Thumbnail ${i + 1}`} 
+                        className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer" 
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </motion.div>
 

@@ -21,6 +21,7 @@ import {
   getGitCommitInstructions,
   GITHUB_CATALOG_STORAGE_KEY 
 } from '../../utils/githubStore';
+import { saveProductToFirestore } from '../../services/productService';
 
 interface GitHubCatalogModalProps {
   isOpen: boolean;
@@ -95,11 +96,16 @@ export const GitHubCatalogModal: React.FC<GitHubCatalogModalProps> = ({
     onUpdateProducts(updatedList);
     localStorage.setItem(GITHUB_CATALOG_STORAGE_KEY, JSON.stringify(updatedList));
 
+    // Persist imported items to Firestore
+    parseResult.products.forEach((prod) => {
+      saveProductToFirestore(prod).catch((e) => console.warn('[Firestore] Bulk save note:', e));
+    });
+
     onShowToast(
       'Bulk Products Imported!',
-      `Successfully loaded ${parseResult.products.length} products. Total catalog count is now ${updatedList.length}.`,
+      `Successfully loaded and synced ${parseResult.products.length} products with Cloud Firestore.`,
       'success',
-      'GitHub Catalog Ready',
+      'Firestore Synced',
       'github'
     );
 

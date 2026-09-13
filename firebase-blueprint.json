@@ -1,0 +1,26 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "E-commerce store product item in catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "brand": { "type": "string" },
+        "category": { "type": "string" },
+        "basePriceUSD": { "type": "number" },
+        "inStock": { "type": "boolean" },
+        "description": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "name", "brand", "category", "basePriceUSD"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Store catalog products collection"
+    }
+  }
+}

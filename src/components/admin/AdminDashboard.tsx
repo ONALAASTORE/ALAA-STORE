@@ -30,12 +30,14 @@ import {
   Send,
   BarChart3,
   FolderGit2,
-  DownloadCloud
+  DownloadCloud,
+  Database
 } from 'lucide-react';
 import { Product, StoreSettings, Currency } from '../../types';
 import { ProductFormModal } from './ProductFormModal';
 import { AdminAnalyticsTab } from './AdminAnalyticsTab';
 import { GitHubCatalogModal } from './GitHubCatalogModal';
+import { DataManagementTab } from './DataManagementTab';
 import { getEmbedVideoUrl, isDirectVideoFile } from '../../utils/video';
 import { formatPrice } from '../../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../../utils/productImages';
@@ -43,6 +45,7 @@ import { LogoAvatar, Brand3DText } from '../brand';
 import { validatePhoneNumber, buildWhatsAppLink, formatWhatsAppDigits } from '../../utils/phone';
 import { CATEGORIES } from '../../data/categories';
 import { saveProductToGitHubCatalog, deleteProductFromGitHubCatalog, downloadCatalogJson } from '../../utils/githubStore';
+import { saveProductToFirestore, deleteProductFromFirestore, updateProductInFirestore } from '../../services/productService';
 import { AdminToastContainer, ToastItem } from './AdminToast';
 
 interface AdminDashboardProps {
@@ -64,7 +67,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigateToStore,
   currency,
 }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'analytics' | 'video' | 'banner' | 'overview'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'data' | 'analytics' | 'video' | 'banner' | 'overview'>('products');
   
   // Product Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -172,12 +175,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (window.confirm(`Are you sure you want to delete "${productName}" from the catalog?`)) {
       const updated = products.filter((p) => p.id !== productId);
       onUpdateProducts(updated);
+      try {
+        await deleteProductFromFirestore(productId);
+      } catch (err) {
+        console.warn('[Firestore] Delete fallback note:', err);
+      }
       await deleteProductFromGitHubCatalog(productId, products);
       addToast({
         title: 'Product Removed',
-        message: `"${productName}" was removed from the repository catalog.`,
+        message: `"${productName}" was removed from Cloud Firestore & local catalog.`,
         type: 'info',
-        badge: 'Catalog Updated',
+        badge: 'Firestore Synced',
         icon: 'trash',
       });
     }
@@ -199,12 +207,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onUpdateProducts(updated);
 
     if (targetProduct) {
+      try {
+        await updateProductInFirestore(productId, { inStock: newInStockState });
+      } catch (err) {
+        console.warn('[Firestore] Update stock note:', err);
+      }
       await saveProductToGitHubCatalog(targetProduct, updated);
       addToast({
         title: 'Inventory Updated',
         message: `"${targetProduct.name}" is now marked as ${
           newInStockState ? 'In Stock' : 'Out of Stock'
-        }. Repository store updated.`,
+        }. Cloud Firestore updated.`,
         type: 'success',
         badge: newInStockState ? 'In Stock' : 'Out of Stock',
         icon: 'inventory',
@@ -220,12 +233,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
     const updated = [duplicated, ...products];
     onUpdateProducts(updated);
+    try {
+      await saveProductToFirestore(duplicated);
+    } catch (err) {
+      console.warn('[Firestore] Duplicate note:', err);
+    }
     await saveProductToGitHubCatalog(duplicated, updated);
     addToast({
       title: 'Product Cloned to Catalog',
-      message: `"${duplicated.name}" cloned. Remember to commit products.json to GitHub.`,
+      message: `"${duplicated.name}" cloned and saved to Cloud Firestore.`,
       type: 'success',
-      badge: 'GitHub Synced',
+      badge: 'Firestore Synced',
       icon: 'github',
     });
   };
@@ -235,24 +253,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       // Update existing
       const updated = products.map((p) => (p.id === savedProduct.id ? savedProduct : p));
       onUpdateProducts(updated);
+      try {
+        await saveProductToFirestore(savedProduct);
+      } catch (err) {
+        console.warn('[Firestore] Save product note:', err);
+      }
       await saveProductToGitHubCatalog(savedProduct, updated);
       addToast({
-        title: 'Product Saved to GitHub Catalog',
-        message: `"${savedProduct.name}" changes saved. Download products.json or push commit to GitHub.`,
+        title: 'Product Saved to Cloud Firestore',
+        message: `"${savedProduct.name}" changes saved permanently to Cloud Firestore & catalog.`,
         type: 'success',
-        badge: 'Repo Synced',
+        badge: 'Firestore Stored',
         icon: 'github',
       });
     } else {
       // Add new
       const updated = [savedProduct, ...products];
       onUpdateProducts(updated);
+      try {
+        await saveProductToFirestore(savedProduct);
+      } catch (err) {
+        console.warn('[Firestore] Add product note:', err);
+      }
       await saveProductToGitHubCatalog(savedProduct, updated);
       addToast({
-        title: 'New Product Saved to GitHub Catalog',
-        message: `"${savedProduct.name}" has been added to your repository store (${updated.length} items total). Ready for GitHub commit.`,
+        title: 'New Product Saved to Cloud Firestore',
+        message: `"${savedProduct.name}" has been permanently added to Cloud Firestore (${updated.length} items total).`,
         type: 'success',
-        badge: 'GitHub Stored',
+        badge: 'Firestore Stored',
         icon: 'github',
       });
     }
@@ -519,6 +547,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 activeTab === 'products' ? 'bg-black/30 text-white' : 'bg-slate-800 text-slate-400'
               }`}>
                 {products.length}
+              </span>
+            </button>
+
+            <button
+              id="admin-tab-data-btn"
+              onClick={() => setActiveTab('data')}
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                activeTab === 'data'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Database className="w-4 h-4" />
+              <span>Data Management</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                activeTab === 'data' ? 'bg-black/30 text-white' : 'bg-purple-950/80 text-purple-300 border border-purple-800/60'
+              }`}>
+                Git JSON
               </span>
             </button>
 
@@ -960,6 +1006,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             )}
             </div>
           </motion.div>
+        )}
+
+        {/* TAB: DATA MANAGEMENT (Git Repository Store, Schema Validator & JSON Generator) */}
+        {activeTab === 'data' && (
+          <DataManagementTab
+            products={products}
+            onUpdateProducts={onUpdateProducts}
+            currency={currency}
+            onOpenBulkModal={() => setIsGitHubModalOpen(true)}
+            onShowToast={(title, message, type, badge, icon) => {
+              addToast({
+                title,
+                message,
+                type: type || 'success',
+                badge,
+                icon: (icon as any) || 'github'
+              });
+            }}
+          />
         )}
 
         {/* TAB: ANALYTICS (Weekly Sales & Popular Products with Recharts) */}

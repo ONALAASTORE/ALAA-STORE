@@ -1,5 +1,7 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { X, Images, ShieldCheck, Truck, CreditCard } from 'lucide-react';
+import { modalBackdropVariants, modalDialogVariants } from './ProductDetailModal';
 
 interface ProductDetailModalSkeletonProps {
   onClose?: () => void;
@@ -11,16 +13,21 @@ export const ProductDetailModalSkeleton: React.FC<ProductDetailModalSkeletonProp
   className = '',
 }) => {
   return (
-    <div
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-busy="true"
       aria-label="Loading product details..."
+      variants={modalBackdropVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
       className={`fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6 ${className}`}
       onClick={onClose}
     >
-      <div
-        className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[95vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe animate-in fade-in zoom-in-95 duration-200"
+      <motion.div
+        variants={modalDialogVariants}
+        className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[95vh] sm:max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button Placeholder */}
@@ -197,7 +204,7 @@ export const ProductDetailModalSkeleton: React.FC<ProductDetailModalSkeletonProp
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

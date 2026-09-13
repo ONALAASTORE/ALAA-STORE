@@ -249,3 +249,272 @@ git add public/data/products.json
 git commit -m "feat(catalog): update product database (${productCount} items)"
 git push origin main`;
 }
+
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface ValidationWarning {
+  field: string;
+  message: string;
+}
+
+export interface SchemaValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+  validatedProduct?: Product;
+  jsonStructure?: string;
+}
+
+export type ProductInputData = Omit<Partial<Product>, 'basePriceUSD' | 'originalPriceUSD'> & {
+  basePriceUSD?: number | string;
+  originalPriceUSD?: number | string;
+  priceUSD?: number | string;
+  specsInput?: string;
+  featuresInput?: string;
+  galleryImagesInput?: string;
+};
+
+/**
+ * Validates a single product data payload against the official Product schema
+ * and generates the formatted JSON structure if compliant.
+ */
+export function validateProductAgainstSchema(
+  rawInput: ProductInputData,
+  existingProducts: Product[] = []
+): SchemaValidationResult {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationWarning[] = [];
+
+  // 1. Name validation
+  const name = (rawInput.name || '').trim();
+  if (!name) {
+    errors.push({ field: 'name', message: 'Product name is required (string).' });
+  } else if (name.length < 3) {
+    errors.push({ field: 'name', message: 'Product name must be at least 3 characters.' });
+  }
+
+  // 2. Brand validation
+  const brand = (rawInput.brand || '').trim();
+  if (!brand) {
+    errors.push({ field: 'brand', message: 'Brand is required (e.g. Apple, Samsung, Sony).' });
+  }
+
+  // 3. Category validation
+  const category = (rawInput.category || '').trim();
+  if (!category || category === 'all') {
+    errors.push({ field: 'category', message: 'Please select a specific category taxonomy.' });
+  }
+
+  // 4. Base Price (USD) validation
+  const rawPrice = rawInput.basePriceUSD !== undefined ? rawInput.basePriceUSD : rawInput.priceUSD;
+  const numPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice) : Number(rawPrice);
+  if (rawPrice === undefined || rawPrice === null || rawPrice === '' || isNaN(numPrice)) {
+    errors.push({ field: 'basePriceUSD', message: 'Base price USD must be a valid number.' });
+  } else if (numPrice <= 0) {
+    errors.push({ field: 'basePriceUSD', message: 'Base price USD must be greater than $0.00.' });
+  }
+
+  // 5. Original / MSRP Price validation (optional)
+  let numOriginalPrice: number | undefined;
+  if (rawInput.originalPriceUSD !== undefined && rawInput.originalPriceUSD !== null && (rawInput.originalPriceUSD as any) !== '') {
+    numOriginalPrice = typeof rawInput.originalPriceUSD === 'string' ? parseFloat(rawInput.originalPriceUSD) : Number(rawInput.originalPriceUSD);
+    if (isNaN(numOriginalPrice) || numOriginalPrice <= 0) {
+      errors.push({ field: 'originalPriceUSD', message: 'Original price must be a positive number if specified.' });
+    } else if (numOriginalPrice < numPrice) {
+      warnings.push({ field: 'originalPriceUSD', message: `Original price is lower than base price ($${numOriginalPrice} < $${numPrice}). Discount badge will not display.` });
+    }
+  }
+
+  // 6. ID validation
+  let id = (rawInput.id || '').trim().toLowerCase();
+  if (!id && name && brand) {
+    id = `${brand.toLowerCase()}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+  }
+  if (!id) {
+    errors.push({ field: 'id', message: 'Product ID is required or must be derivable from brand and name.' });
+  } else {
+    // Check ID collisions
+    const duplicate = existingProducts.find(p => p.id === id);
+    if (duplicate) {
+      warnings.push({ field: 'id', message: `ID "${id}" matches existing product "${duplicate.name}". Submitting will update this record.` });
+    }
+  }
+
+  // 7. Image validation
+  const image = (rawInput.image || '').trim();
+  if (!image) {
+    errors.push({ field: 'image', message: 'Primary image URL is required.' });
+  } else if (!image.startsWith('http://') && !image.startsWith('https://') && !image.startsWith('/') && !image.startsWith('data:image/')) {
+    errors.push({ field: 'image', message: 'Image must be an absolute URL (https://...) or local path (/images/...).' });
+  }
+
+  // 8. Description check
+  const description = (rawInput.description || '').trim();
+  if (!description) {
+    warnings.push({ field: 'description', message: 'Description is currently empty; adding one enhances customer engagement.' });
+  }
+
+  // 9. Gallery images
+  let galleryImages: string[] = [];
+  if (Array.isArray(rawInput.galleryImages) && rawInput.galleryImages.length > 0) {
+    galleryImages = rawInput.galleryImages;
+  } else if (rawInput.galleryImagesInput) {
+    galleryImages = rawInput.galleryImagesInput
+      .split(/[\n,]/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+  if (image && !galleryImages.includes(image)) {
+    galleryImages = [image, ...galleryImages];
+  }
+
+  // 10. Features list
+  let features: string[] = [];
+  if (Array.isArray(rawInput.features)) {
+    features = rawInput.features;
+  } else if (rawInput.featuresInput) {
+    features = rawInput.featuresInput
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+  if (features.length === 0) {
+    features = ['Official Lebanese Agency Warranty', 'Brand New Sealed'];
+  }
+
+  // 11. Specs object
+  let specs: Record<string, string> = {};
+  if (rawInput.specs && typeof rawInput.specs === 'object') {
+    specs = { ...rawInput.specs };
+  } else if (rawInput.specsInput) {
+    try {
+      if (rawInput.specsInput.trim().startsWith('{')) {
+        specs = JSON.parse(rawInput.specsInput);
+      } else {
+        rawInput.specsInput.split('\n').forEach(line => {
+          const colonIdx = line.indexOf(':');
+          if (colonIdx > 0) {
+            const k = line.slice(0, colonIdx).trim();
+            const v = line.slice(colonIdx + 1).trim();
+            if (k && v) specs[k] = v;
+          }
+        });
+      }
+    } catch {
+      warnings.push({ field: 'specs', message: 'Could not parse specs text; using standard brand specs.' });
+    }
+  }
+  if (Object.keys(specs).length === 0) {
+    specs = { Brand: brand, Category: category };
+  }
+
+  const isValid = errors.length === 0;
+
+  let validatedProduct: Product | undefined;
+  let jsonStructure: string | undefined;
+
+  if (isValid) {
+    validatedProduct = sanitizeProductForGitHub({
+      id,
+      name,
+      brand,
+      category,
+      subcategory: rawInput.subcategory || '',
+      description: description || `${name} official retail model for the Lebanese market.`,
+      features,
+      specs,
+      image,
+      galleryImages,
+      basePriceUSD: numPrice,
+      originalPriceUSD: numOriginalPrice,
+      promotionalPriceUSD: numOriginalPrice && numOriginalPrice > numPrice ? numPrice : undefined,
+      variants: Array.isArray(rawInput.variants) && rawInput.variants.length > 0
+        ? rawInput.variants
+        : [{ id: `${id}-std`, name: 'Standard Edition', priceUSD: numPrice, inStock: rawInput.inStock !== false }],
+      rating: typeof rawInput.rating === 'number' ? rawInput.rating : 5.0,
+      reviewCount: typeof rawInput.reviewCount === 'number' ? rawInput.reviewCount : 8,
+      condition: rawInput.condition || 'Brand New (Sealed)',
+      warranty: rawInput.warranty || '1 Year Official Lebanese Agency Warranty',
+      inStock: rawInput.inStock !== false,
+      stockCount: typeof rawInput.stockCount === 'number' ? rawInput.stockCount : 10,
+      isFeatured: rawInput.isFeatured ?? true,
+      isHotDeal: Boolean(rawInput.isHotDeal),
+      isNewArrival: Boolean(rawInput.isNewArrival),
+      tags: Array.isArray(rawInput.tags) && rawInput.tags.length > 0 ? rawInput.tags : [brand, category],
+      freeDelivery: rawInput.freeDelivery !== false
+    });
+
+    jsonStructure = JSON.stringify(validatedProduct, null, 2);
+  }
+
+  return {
+    isValid,
+    errors,
+    warnings,
+    validatedProduct,
+    jsonStructure
+  };
+}
+
+/**
+ * Runs a real-time schema audit on the currently loaded catalog
+ */
+export function auditCatalogSchemaIntegrity(products: Product[]): {
+  total: number;
+  validCount: number;
+  invalidCount: number;
+  categoryBreakdown: Record<string, number>;
+  brandBreakdown: Record<string, number>;
+  inStockCount: number;
+  outOfStockCount: number;
+  estimatedPayloadKB: number;
+  issues: { id: string; name: string; error: string }[];
+} {
+  let validCount = 0;
+  let invalidCount = 0;
+  const issues: { id: string; name: string; error: string }[] = [];
+  const categoryBreakdown: Record<string, number> = {};
+  const brandBreakdown: Record<string, number> = {};
+  let inStockCount = 0;
+  let outOfStockCount = 0;
+
+  products.forEach(p => {
+    if (p.inStock) inStockCount++;
+    else outOfStockCount++;
+
+    const cat = p.category || 'uncategorized';
+    const br = p.brand || 'unknown';
+    categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + 1;
+    brandBreakdown[br] = (brandBreakdown[br] || 0) + 1;
+
+    const res = validateProductAgainstSchema(p, []);
+    if (res.isValid) {
+      validCount++;
+    } else {
+      invalidCount++;
+      issues.push({
+        id: p.id,
+        name: p.name,
+        error: res.errors.map(e => e.message).join(', ')
+      });
+    }
+  });
+
+  const jsonStr = JSON.stringify(products);
+  const estimatedPayloadKB = Math.round((new Blob([jsonStr]).size / 1024) * 10) / 10;
+
+  return {
+    total: products.length,
+    validCount,
+    invalidCount,
+    categoryBreakdown,
+    brandBreakdown,
+    inStockCount,
+    outOfStockCount,
+    estimatedPayloadKB,
+    issues
+  };
+}
