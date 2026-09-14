@@ -175,3 +175,17 @@ export interface ProductReview {
   helpfulCount?: number;
   variantInfo?: string;
 }
+
+export interface StockNotificationRequest {
+  id: string;
+  productId: string;
+  productName: string;
+  variantId?: string;
+  variantName?: string;
+  contactType: 'whatsapp' | 'email';
+  contactValue: string;
+  customerName?: string;
+  createdAt: string;
+  status: 'pending' | 'notified';
+  requestedVia?: 'card' | 'modal';
+}

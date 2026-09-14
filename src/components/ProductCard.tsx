@@ -7,12 +7,15 @@ import {
   ShieldCheck, 
   Check, 
   Images, 
-  MessageCircle
+  MessageCircle,
+  Bell
 } from 'lucide-react';
 import { Product, Currency, ProductVariant } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
 import { buildWhatsAppLink } from '../utils/phone';
+import { NotifyMeModal } from './NotifyMeModal';
+import { hasUserRequestedNotification } from '../services/notificationService';
 
 interface ProductCardProps {
   product: Product;
@@ -58,6 +61,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedVariantIndex, setSelectedVariantIndex] = React.useState(0);
   const activeVariant = variants[selectedVariantIndex] || variants[0];
   const [addedAnimation, setAddedAnimation] = React.useState(false);
+  const [isNotifyOpen, setIsNotifyOpen] = React.useState(false);
+  const [isAlertRegistered, setIsAlertRegistered] = React.useState(() => hasUserRequestedNotification(product.id));
+
+  React.useEffect(() => {
+    setIsAlertRegistered(hasUserRequestedNotification(product.id, activeVariant.id));
+  }, [product.id, activeVariant.id]);
 
   // Multi-image handling
   const productImages = getProductImages(product);
@@ -376,58 +385,114 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </div>
 
-          {/* Dual Action Buttons */}
+          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-1.5 font-mono">
-            <button
-              id={`add-cart-btn-${product.id}`}
-              onClick={handleAdd}
-              disabled={isOutOfStock}
-              className={`min-h-[38px] px-2 py-1.5 rounded-xl text-xs font-bold uppercase tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border ${
-                isOutOfStock
-                  ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed border-zinc-800 col-span-2'
-                  : addedAnimation 
-                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30' 
-                    : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-600/30'
-              }`}
-              aria-label={isOutOfStock ? "Sold out" : `Add ${product.name} to cart`}
-            >
-              {isOutOfStock ? (
-                <span>SOLD OUT</span>
-              ) : addedAnimation ? (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>ADDED</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-3.5 h-3.5" />
-                  <span>ADD</span>
-                </>
-              )}
-            </button>
+            {isOutOfStock ? (
+              <div className="col-span-2 space-y-1.5">
+                <button
+                  type="button"
+                  id={`notify-me-btn-${product.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsNotifyOpen(true);
+                  }}
+                  className={`w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-tight transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 border shadow-sm ${
+                    isAlertRegistered
+                      ? isDark
+                        ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/80 hover:bg-emerald-950/60'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                      : isDark
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25 shadow-amber-500/10'
+                        : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 shadow-amber-500/10'
+                  }`}
+                  title="Receive an instant alert via WhatsApp or Email as soon as this item restocks"
+                  aria-label={`Notify me when ${product.name} is available`}
+                >
+                  {isAlertRegistered ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Alert Set • Notify Me</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                      <span>Notify When Available</span>
+                    </>
+                  )}
+                </button>
+                <div className="flex items-center justify-between px-1 text-[10px] text-zinc-500 font-mono">
+                  <span>STATUS: <strong className="text-amber-500">OUT OF STOCK</strong></span>
+                  <a
+                    href={whatsappInquiryLink}
+                    onClick={(e) => e.stopPropagation()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline flex items-center gap-1 text-zinc-400 hover:text-emerald-400"
+                    title="Inquire expected restock date on WhatsApp"
+                  >
+                    <MessageCircle className="w-3 h-3 text-emerald-500" />
+                    <span>Inquire ETA</span>
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  id={`add-cart-btn-${product.id}`}
+                  onClick={handleAdd}
+                  className={`min-h-[38px] px-2 py-1.5 rounded-xl text-xs font-bold uppercase tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border ${
+                    addedAnimation 
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30' 
+                      : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-600/30'
+                  }`}
+                  aria-label={`Add ${product.name} to cart`}
+                >
+                  {addedAnimation ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>ADDED</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-3.5 h-3.5" />
+                      <span>ADD</span>
+                    </>
+                  )}
+                </button>
 
-            {!isOutOfStock && (
-              <a
-                id={`whatsapp-buy-btn-${product.id}`}
-                href={whatsappBuyLink}
-                onClick={(e) => e.stopPropagation()}
-                target="_blank"
-                rel="noreferrer"
-                className={`min-h-[38px] px-2 py-1.5 rounded-lg text-xs font-medium uppercase tracking-tight border transition-micro flex items-center justify-center gap-1 cursor-pointer active:scale-98 ${
-                  isDark 
-                    ? 'border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 text-zinc-300 hover:text-white hover:border-zinc-700' 
-                    : 'border-zinc-200 bg-[#FAFAFA] hover:bg-zinc-100 text-[#333333] hover:text-[#000000] hover:border-zinc-300'
-                }`}
-                title="Order immediately on WhatsApp"
-                aria-label={`Order ${product.name} directly on WhatsApp`}
-              >
-                <MessageCircle className={`w-3 h-3 shrink-0 ${isDark ? 'text-zinc-400' : 'text-[#0052CC]'}`} />
-                <span className="truncate">WA ORDER</span>
-              </a>
+                <a
+                  id={`whatsapp-buy-btn-${product.id}`}
+                  href={whatsappBuyLink}
+                  onClick={(e) => e.stopPropagation()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`min-h-[38px] px-2 py-1.5 rounded-lg text-xs font-medium uppercase tracking-tight border transition-micro flex items-center justify-center gap-1 cursor-pointer active:scale-98 ${
+                    isDark 
+                      ? 'border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 text-zinc-300 hover:text-white hover:border-zinc-700' 
+                      : 'border-zinc-200 bg-[#FAFAFA] hover:bg-zinc-100 text-[#333333] hover:text-[#000000] hover:border-zinc-300'
+                  }`}
+                  title="Order immediately on WhatsApp"
+                  aria-label={`Order ${product.name} directly on WhatsApp`}
+                >
+                  <MessageCircle className={`w-3 h-3 shrink-0 ${isDark ? 'text-zinc-400' : 'text-[#0052CC]'}`} />
+                  <span className="truncate">WA ORDER</span>
+                </a>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Notify Me When Available Modal */}
+      <NotifyMeModal
+        isOpen={isNotifyOpen}
+        onClose={() => setIsNotifyOpen(false)}
+        product={product}
+        variant={activeVariant}
+        theme={theme}
+        whatsappNumber={whatsappNumber}
+        onNotificationSaved={() => setIsAlertRegistered(true)}
+      />
     </div>
   );
 };

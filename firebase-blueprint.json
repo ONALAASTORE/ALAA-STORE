@@ -15,12 +15,35 @@
         "image": { "type": "string" }
       },
       "required": ["id", "name", "brand", "category", "basePriceUSD"]
+    },
+    "StockNotification": {
+      "title": "StockNotification",
+      "description": "Customer request to be notified when out-of-stock item is back in stock",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "variantId": { "type": "string" },
+        "variantName": { "type": "string" },
+        "contactType": { "type": "string", "enum": ["whatsapp", "email"] },
+        "contactValue": { "type": "string" },
+        "customerName": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "notified"] },
+        "requestedVia": { "type": "string" }
+      },
+      "required": ["id", "productId", "productName", "contactType", "contactValue", "createdAt"]
     }
   },
   "firestore": {
     "/products/{productId}": {
       "schema": "Product",
       "description": "Store catalog products collection"
+    },
+    "/stockNotifications/{notificationId}": {
+      "schema": "StockNotification",
+      "description": "Customer restock notification alerts"
     }
   }
 }

@@ -5,7 +5,7 @@ import {
   ArrowUpDown, 
   X,
   Grid2X2,
-  Square,
+  Square
 } from 'lucide-react';
 import { Currency, Product, CartItem, ProductVariant, FilterState, StoreSettings } from './types';
 import { PRODUCTS } from './data/products';
@@ -41,6 +41,45 @@ import { FlashDealsRow } from './components/FlashDealsRow';
 import { ProductFeedTabs } from './components/ProductFeedTabs';
 import { fetchGitHubCatalog } from './utils/githubStore';
 import { subscribeToProducts, seedProductsIfEmpty } from './services/productService';
+import { InfoTooltip } from './components/InfoTooltip';
+
+export const SORT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = {
+  featured: {
+    label: 'Featured First',
+    desc: 'Staff picks, trending bestsellers, and featured deals shown at the top.',
+  },
+  'price-asc': {
+    label: 'Price: Low to High',
+    desc: 'Shows budget-friendly items and entry accessories first, ascending to flagships.',
+  },
+  'price-desc': {
+    label: 'Price: High to Low',
+    desc: 'Shows premium flagship smartphones, top-spec laptops, and luxury tech first.',
+  },
+  rating: {
+    label: 'Top Rated',
+    desc: 'Prioritizes highest rated products based on verified customer feedback and 5-star reviews.',
+  },
+  newest: {
+    label: 'New Arrivals',
+    desc: 'Highlights the latest models and freshest inventory shipments added to warehouse stock.',
+  },
+};
+
+export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  all: 'Explore all available electronics, mobile devices, and official accessories',
+  smartphones: 'Flagship & budget smartphones: Apple iPhone, Samsung Galaxy, Xiaomi, Honor & more',
+  laptops: 'Productivity & gaming notebooks: MacBook Pro/Air, ASUS ROG, Dell, Lenovo Legion',
+  tablets: 'Tablets & styluses: Apple iPad Pro/Air/Mini, Samsung Galaxy Tab, Xiaomi Pad',
+  audio: 'Premium sound: Sony, JBL, Marshall headphones, true wireless earbuds & Bluetooth speakers',
+  wearables: 'Smart watches & fitness trackers: Apple Watch Series/Ultra, Galaxy Watch, Whoop band',
+  gaming: 'Console gaming: PlayStation 5, Nintendo Switch OLED, Xbox Series X, pro gamepads',
+  'racing-wheel': 'Sim racing gear: Logitech G29/G923, Thrustmaster wheels, force feedback pedals',
+  power: 'Charging & energy: Anker GaN fast wall chargers, high-capacity power banks, MagSafe docks',
+  'smart-home': 'Connected home: Smart surveillance cameras, ambient LED lighting, sensor hubs',
+  cables: 'Heavy duty cables: MFi certified Lightning, 240W braided USB-C, 8K Ultra-HDMI cords',
+  'bags-cases': 'Protection: Military-grade drop cases, Pitaka aramid fiber, padded laptop sleeves',
+};
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
@@ -1119,11 +1158,13 @@ export function App() {
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
             {CATEGORIES.map((cat) => {
               const isSelected = filterState.category === cat.id;
+              const catTooltip = CATEGORY_DESCRIPTIONS[cat.id] || `Filter catalog to only show ${cat.name}`;
               return (
                 <button
                   key={cat.id}
                   id={`cat-chip-${cat.id}`}
                   onClick={() => setFilterState((prev) => ({ ...prev, category: cat.id }))}
+                  title={catTooltip}
                   className={`px-3 py-1.5 rounded-md text-xs font-mono whitespace-nowrap transition-micro cursor-pointer flex items-center gap-1.5 border shrink-0 ${
                     isSelected
                       ? (theme === 'dark' 
@@ -1152,21 +1193,54 @@ export function App() {
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             <div className="flex items-center gap-1.5">
               <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-              <select
-                value={filterState.sortBy}
-                onChange={(e) => setFilterState((prev) => ({ ...prev, sortBy: e.target.value as any }))}
-                className={`border text-xs font-mono rounded-md px-2.5 py-1.5 outline-none cursor-pointer ${
-                  theme === 'dark' 
-                    ? 'bg-zinc-900 border-zinc-800 text-zinc-200 focus:border-zinc-500' 
-                    : 'bg-white border-zinc-300 text-zinc-800 focus:border-zinc-700'
-                }`}
-              >
-                <option value="featured">FEATURED FIRST</option>
-                <option value="price-asc">PRICE: LOW TO HIGH</option>
-                <option value="price-desc">PRICE: HIGH TO LOW</option>
-                <option value="rating">TOP RATED</option>
-                <option value="newest">NEW ARRIVALS</option>
-              </select>
+              <div className="relative flex items-center gap-1">
+                <select
+                  value={filterState.sortBy}
+                  onChange={(e) => setFilterState((prev) => ({ ...prev, sortBy: e.target.value as any }))}
+                  title={`Current Sort: ${SORT_DESCRIPTIONS[filterState.sortBy]?.label}. ${SORT_DESCRIPTIONS[filterState.sortBy]?.desc}`}
+                  className={`border text-xs font-mono rounded-md px-2.5 py-1.5 outline-none cursor-pointer ${
+                    theme === 'dark' 
+                      ? 'bg-zinc-900 border-zinc-800 text-zinc-200 focus:border-zinc-500' 
+                      : 'bg-white border-zinc-300 text-zinc-800 focus:border-zinc-700'
+                  }`}
+                >
+                  <option value="featured" title={SORT_DESCRIPTIONS.featured.desc}>FEATURED FIRST</option>
+                  <option value="price-asc" title={SORT_DESCRIPTIONS['price-asc'].desc}>PRICE: LOW TO HIGH</option>
+                  <option value="price-desc" title={SORT_DESCRIPTIONS['price-desc'].desc}>PRICE: HIGH TO LOW</option>
+                  <option value="rating" title={SORT_DESCRIPTIONS.rating.desc}>TOP RATED</option>
+                  <option value="newest" title={SORT_DESCRIPTIONS.newest.desc}>NEW ARRIVALS</option>
+                </select>
+
+                {/* Informative hover tooltip button for non-technical users */}
+                <InfoTooltip
+                  title="Sorting Criteria Explained"
+                  theme={theme}
+                  content={
+                    <div className="space-y-1.5 font-mono text-[11px]">
+                      <div>
+                        <strong className="text-amber-400 block">• FEATURED FIRST:</strong>
+                        <span>Staff picks, hot deals, and top recommendations.</span>
+                      </div>
+                      <div>
+                        <strong className="text-emerald-400 block">• PRICE: LOW TO HIGH:</strong>
+                        <span>Starts from budget-friendly gadgets to flagships.</span>
+                      </div>
+                      <div>
+                        <strong className="text-blue-400 block">• PRICE: HIGH TO LOW:</strong>
+                        <span>Flagships, high-spec laptops, and luxury tech first.</span>
+                      </div>
+                      <div>
+                        <strong className="text-purple-400 block">• TOP RATED:</strong>
+                        <span>Ranked by verified buyers & highest star ratings.</span>
+                      </div>
+                      <div>
+                        <strong className="text-rose-400 block">• NEW ARRIVALS:</strong>
+                        <span>Latest releases and freshest shipments in warehouse.</span>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
             </div>
 
             <button
@@ -1256,75 +1330,95 @@ export function App() {
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {filterState.searchQuery && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
-                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
-                  }`}>
+                  <span 
+                    title={`Search Filter: Showing products matching "${filterState.searchQuery}" across titles, brands, and hardware specs. Click ✕ to clear.`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono cursor-help ${
+                      theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                    }`}
+                  >
                     <span>QUERY: "{filterState.searchQuery}"</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, searchQuery: '' }))}
                       className="hover:text-red-400 transition cursor-pointer"
-                      title="Clear search"
+                      title="Clear search query filter"
+                      aria-label="Remove search filter"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {(filterState.minPriceUSD > 0 || filterState.maxPriceUSD < 3000) && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
-                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
-                  }`}>
+                  <span 
+                    title={`Price Filter: Filtering catalog for products priced between $${filterState.minPriceUSD} and $${filterState.maxPriceUSD} USD. Click ✕ to reset.`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono cursor-help ${
+                      theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                    }`}
+                  >
                     <span>PRICE: ${filterState.minPriceUSD}–${filterState.maxPriceUSD}</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, minPriceUSD: 0, maxPriceUSD: 3000 }))}
                       className="hover:text-red-400 transition cursor-pointer"
-                      title="Reset price filter"
+                      title="Reset price range filter"
+                      aria-label="Reset price filter"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {filterState.brand !== 'All Brands' && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
-                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
-                  }`}>
+                  <span 
+                    title={`Manufacturer Filter: Showing only products manufactured by ${filterState.brand}. Click ✕ to view all brands.`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono cursor-help ${
+                      theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                    }`}
+                  >
                     <span>{filterState.brand.toUpperCase()}</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, brand: 'All Brands' }))}
                       className="hover:text-red-400 transition cursor-pointer"
                       title="Clear brand filter"
+                      aria-label="Remove brand filter"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {filterState.condition !== 'all' && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
-                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
-                  }`}>
+                  <span 
+                    title={`Hardware Condition Filter: Showing only devices in "${filterState.condition}" condition. Click ✕ to show all conditions.`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono cursor-help ${
+                      theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                    }`}
+                  >
                     <span>{filterState.condition.toUpperCase()}</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, condition: 'all' }))}
                       className="hover:text-red-400 transition cursor-pointer"
                       title="Clear condition filter"
+                      aria-label="Remove condition filter"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {filterState.onlyInStock && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono ${
-                    theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
-                  }`}>
+                  <span 
+                    title="Stock Availability Filter: Showing only products currently stocked in our Beirut warehouse ready for dispatch. Click ✕ to show all items."
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono cursor-help ${
+                      theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-200' : 'bg-zinc-100 border-zinc-200 text-zinc-800'
+                    }`}
+                  >
                     <span>IN-STOCK</span>
                     <button
                       type="button"
                       onClick={() => setFilterState((prev) => ({ ...prev, onlyInStock: false }))}
                       className="hover:text-red-400 transition cursor-pointer"
                       title="Clear in-stock filter"
+                      aria-label="Remove in-stock filter"
                     >
                       <X className="w-3 h-3" />
                     </button>

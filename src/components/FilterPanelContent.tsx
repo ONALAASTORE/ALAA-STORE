@@ -3,6 +3,7 @@ import { SlidersHorizontal, MessageCircle, RotateCcw } from 'lucide-react';
 import { BRANDS } from '../data/categories';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { FilterState, Currency } from '../types';
+import { InfoTooltip } from './InfoTooltip';
 
 interface FilterPanelContentProps {
   filterState: FilterState;
@@ -12,6 +13,13 @@ interface FilterPanelContentProps {
   hasActiveFilters: boolean;
   theme?: 'dark' | 'light';
 }
+
+const CONDITION_TOOLTIPS: Record<string, string> = {
+  all: 'Display items across all hardware conditions (Brand New, Open Box, and Pre-Owned).',
+  'Brand New (Sealed)': 'Factory-sealed retail packaging with official manufacturer warranty and unopened accessories.',
+  'Open Box': 'Pristine, 100% functional customer returns or display models with complete original packaging.',
+  'Certified Pre-Owned': 'Rigorous 32-point tested devices, battery health verified, with local store guarantee.',
+};
 
 export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
   filterState,
@@ -48,14 +56,22 @@ export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
 
       {/* Brand Filter */}
       <div className="space-y-2">
-        <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-tight block">
-          MANUFACTURER
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-tight block">
+            MANUFACTURER
+          </label>
+          <InfoTooltip
+            title="Manufacturer Filter"
+            theme={theme}
+            content="Filter catalog to view tech from a single brand or choose 'All Brands' for the full lineup."
+          />
+        </div>
         <div className="space-y-1 max-h-56 overflow-y-auto pr-1 scrollbar-thin">
           {BRANDS.map((brand) => (
             <button
               key={brand}
               onClick={() => setFilterState((prev) => ({ ...prev, brand }))}
+              title={brand === 'All Brands' ? 'Display devices from every manufacturer' : `Show exclusively ${brand} devices and accessories`}
               className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs font-mono transition-micro cursor-pointer flex items-center justify-between ${
                 filterState.brand === brand
                   ? (isDark ? 'bg-zinc-100 text-zinc-950 font-bold' : 'bg-zinc-900 text-white font-bold')
@@ -89,9 +105,22 @@ export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
 
       {/* Condition Filter */}
       <div className={`space-y-2 pt-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
-        <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-tight block">
-          HARDWARE STATE
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-tight block">
+            HARDWARE STATE
+          </label>
+          <InfoTooltip
+            title="Hardware Condition Grades"
+            theme={theme}
+            content={
+              <div className="space-y-1 text-[11px]">
+                <p><strong className="text-zinc-100">Brand New:</strong> Sealed in factory retail packaging.</p>
+                <p><strong className="text-zinc-100">Open Box:</strong> Pristine condition with original box & accessories.</p>
+                <p><strong className="text-zinc-100">Pre-Owned:</strong> Tested 32-point certified, fully backed by warranty.</p>
+              </div>
+            }
+          />
+        </div>
         <div className="space-y-1">
           {[
             { id: 'all', label: 'ALL CONDITIONS' },
@@ -102,6 +131,7 @@ export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
             <button
               key={cond.id}
               onClick={() => setFilterState((prev) => ({ ...prev, condition: cond.id }))}
+              title={CONDITION_TOOLTIPS[cond.id]}
               className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs font-mono transition-micro cursor-pointer flex items-center justify-between ${
                 filterState.condition === cond.id
                   ? (isDark ? 'bg-zinc-100 text-zinc-950 font-bold' : 'bg-zinc-900 text-white font-bold')
@@ -117,7 +147,10 @@ export const FilterPanelContent: React.FC<FilterPanelContentProps> = ({
 
       {/* Availability Filter */}
       <div className={`pt-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
-        <label className="flex items-center gap-2.5 cursor-pointer select-none text-xs font-mono">
+        <label 
+          title="Filter to only show products in our Beirut warehouse ready for immediate dispatch across Lebanon"
+          className="flex items-center gap-2.5 cursor-pointer select-none text-xs font-mono"
+        >
           <input
             type="checkbox"
             checked={filterState.onlyInStock}
