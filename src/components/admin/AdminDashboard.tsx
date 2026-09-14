@@ -47,6 +47,7 @@ import { CATEGORIES } from '../../data/categories';
 import { saveProductToGitHubCatalog, deleteProductFromGitHubCatalog, downloadCatalogJson } from '../../utils/githubStore';
 import { saveProductToFirestore, deleteProductFromFirestore, updateProductInFirestore } from '../../services/productService';
 import { AdminToastContainer, ToastItem } from './AdminToast';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -346,18 +347,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
 
     setIsAvatarUploading(true);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64Data = reader.result as string;
-      setAdminAvatarInput(base64Data);
-      setIsAvatarUploading(false);
-      showToast('Profile image loaded! Click "Save Admin Profile" to persist.');
-    };
-    reader.onerror = () => {
-      setIsAvatarUploading(false);
-      showToast('Failed to read image file');
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file, { maxWidth: 360, maxHeight: 360, quality: 0.85 })
+      .then((compressedBase64) => {
+        setAdminAvatarInput(compressedBase64);
+        setIsAvatarUploading(false);
+        showToast('Profile image loaded! Click "Save Admin Profile" to persist.');
+      })
+      .catch(() => {
+        setIsAvatarUploading(false);
+        showToast('Failed to process image file');
+      });
   };
 
   const handleRemoveAvatar = () => {

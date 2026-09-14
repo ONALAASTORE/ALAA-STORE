@@ -1,4 +1,5 @@
 import { ProductReview } from '../types';
+import { safeSetLocalStorageItem } from '../utils/productStorage';
 
 export const INITIAL_REVIEWS_SEED: Record<string, ProductReview[]> = {
   default: [
@@ -78,9 +79,5 @@ export const getStoredReviews = (): Record<string, ProductReview[]> => {
 };
 
 export const saveStoredReviews = (reviews: Record<string, ProductReview[]>) => {
-  try {
-    localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
-  } catch (err) {
-    console.error('Failed to save reviews', err);
-  }
+  safeSetLocalStorageItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
 };

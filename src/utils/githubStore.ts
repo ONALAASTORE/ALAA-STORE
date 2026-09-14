@@ -1,6 +1,7 @@
 import { Product } from '../types';
+import { safeSaveProducts, PRODUCTS_STORAGE_KEY } from './productStorage';
 
-export const GITHUB_CATALOG_STORAGE_KEY = 'on_alaa_store_products';
+export const GITHUB_CATALOG_STORAGE_KEY = PRODUCTS_STORAGE_KEY;
 export const GITHUB_CATALOG_PATH = '/data/products.json';
 
 /**
@@ -97,8 +98,8 @@ export async function saveProductToGitHubCatalog(
       updatedList = [cleanProduct, ...currentProducts];
     }
 
-    // Persist to local storage cache
-    localStorage.setItem(GITHUB_CATALOG_STORAGE_KEY, JSON.stringify(updatedList));
+    // Persist to quota-safe local storage & IndexedDB cache
+    safeSaveProducts(updatedList);
 
     return { success: true, updatedCatalog: updatedList };
   } catch (err: any) {
@@ -116,7 +117,7 @@ export async function deleteProductFromGitHubCatalog(
 ): Promise<{ success: boolean; updatedCatalog: Product[] }> {
   try {
     const updated = currentProducts.filter((p) => p.id !== productId);
-    localStorage.setItem(GITHUB_CATALOG_STORAGE_KEY, JSON.stringify(updated));
+    safeSaveProducts(updated);
     return { success: true, updatedCatalog: updated };
   } catch (err) {
     console.warn('[GitHub Catalog Delete Error]', err);

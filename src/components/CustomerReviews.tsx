@@ -20,6 +20,7 @@ import {
   Truck
 } from 'lucide-react';
 import { Product, ProductReview } from '../types';
+import { compressImageFile } from '../utils/imageCompressor';
 
 interface CustomerReviewsProps {
   product: Product;
@@ -180,14 +181,14 @@ export const CustomerReviews: React.FC<CustomerReviewsProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result && typeof reader.result === 'string') {
-        setAttachedPhotos((prev) => [...prev, reader.result as string]);
+    compressImageFile(file, { maxWidth: 800, maxHeight: 800, quality: 0.8 })
+      .then((compressed) => {
+        setAttachedPhotos((prev) => [...prev, compressed]);
         setFormError('');
-      }
-    };
-    reader.readAsDataURL(file);
+      })
+      .catch(() => {
+        setFormError('Could not process photo.');
+      });
   };
 
   const handleSelectPresetPhoto = (url: string) => {

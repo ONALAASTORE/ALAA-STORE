@@ -23,7 +23,10 @@ import {
   Zap,
   Box,
   Sparkles,
-  Bell
+  Bell,
+  Loader2,
+  Send,
+  Copy
 } from 'lucide-react';
 import { Product, Currency, ProductVariant, ProductReview } from '../types';
 import { formatPrice } from '../utils/currency';
@@ -39,6 +42,12 @@ import { ProductDetailModalSkeleton } from './ProductDetailModalSkeleton';
 import { Model3DViewerModal, is3DSupported } from './Model3DViewerModal';
 import { NotifyMeModal } from './NotifyMeModal';
 import { hasUserRequestedNotification } from '../services/notificationService';
+import { 
+  prepareProductShareImageFile, 
+  isWebShareSupported, 
+  canShareFiles, 
+  getSocialShareLinks 
+} from '../utils/shareUtils';
 
 /**
  * Fluid UI transition variants for ProductDetailModal
@@ -183,7 +192,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'specs' | 'features' | 'delivery' | 'reviews'>('specs');
   const [added, setAdded] = useState(false);
-  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'shared'>('idle');
+  const [shareStatus, setShareStatus] = useState<'idle' | 'preparing' | 'copied' | 'shared'>('idle');
   const [is3DModalOpen, setIs3DModalOpen] = useState(false);
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
   const [isRestockAlertActive, setIsRestockAlertActive] = useState(false);
@@ -605,39 +614,113 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     return buildWhatsAppLink(whatsappNumber, directBuyMessage);
   }, [product, currentVariant, quantity, whatsappNumber, estimatedDeliveryTime]);
 
+  const socialLinks = useMemo(() => {
+    if (!product) {
+      return {
+        whatsapp: '#',
+        telegram: '#',
+        facebook: '#',
+        twitter: '#',
+      };
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+    const shareUrl = `${origin}${pathname}?product=${encodeURIComponent(product.id)}`;
+    const priceUSDFormatted = formatPrice(currentVariant.priceUSD, 'USD');
+    const priceLBPFormatted = formatPrice(currentVariant.priceUSD, 'LBP');
+    const activePriceFormatted = formatPrice(currentVariant.priceUSD, currency);
+
+    return getSocialShareLinks({
+      name: product.name,
+      priceFormatted: activePriceFormatted,
+      priceUSDFormatted,
+      priceLBPFormatted,
+      brand: product.brand,
+      condition: product.condition,
+      url: shareUrl,
+      imageUrl: allImages[activeImageIndex] || product.image,
+    });
+  }, [product, currentVariant, currency, allImages, activeImageIndex]);
+
   const handleShare = async () => {
+    if (!product) return;
+    setShareStatus('preparing');
+
     // Generate clean product link with the active '?product=ID' query parameter
     const url = new URL(window.location.href);
     url.searchParams.set('product', product.id);
     const shareUrl = url.toString();
-    const shareTitle = product.name;
-    const shareText = `Check out ${product.name} on On Alaa Store! Available now with official Lebanese warranty.`;
+
+    const priceUSDFormatted = formatPrice(currentVariant.priceUSD, 'USD');
+    const priceLBPFormatted = formatPrice(currentVariant.priceUSD, 'LBP');
+    const activePriceFormatted = formatPrice(currentVariant.priceUSD, currency);
+
+    // Title and rich descriptive text including pricing, brand, and warranty
+    const shareTitle = `${product.name} — ${activePriceFormatted}`;
+    const shareText = `Check out ${product.name} on On Alaa Store!\nPrice: ${priceUSDFormatted} (≈ ${priceLBPFormatted})\nOfficial Lebanese Warranty • Fast Delivery across Lebanon\n${shareUrl}`;
+
+    // Get current product image (either active carousel image or main image)
+    const activeImg = allImages[activeImageIndex] || product.image || '';
+
+    // Attempt to prepare image file for Level 2 Web Share API (native file sharing to WhatsApp, Instagram, Messenger, etc.)
+    let imageFile: File | null = null;
+    if (activeImg) {
+      try {
+        imageFile = await prepareProductShareImageFile(activeImg, product.name);
+      } catch (err) {
+        console.warn('Could not prepare image file for sharing:', err);
+      }
+    }
 
     // 1. Primary: Use the browser's native Web Share API
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    if (isWebShareSupported()) {
+      // If image file is available, check if browser supports sharing files
+      if (imageFile && canShareFiles(imageFile)) {
+        try {
+          const shareDataWithFile: ShareData = {
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl,
+            files: [imageFile],
+          };
+
+          await navigator.share(shareDataWithFile);
+          setShareStatus('shared');
+          setTimeout(() => setShareStatus('idle'), 3000);
+          return;
+        } catch (err: unknown) {
+          if (err instanceof Error && err.name === 'AbortError') {
+            setShareStatus('idle');
+            return;
+          }
+          console.warn('Web Share API with image file failed, trying text & link share:', err);
+        }
+      }
+
+      // Try sharing without file
       try {
-        const shareData = {
+        const basicShareData: ShareData = {
           title: shareTitle,
           text: shareText,
           url: shareUrl,
         };
 
-        if (!navigator.canShare || navigator.canShare(shareData)) {
-          await navigator.share(shareData);
+        if (!navigator.canShare || navigator.canShare(basicShareData)) {
+          await navigator.share(basicShareData);
           setShareStatus('shared');
-          setTimeout(() => setShareStatus('idle'), 2500);
+          setTimeout(() => setShareStatus('idle'), 3000);
           return;
         }
       } catch (err: unknown) {
-        // User aborted/dismissed the share sheet: do not show error or fallback
         if (err instanceof Error && err.name === 'AbortError') {
+          setShareStatus('idle');
           return;
         }
-        console.warn('Web Share API call failed, falling back to clipboard:', err);
+        console.warn('Web Share API standard call failed, falling back to clipboard:', err);
       }
     }
 
-    // 2. Fallback: Copy link to clipboard
+    // 2. Fallback: Copy link & price details to clipboard
     let copied = false;
     if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       try {
@@ -667,7 +750,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }
 
     setShareStatus('copied');
-    setTimeout(() => setShareStatus('idle'), 2500);
+    setTimeout(() => setShareStatus('idle'), 3500);
   };
 
   // Geometric calculations for the magnifying lens effect
@@ -1158,21 +1241,28 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     id="modal-share-icon-btn"
                     type="button"
                     onClick={handleShare}
+                    disabled={shareStatus === 'preparing'}
                     className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
                       shareStatus === 'shared' || shareStatus === 'copied'
                         ? 'border-emerald-300 bg-emerald-50 text-emerald-600 ring-2 ring-emerald-500/20'
+                        : shareStatus === 'preparing'
+                        ? 'border-blue-300 bg-blue-50 text-blue-600 ring-2 ring-blue-500/20 cursor-wait'
                         : 'border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                     }`}
                     title={
-                      shareStatus === 'shared'
+                      shareStatus === 'preparing'
+                        ? 'Preparing Web Share sheet...'
+                        : shareStatus === 'shared'
                         ? 'Shared successfully!'
                         : shareStatus === 'copied'
                         ? 'Product link copied to clipboard!'
-                        : 'Share product via Web Share'
+                        : 'Share product via Web Share API'
                     }
                     aria-label="Share product"
                   >
-                    {shareStatus === 'shared' || shareStatus === 'copied' ? (
+                    {shareStatus === 'preparing' ? (
+                      <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                    ) : shareStatus === 'shared' || shareStatus === 'copied' ? (
                       <Check className="w-4 h-4 text-emerald-600" />
                     ) : (
                       <Share2 className="w-4 h-4" />
@@ -1609,35 +1699,122 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
               )}
 
-              {/* Share Product Link Button */}
-              <button
-                id="modal-share-product-btn"
-                type="button"
-                onClick={handleShare}
-                className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs border transition flex items-center justify-center gap-2 cursor-pointer ${
-                  shareStatus === 'shared' || shareStatus === 'copied'
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 shadow-2xs ring-2 ring-emerald-500/20'
-                    : 'border-slate-200/90 bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-600 hover:border-blue-200 shadow-2xs'
-                }`}
-                title="Share this product's title and URL"
-              >
-                {shareStatus === 'shared' ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span className="font-bold text-emerald-700">Product Shared Successfully!</span>
-                  </>
-                ) : shareStatus === 'copied' ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span className="font-bold text-emerald-700">Product Link Copied to Clipboard!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-4 h-4 text-blue-600" />
-                    <span>Share Product</span>
-                  </>
-                )}
-              </button>
+              {/* Share via Web Share API & Social Platforms */}
+              <div className="space-y-2 pt-0.5">
+                <button
+                  id="modal-share-product-btn"
+                  type="button"
+                  onClick={handleShare}
+                  disabled={shareStatus === 'preparing'}
+                  className={`w-full py-3 px-4 rounded-xl font-bold text-xs border transition-all flex items-center justify-between gap-3 cursor-pointer shadow-2xs ${
+                    shareStatus === 'shared' || shareStatus === 'copied'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20'
+                      : shareStatus === 'preparing'
+                      ? 'border-blue-200 bg-blue-50/70 text-blue-700 cursor-wait'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800 hover:text-blue-600 hover:border-blue-300'
+                  }`}
+                  title="Share product link, high-res image, and current price directly to social apps via Web Share API"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {shareStatus === 'preparing' ? (
+                      <Loader2 className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
+                    ) : shareStatus === 'shared' ? (
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : shareStatus === 'copied' ? (
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <Share2 className="w-4 h-4 text-blue-600 shrink-0" />
+                    )}
+                    <div className="text-left truncate">
+                      <div className="font-bold leading-tight">
+                        {shareStatus === 'preparing'
+                          ? 'Preparing Share Sheet...'
+                          : shareStatus === 'shared'
+                          ? 'Shared to Social Apps!'
+                          : shareStatus === 'copied'
+                          ? 'Link & Price Copied to Clipboard!'
+                          : 'Share Product'}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-normal leading-tight">
+                        Web Share API • Includes link, photo & live price
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
+                      {formatPrice(currentVariant.priceUSD, currency)}
+                    </span>
+                  </div>
+                </button>
+
+                {/* Direct Social App Shortcuts */}
+                <div className="flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-xl bg-slate-50/90 border border-slate-200/80 text-[11px]">
+                  <span className="text-slate-500 font-medium text-[10px] uppercase tracking-wider pl-0.5">
+                    Quick Share:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={socialLinks.whatsapp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-1 rounded-lg bg-white hover:bg-emerald-50 text-emerald-700 font-semibold border border-slate-200 hover:border-emerald-200 transition flex items-center gap-1 text-[11px]"
+                      title="Share product with price and photo link to WhatsApp"
+                    >
+                      <MessageCircle className="w-3 h-3 text-emerald-600" />
+                      <span>WhatsApp</span>
+                    </a>
+                    <a
+                      href={socialLinks.telegram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-1 rounded-lg bg-white hover:bg-sky-50 text-sky-700 font-semibold border border-slate-200 hover:border-sky-200 transition flex items-center gap-1 text-[11px]"
+                      title="Share product to Telegram"
+                    >
+                      <Send className="w-3 h-3 text-sky-600" />
+                      <span>Telegram</span>
+                    </a>
+                    <a
+                      href={socialLinks.facebook}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-1 rounded-lg bg-white hover:bg-blue-50 text-blue-700 font-semibold border border-slate-200 hover:border-blue-200 transition flex items-center gap-1 text-[11px]"
+                      title="Share product to Facebook"
+                    >
+                      <span>Facebook</span>
+                    </a>
+                    <a
+                      href={socialLinks.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-1 rounded-lg bg-white hover:bg-zinc-100 text-zinc-800 font-semibold border border-slate-200 hover:border-zinc-300 transition flex items-center gap-1 text-[11px]"
+                      title="Share product to X"
+                    >
+                      <span>X</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                        const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+                        const shareUrl = `${origin}${pathname}?product=${encodeURIComponent(product.id)}`;
+                        try {
+                          await navigator.clipboard.writeText(shareUrl);
+                          setShareStatus('copied');
+                          setTimeout(() => setShareStatus('idle'), 3000);
+                        } catch {
+                          handleShare();
+                        }
+                      }}
+                      className="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-semibold border border-slate-200 transition flex items-center gap-1 text-[11px] cursor-pointer"
+                      title="Copy product link to clipboard"
+                    >
+                      <Copy className="w-3 h-3 text-slate-600" />
+                      <span>Copy</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* View in 3D / AR Interactive Button */}
               {supports3D && (

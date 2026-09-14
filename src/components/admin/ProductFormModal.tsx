@@ -21,6 +21,7 @@ import { getProductImages, DEFAULT_PRODUCT_IMAGE, cleanImageUrls } from '../../u
 import { extractProductVariantConfig } from '../../utils/variantUtils';
 import { VariantManager } from './VariantManager';
 import { CATEGORIES, PRODUCT_BRANDS } from '../../data/categories';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 
 interface ProductFormModalProps {
@@ -134,22 +135,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setUploadLoading(true);
     setImageError('');
 
-    const fileReaders = validFiles.map((file) => {
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            reject(new Error('Failed reading image file'));
-          }
-        };
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-    });
+    const compressPromises = validFiles.map((file) =>
+      compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.82 })
+    );
 
-    Promise.all(fileReaders)
+    Promise.all(compressPromises)
       .then((newImages) => {
         setImagesList((prev) => {
           const filteredPrev = prev.filter((img) => img !== DEFAULT_PRODUCT_IMAGE);

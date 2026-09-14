@@ -18,10 +18,10 @@ import {
   downloadCatalogJson, 
   parseBulkProductData, 
   fetchGitHubCatalog, 
-  getGitCommitInstructions,
-  GITHUB_CATALOG_STORAGE_KEY 
+  getGitCommitInstructions
 } from '../../utils/githubStore';
 import { saveProductToFirestore } from '../../services/productService';
+import { safeSaveProducts } from '../../utils/productStorage';
 
 interface GitHubCatalogModalProps {
   isOpen: boolean;
@@ -94,7 +94,7 @@ export const GitHubCatalogModal: React.FC<GitHubCatalogModalProps> = ({
     }
 
     onUpdateProducts(updatedList);
-    localStorage.setItem(GITHUB_CATALOG_STORAGE_KEY, JSON.stringify(updatedList));
+    safeSaveProducts(updatedList);
 
     // Persist imported items to Firestore
     parseResult.products.forEach((prod) => {
@@ -121,7 +121,7 @@ export const GitHubCatalogModal: React.FC<GitHubCatalogModalProps> = ({
       const res = await fetchGitHubCatalog();
       if (res.success && res.products.length >= 50) {
         onUpdateProducts(res.products);
-        localStorage.setItem(GITHUB_CATALOG_STORAGE_KEY, JSON.stringify(res.products));
+        safeSaveProducts(res.products);
         onShowToast(
           'Catalog Scaled to 50+ Products!',
           `Loaded ${res.products.length} flagship electronics with verified specs, images, and prices.`,
@@ -134,7 +134,7 @@ export const GitHubCatalogModal: React.FC<GitHubCatalogModalProps> = ({
         // Fallback to bundled products if server fetch fails
         const { PRODUCTS } = await import('../../data/products');
         onUpdateProducts(PRODUCTS);
-        localStorage.setItem(GITHUB_CATALOG_STORAGE_KEY, JSON.stringify(PRODUCTS));
+        safeSaveProducts(PRODUCTS);
         onShowToast(
           'Catalog Updated!',
           `Loaded ${PRODUCTS.length} curated products from repository data.`,

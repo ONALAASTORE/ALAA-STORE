@@ -42,6 +42,13 @@ import { ProductFeedTabs } from './components/ProductFeedTabs';
 import { fetchGitHubCatalog } from './utils/githubStore';
 import { subscribeToProducts, seedProductsIfEmpty } from './services/productService';
 import { InfoTooltip } from './components/InfoTooltip';
+import {
+  safeSaveProducts,
+  safeGetProductsFromLocalStorage,
+  getProductsFromIndexedDB,
+  safeSetLocalStorageItem,
+  checkAndCleanOvergrownStorage
+} from './utils/productStorage';
 
 export const SORT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = {
   featured: {
@@ -83,7 +90,6 @@ export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
 
 const CART_STORAGE_KEY = 'on_alaa_store_cart';
 const WISHLIST_STORAGE_KEY = 'on_alaa_store_wishlist';
-const PRODUCTS_STORAGE_KEY = 'on_alaa_store_products';
 const SETTINGS_STORAGE_KEY = 'on_alaa_store_settings';
 const RECENTLY_VIEWED_STORAGE_KEY = 'on_alaa_store_recently_viewed';
 const SHOWROOM_STORAGE_KEY = 'on_alaa_store_showroom_2027';
@@ -183,16 +189,16 @@ export function App() {
   // Dynamic Product Catalog State
   const [productsList, setProductsList] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+      checkAndCleanOvergrownStorage();
+      const saved = safeGetProductsFromLocalStorage();
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= PRODUCTS.length) {
-          return parsed;
+        if (Array.isArray(saved) && saved.length >= PRODUCTS.length) {
+          return saved;
         }
         // Merge missing products from repository catalog
-        const savedIds = new Set(parsed.map((p: any) => p.id));
+        const savedIds = new Set(saved.map((p: any) => p.id));
         const missing = PRODUCTS.filter((p) => !savedIds.has(p.id));
-        return [...parsed, ...missing];
+        return [...saved, ...missing];
       }
       return PRODUCTS;
     } catch {
@@ -379,49 +385,42 @@ export function App() {
     };
   }, []);
 
-  // Save Products to local storage
+  // Hydrate products from robust IndexedDB cache if available
   useEffect(() => {
-    try {
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(productsList));
-    } catch (e) {
-      console.error('Failed to save products to localStorage', e);
-    }
+    let isMounted = true;
+    getProductsFromIndexedDB().then((cached) => {
+      if (isMounted && cached && cached.length > 0) {
+        setProductsList((prev) => (prev.length < cached.length ? cached : prev));
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Save Products to quota-safe multi-tier storage (IndexedDB + safe localStorage fallback)
+  useEffect(() => {
+    safeSaveProducts(productsList);
   }, [productsList]);
 
   // Save Currency to local storage
   useEffect(() => {
-    try {
-      localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
-    } catch (e) {
-      console.error('Failed to save currency to localStorage', e);
-    }
+    safeSetLocalStorageItem(CURRENCY_STORAGE_KEY, currency);
   }, [currency]);
 
   // Save Store Settings to local storage
   useEffect(() => {
-    try {
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(storeSettings));
-    } catch (e) {
-      console.error('Failed to save store settings to localStorage', e);
-    }
+    safeSetLocalStorageItem(SETTINGS_STORAGE_KEY, JSON.stringify(storeSettings));
   }, [storeSettings]);
 
   // Save Cart to local storage
   useEffect(() => {
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-    } catch (e) {
-      console.error('Failed to save cart to localStorage', e);
-    }
+    safeSetLocalStorageItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
   }, [cartItems]);
 
   // Save Wishlist to local storage
   useEffect(() => {
-    try {
-      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(wishlistIds));
-    } catch (e) {
-      console.error('Failed to save wishlist to localStorage', e);
-    }
+    safeSetLocalStorageItem(WISHLIST_STORAGE_KEY, JSON.stringify(wishlistIds));
   }, [wishlistIds]);
 
   // Support direct product link sharing (URL query ?product=...)
