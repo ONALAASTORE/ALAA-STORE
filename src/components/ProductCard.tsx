@@ -8,7 +8,8 @@ import {
   Check, 
   Images, 
   MessageCircle,
-  Bell
+  Bell,
+  Flame
 } from 'lucide-react';
 import { Product, Currency, ProductVariant } from '../types';
 import { formatPrice } from '../utils/currency';
@@ -28,6 +29,7 @@ interface ProductCardProps {
   onToggleCompare: (product: Product) => void;
   whatsappNumber?: string;
   theme?: 'dark' | 'light';
+  lowStockThreshold?: number;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -41,6 +43,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleCompare,
   whatsappNumber = '+961 71 135 241',
   theme = 'dark',
+  lowStockThreshold = 2,
 }) => {
   const isDark = theme === 'dark';
 
@@ -73,9 +76,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const primaryImage = productImages[0] || DEFAULT_PRODUCT_IMAGE;
   const secondaryImage = productImages.length > 1 ? productImages[1] : null;
 
-  // Availability status
-  const isOutOfStock = !product.inStock || (product.stockCount !== undefined && product.stockCount <= 0);
-  const isLowStock = !isOutOfStock && product.stockCount !== undefined && product.stockCount > 0 && product.stockCount <= 5;
+  // Availability & Stock status
+  const stockQuantity = activeVariant.stockCount ?? product.stockCount ?? (product as any).quantity;
+  const isOutOfStock = !product.inStock || (stockQuantity !== undefined && stockQuantity <= 0);
+  const currentLowStockThreshold = lowStockThreshold ?? 2;
+  const isLowStock = !isOutOfStock && stockQuantity !== undefined && stockQuantity > 0 && stockQuantity <= currentLowStockThreshold;
 
   // Price calculations
   const basePrice = activeVariant.priceUSD || product.basePriceUSD;
@@ -148,9 +153,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             [ OUT OF STOCK ]
           </span>
         ) : isLowStock ? (
-          <span className="px-2 py-0.5 rounded border border-zinc-700 bg-zinc-950/90 text-zinc-300 uppercase tracking-tight flex items-center gap-1">
-            <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
-            <span>LOW [{product.stockCount}]</span>
+          <span 
+            id={`low-stock-badge-${product.id}`}
+            data-testid="low-stock-badge"
+            className="px-2 py-0.5 rounded-md border border-amber-500/50 bg-amber-500/20 text-amber-500 dark:text-amber-400 font-mono font-bold text-[10px] uppercase tracking-tight flex items-center gap-1.5 shadow-xs shadow-amber-500/10 backdrop-blur-xs"
+            title={`Only ${stockQuantity} left in stock`}
+          >
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+            </span>
+            <span>Low Stock{stockQuantity !== undefined ? ` • ${stockQuantity} Left` : ''}</span>
           </span>
         ) : (
           <span className="px-1.5 py-0.5 rounded border border-zinc-800/80 bg-zinc-950/80 text-zinc-400 uppercase text-[9px]">
@@ -350,6 +363,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {product.variants.length > 4 && (
                 <span className={`text-[9px] font-mono ${isDark ? 'text-zinc-500' : 'text-[#555555]'}`}>+{product.variants.length - 4}</span>
               )}
+            </div>
+          )}
+
+          {/* Low Stock Urgency Text Indicator */}
+          {isLowStock && (
+            <div 
+              id={`low-stock-indicator-${product.id}`}
+              data-testid="low-stock-indicator"
+              className={`mt-2 flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
+                isDark 
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
+                  : 'bg-amber-50 border-amber-300 text-amber-900'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
+              <span className="truncate">
+                Low Stock: Only <strong className="font-bold underline decoration-amber-500/50">{stockQuantity} {stockQuantity === 1 ? 'unit' : 'units'}</strong> left!
+              </span>
             </div>
           )}
         </div>

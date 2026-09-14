@@ -1,6 +1,11 @@
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { StockNotificationRequest } from '../types';
+import {
+  isFirestoreQuotaExceeded,
+  markFirestoreQuotaExceeded,
+  isFirestoreQuotaError
+} from './productService';
 
 export const STOCK_NOTIFICATIONS_COLLECTION = 'stockNotifications';
 const LOCAL_STORAGE_KEY = 'on_alaa_stock_notifications';
@@ -53,13 +58,18 @@ export async function createStockNotification(
     console.warn('[Notification] Failed to cache locally:', err);
   }
 
-  // 2. Persist to Cloud Firestore
-  try {
-    const docRef = doc(db, STOCK_NOTIFICATIONS_COLLECTION, id);
-    await setDoc(docRef, notification);
-    console.log(`[Firestore] Stock notification registered for "${data.productName}" (${data.contactType})`);
-  } catch (err) {
-    console.warn('[Firestore] Note on stock notification persistence:', err);
+  // 2. Persist to Cloud Firestore if quota is available
+  if (!isFirestoreQuotaExceeded()) {
+    try {
+      const docRef = doc(db, STOCK_NOTIFICATIONS_COLLECTION, id);
+      await setDoc(docRef, notification);
+      console.log(`[Firestore] Stock notification registered for "${data.productName}" (${data.contactType})`);
+    } catch (err: any) {
+      if (isFirestoreQuotaError(err)) {
+        markFirestoreQuotaExceeded();
+      }
+      console.warn('[Firestore] Note on stock notification persistence:', err?.message || err);
+    }
   }
 
   return notification;

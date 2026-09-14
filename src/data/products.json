@@ -123,7 +123,7 @@
     "condition": "Brand New (Sealed)",
     "warranty": "1 Year Apple Official Agency Warranty",
     "inStock": true,
-    "stockCount": 12,
+    "stockCount": 2,
     "isFeatured": true,
     "isHotDeal": true,
     "isNewArrival": true,
@@ -133,7 +133,8 @@
       "Titanium",
       "A18 Pro"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-IP16PM"
   },
   {
     "id": "iphone-16-pro",
@@ -196,7 +197,8 @@
       "iPhone",
       "Titanium"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-IP16P"
   },
   {
     "id": "iphone-16",
@@ -257,7 +259,8 @@
       "iPhone 16",
       "A18"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-IP16"
   },
   {
     "id": "galaxy-s25-ultra",
@@ -310,7 +313,7 @@
     "condition": "Brand New (Sealed)",
     "warranty": "1 Year CTC Samsung Lebanon Official Warranty",
     "inStock": true,
-    "stockCount": 12,
+    "stockCount": 1,
     "isFeatured": true,
     "isHotDeal": false,
     "isNewArrival": true,
@@ -319,7 +322,8 @@
       "S25 Ultra",
       "Snapdragon 8 Elite"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-S25U"
   },
   {
     "id": "galaxy-z-fold-6",
@@ -381,7 +385,8 @@
       "Z Fold 6",
       "Foldable"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-ZFOLD6"
   },
   {
     "id": "xiaomi-14-ultra",
@@ -436,7 +441,8 @@
       "Leica",
       "1-inch Sensor"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-XMI-14U"
   },
   {
     "id": "google-pixel-9-pro-xl",
@@ -497,7 +503,8 @@
       "Pixel",
       "Gemini AI"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-GGL-P9PXL"
   },
   {
     "id": "macbook-pro-m4-16",
@@ -561,7 +568,8 @@
       "M4 Pro",
       "Liquid Retina XDR"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-MBP16-M4"
   },
   {
     "id": "macbook-air-m3-15",
@@ -623,7 +631,8 @@
       "M3",
       "15-inch"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-MBA15-M3"
   },
   {
     "id": "asus-rog-zephyrus-g16",
@@ -680,7 +689,8 @@
       "RTX 4080",
       "OLED 240Hz"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-ASUS-ROG-G16"
   },
   {
     "id": "ipad-pro-m4-13",
@@ -742,7 +752,8 @@
       "M4",
       "Tandem OLED"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-IPAD-M4-13"
   },
   {
     "id": "samsung-galaxy-tab-s9-ultra",
@@ -797,7 +808,8 @@
       "Tab S9 Ultra",
       "AMOLED 14.6\""
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-TABS9U"
   },
   {
     "id": "airpods-pro-2-usbc",
@@ -853,7 +865,8 @@
       "Noise Cancelling",
       "Bestseller"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-APP2-USBC"
   },
   {
     "id": "airpods-max-usbc",
@@ -914,7 +927,8 @@
       "AirPods Max",
       "Audiophile"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-APMAX-USBC"
   },
   {
     "id": "sony-wh1000xm5",
@@ -975,7 +989,8 @@
       "Hi-Res",
       "Bestseller"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SNY-WH1000XM5"
   },
   {
     "id": "jbl-boombox-3-wifi",
@@ -1030,7 +1045,8 @@
       "Party Speaker",
       "Waterproof"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-JBL-BB3-WIFI"
   },
   {
     "id": "marshall-emberton-3",
@@ -1086,7 +1102,8 @@
       "Portable",
       "Bluetooth"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-MSH-EMB3"
   },
   {
     "id": "apple-watch-ultra-2",
@@ -1148,7 +1165,8 @@
       "Titanium",
       "GPS Cellular"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-AW-ULTRA2"
   },
   {
     "id": "samsung-galaxy-watch-ultra",
@@ -1202,7 +1220,8 @@
       "Watch Ultra",
       "LTE"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-GW-ULTRA"
   },
   {
     "id": "ps5-pro-console",
@@ -1259,7 +1278,8 @@
       "PSSR",
       "4K 120fps"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SNY-PS5-PRO"
   },
   {
     "id": "logitech-g923-racing-wheel",
@@ -1315,7 +1335,8 @@
       "Sim Racing",
       "PS5 Compatible"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-LOG-G923"
   },
   {
     "id": "anker-prime-200w-powerbank",
@@ -1371,7 +1392,8 @@
       "Laptop Charger",
       "GaN"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-ANK-PRIME200"
   },
   {
     "id": "dji-mini-4-pro",
@@ -1429,7 +1451,8 @@
       "4K60",
       "Obstacle Sensing"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-DJI-MINI4PRO"
   },
   {
     "id": "dji-osmo-pocket-3-creator",
@@ -1484,7 +1507,8 @@
       "Vlogging",
       "Gimbal"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-DJI-POCKET3-CR"
   },
   {
     "id": "samsung-t9-2tb-ssd",
@@ -1539,7 +1563,8 @@
       "2TB",
       "ProRes 4K"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-T9-2TB"
   },
   {
     "id": "ugreen-nexode-300w-gan",
@@ -1594,7 +1619,8 @@
       "GaN",
       "Fast Charger"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-UGR-NEX300W"
   },
   {
     "id": "nintendo-switch-oled",
@@ -1649,7 +1675,8 @@
       "Handheld",
       "Gaming"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-NTD-SW-OLED"
   },
   {
     "id": "pitaka-magez-car-mount-pro-2",
@@ -1704,7 +1731,8 @@
       "MagSafe Car Mount",
       "Aramid"
     ],
-    "freeDelivery": false
+    "freeDelivery": false,
+    "sku": "OAS-PTK-MAGEZ-PRO2"
   },
   {
     "id": "whoop-4-fitness-band",
@@ -1759,7 +1787,8 @@
       "Recovery",
       "HRV"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-WHP-BAND4"
   },
   {
     "id": "razer-viper-v3-pro",
@@ -1821,7 +1850,8 @@
       "8000Hz",
       "Viper V3 Pro"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-RZR-VIPER-V3P"
   },
   {
     "id": "apple-watch-series-10",
@@ -1875,7 +1905,8 @@
       "wearables",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-AW-S10"
   },
   {
     "id": "samsung-galaxy-s24-ultra",
@@ -1929,7 +1960,8 @@
       "smartphones",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-S24U"
   },
   {
     "id": "samsung-galaxy-s24-plus",
@@ -1983,7 +2015,8 @@
       "smartphones",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-S24P"
   },
   {
     "id": "samsung-galaxy-z-flip-6",
@@ -2037,7 +2070,8 @@
       "smartphones",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-ZFLIP6"
   },
   {
     "id": "xiaomi-13t-pro",
@@ -2091,7 +2125,8 @@
       "smartphones",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-XMI-13TP"
   },
   {
     "id": "apple-macbook-pro-14-m4",
@@ -2145,7 +2180,8 @@
       "laptops",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-MBP14-M4"
   },
   {
     "id": "apple-macbook-air-13-m3",
@@ -2199,7 +2235,8 @@
       "laptops",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-MBA13-M3"
   },
   {
     "id": "lenovo-legion-pro-7i",
@@ -2253,7 +2290,8 @@
       "laptops",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-LNV-LEGION7I"
   },
   {
     "id": "dell-xps-15-oled",
@@ -2307,7 +2345,8 @@
       "laptops",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-DELL-XPS15"
   },
   {
     "id": "ipad-pro-m4-11",
@@ -2361,7 +2400,8 @@
       "tablets",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-IPAD-M4-11"
   },
   {
     "id": "ipad-air-13-m2",
@@ -2415,7 +2455,8 @@
       "tablets",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-IPAD-AIR13-M2"
   },
   {
     "id": "ipad-10th-gen",
@@ -2469,7 +2510,8 @@
       "tablets",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-IPAD-10GEN"
   },
   {
     "id": "xiaomi-pad-6",
@@ -2523,7 +2565,8 @@
       "tablets",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-XMI-PAD6"
   },
   {
     "id": "sony-wf1000xm5",
@@ -2577,7 +2620,8 @@
       "audio",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SNY-WF1000XM5"
   },
   {
     "id": "jbl-partybox-stage-320",
@@ -2631,7 +2675,8 @@
       "audio",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-JBL-PB-STAGE320"
   },
   {
     "id": "marshall-stanmore-3",
@@ -2684,7 +2729,8 @@
       "audio",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-MSH-STANMORE3"
   },
   {
     "id": "bose-quietcomfort-ultra",
@@ -2738,7 +2784,8 @@
       "audio",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-BSE-QC-ULTRA"
   },
   {
     "id": "samsung-galaxy-watch-7",
@@ -2792,7 +2839,8 @@
       "wearables",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SAM-GW-7"
   },
   {
     "id": "ps5-slim-digital",
@@ -2846,7 +2894,8 @@
       "gaming",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SNY-PS5-SLIM-DIG"
   },
   {
     "id": "playstation-portal",
@@ -2900,7 +2949,8 @@
       "gaming",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SNY-PS-PORTAL"
   },
   {
     "id": "anker-737-powerbank",
@@ -2954,7 +3004,8 @@
       "power",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-ANK-737-PB"
   },
   {
     "id": "apple-35w-dual-usbc",
@@ -3007,7 +3058,8 @@
       "power",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-APL-35W-DUAL"
   },
   {
     "id": "gopro-hero-13-black",
@@ -3061,7 +3113,8 @@
       "cameras-projectors",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-GPR-HERO13-BLK"
   },
   {
     "id": "anker-maggo-car-mount",
@@ -3114,7 +3167,8 @@
       "car-accessories",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-ANK-MAGGO-CAR"
   },
   {
     "id": "sandisk-extreme-pro-1tb-microsd",
@@ -3168,7 +3222,8 @@
       "flash-card-memory",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-SND-EXTPRO-1TB"
   },
   {
     "id": "ugreen-thunderbolt-4-cable",
@@ -3222,7 +3277,8 @@
       "cables",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-UGR-TB4-CABLE"
   },
   {
     "id": "green-lion-magsafe-powerbank",
@@ -3276,6 +3332,7 @@
       "power",
       "Official Warranty"
     ],
-    "freeDelivery": true
+    "freeDelivery": true,
+    "sku": "OAS-GRL-MAGSAFE-PB"
   }
 ]

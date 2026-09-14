@@ -87,6 +87,7 @@ export type ProductCategory =
 
 export interface Product {
   id: string;
+  sku?: string; // Unique Stock Keeping Unit identifier (e.g. "OAS-APL-IP16PM-256")
   name: string;
   brand: ProductBrand;
   category: ProductCategory;

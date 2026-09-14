@@ -55,6 +55,7 @@ const INITIAL_PRODUCTS: Product[] = [
     condition: 'Brand New (Sealed)',
     warranty: '1 Year Apple Official Agency Warranty',
     inStock: true,
+    stockCount: 2,
     isFeatured: true,
     isHotDeal: true,
     isNewArrival: true,

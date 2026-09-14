@@ -4,14 +4,12 @@ import {
   Heart, 
   ArrowLeftRight, 
   Menu, 
-  X, 
   ShieldCheck, 
   Coins, 
   Calculator, 
   MessageCircle, 
   Sun, 
   Moon, 
-  Check, 
   HelpCircle,
   Box,
   User
@@ -24,6 +22,7 @@ import { SearchAutocomplete } from './SearchAutocomplete';
 import { buildWhatsAppLink } from '../utils/phone';
 import { CategoryIcon } from '../utils/categoryIcons';
 import { DEFAULT_USD_TO_LBP_RATE } from '../utils/currency';
+import { StoreHamburgerDrawer } from './StoreHamburgerDrawer';
 
 interface HeaderProps {
   currency: Currency;
@@ -86,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
   theme = 'dark',
   onToggleTheme,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const isDark = theme === 'dark';
 
   return (
@@ -187,17 +186,22 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3">
         <div className="flex items-center justify-between gap-3 sm:gap-6">
           
-          {/* Brand Logo & Name */}
+          {/* Brand Logo, Name & Hamburger Menu Trigger */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button 
-              id="mobile-menu-toggle"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`w-10 h-10 flex items-center justify-center md:hidden rounded-lg transition-micro cursor-pointer -ml-1 ${
-                isDark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+              id="header-hamburger-menu-btn"
+              type="button"
+              onClick={() => setIsHamburgerOpen(true)}
+              className={`h-9 sm:h-10 px-2 sm:px-3 rounded-xl border flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+                isDark 
+                  ? 'border-zinc-800 bg-zinc-900/80 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-zinc-700' 
+                  : 'border-zinc-200 bg-zinc-50 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 hover:border-zinc-300'
               }`}
-              aria-label="Toggle navigation menu"
+              aria-label="Open Store Menu"
+              title="Open Store Menu (Delivery, 100% Sealed, Rates, 3D Room, Support, Trade-In, Admin, WhatsApp)"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <Menu className="w-5 h-5 shrink-0" />
+              <span className="hidden sm:inline font-mono text-xs uppercase tracking-wider font-bold">MENU</span>
             </button>
 
             <button 
@@ -445,125 +449,24 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className={`md:hidden border-b px-4 py-4 space-y-3 transition-colors ${
-          isDark ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-900'
-        }`}>
-          {/* Mobile Currency & Theme Grid */}
-          <div className={`p-3 rounded-xl border space-y-2.5 font-mono text-xs ${
-            isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
-          }`}>
-            <div className="flex items-center justify-between text-zinc-400 text-[11px]">
-              <span>CURRENCY & THEME</span>
-              <span>$1 = {DEFAULT_USD_TO_LBP_RATE.toLocaleString()} L.L.</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => onCurrencyChange('USD')}
-                className={`min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-mono font-medium flex items-center justify-center gap-1 transition-micro cursor-pointer ${
-                  currency === 'USD'
-                    ? (isDark ? 'bg-zinc-100 text-zinc-950 border-transparent font-semibold' : 'bg-zinc-900 text-white border-transparent font-semibold')
-                    : (isDark ? 'border-zinc-800 text-zinc-300' : 'border-zinc-200 text-zinc-700')
-                }`}
-              >
-                <span>USD ($)</span>
-                {currency === 'USD' && <Check className="w-3.5 h-3.5 ml-1" />}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onCurrencyChange('LBP')}
-                className={`min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-mono font-medium flex items-center justify-center gap-1 transition-micro cursor-pointer ${
-                  currency === 'LBP'
-                    ? (isDark ? 'bg-zinc-100 text-zinc-950 border-transparent font-semibold' : 'bg-zinc-900 text-white border-transparent font-semibold')
-                    : (isDark ? 'border-zinc-800 text-zinc-300' : 'border-zinc-200 text-zinc-700')
-                }`}
-              >
-                <span>LBP (L.L.)</span>
-                {currency === 'LBP' && <Check className="w-3.5 h-3.5 ml-1" />}
-              </button>
-            </div>
-
-            {onToggleTheme && (
-              <button
-                type="button"
-                onClick={onToggleTheme}
-                className={`w-full min-h-[38px] px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center justify-between transition-micro cursor-pointer ${
-                  isDark ? 'border-zinc-800 text-zinc-300 hover:bg-zinc-800/50' : 'border-zinc-200 text-zinc-700 hover:bg-zinc-100'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-                  <span>THEME MODE</span>
-                </span>
-                <span className="uppercase text-[10px] text-zinc-400 font-semibold">{theme}</span>
-              </button>
-            )}
-          </div>
-
-          {/* Special Offers Mobile Link */}
-          {onNavigateToOffers && (
-            <button
-              onClick={() => {
-                onNavigateToOffers();
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-xs font-mono tracking-tight uppercase border flex items-center justify-between transition-micro ${
-                isDark ? 'border-zinc-800 bg-zinc-900/60 text-zinc-200' : 'border-zinc-200 bg-zinc-50 text-zinc-800'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" />
-                <span>ARCHIVE OFFERS</span>
-              </span>
-              <span className="text-zinc-400">[{offersCount}] →</span>
-            </button>
-          )}
-
-          {/* User Account / Orders Mobile Button */}
-          {onOpenAccount && (
-            <button
-              onClick={() => {
-                onOpenAccount();
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full min-h-[44px] px-3 py-2 rounded-xl text-xs font-mono tracking-tight uppercase border flex items-center justify-between transition-micro ${
-                isDark ? 'border-blue-900/60 bg-blue-950/30 text-blue-300' : 'border-blue-200 bg-blue-50 text-blue-700'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-400" />
-                <span>MY ACCOUNT & ORDERS</span>
-              </span>
-              <span>→</span>
-            </button>
-          )}
-
-          {/* Quick Support Links */}
-          <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono text-zinc-400">
-            <button 
-              onClick={() => {
-                onOpenTradeIn();
-                setMobileMenuOpen(false);
-              }}
-              className="hover:text-zinc-100 transition-colors cursor-pointer"
-            >
-              TRADE-IN ESTIMATOR
-            </button>
-            <a 
-              href={buildWhatsAppLink(whatsappNumber, 'Hello On Alaa Store')}
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-zinc-100 transition-colors"
-            >
-              WHATSAPP SUPPORT
-            </a>
-          </div>
-        </div>
-      )}
+      {/* Slide-out Hamburger Drawer for Store Details & Quick Links */}
+      <StoreHamburgerDrawer
+        isOpen={isHamburgerOpen}
+        onClose={() => setIsHamburgerOpen(false)}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        onSwitchToShowroom={onSwitchToShowroom}
+        onOpenContact={onOpenContact}
+        onOpenTradeIn={onOpenTradeIn}
+        onOpenAdmin={onOpenAdmin}
+        onOpenAccount={onOpenAccount}
+        onNavigateToOffers={onNavigateToOffers}
+        offersCount={offersCount}
+        whatsappNumber={whatsappNumber}
+        currency={currency}
+        onCurrencyChange={onCurrencyChange}
+        topBannerText={topBannerText}
+      />
     </header>
   );
 };
