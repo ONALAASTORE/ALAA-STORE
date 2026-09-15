@@ -44,6 +44,8 @@ import { SpecsAccordion } from './SpecsAccordion';
 import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { getStoredReviews, saveStoredReviews, INITIAL_REVIEWS_SEED } from '../data/initialReviews';
 import { ProductDetailModalSkeleton } from './ProductDetailModalSkeleton';
+import { FrequentlyBoughtTogether } from './FrequentlyBoughtTogether';
+import { PRODUCTS } from '../data/products';
 import { Model3DViewerModal, is3DSupported } from './Model3DViewerModal';
 import { NotifyMeModal } from './NotifyMeModal';
 import { hasUserRequestedNotification } from '../services/notificationService';
@@ -175,6 +177,8 @@ interface ProductDetailModalProps {
   onToggleCompare: (product: Product) => void;
   whatsappNumber?: string;
   isLoading?: boolean;
+  allProducts?: Product[];
+  onSelectProduct?: (product: Product) => void;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -188,6 +192,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onToggleCompare,
   whatsappNumber = '+961 71 135 241',
   isLoading = false,
+  allProducts = PRODUCTS,
+  onSelectProduct,
 }) => {
   if (isLoading || !product) {
     return <ProductDetailModalSkeleton onClose={onClose} />;
@@ -2138,6 +2144,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
 
           </div>
+        </div>
+
+        {/* Frequently Bought Together (Related Accessories) Section */}
+        <div className="border-t border-slate-200/90 bg-white p-5 sm:p-7">
+          <FrequentlyBoughtTogether
+            product={product}
+            currentVariant={currentVariant}
+            currency={currency}
+            allProducts={allProducts}
+            onAddToCart={onAddToCart}
+            onSelectProduct={onSelectProduct}
+            whatsappNumber={whatsappNumber}
+          />
         </div>
 
         {/* Tabbed Specifications & Features Section */}

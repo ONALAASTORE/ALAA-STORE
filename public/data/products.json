@@ -3277,5 +3277,461 @@
       "Official Warranty"
     ],
     "freeDelivery": true
+  },
+  {
+    "id": "pitaka-magez-case-5",
+    "name": "PITAKA MagEZ Case 5 for iPhone 16 Pro Max",
+    "brand": "Pitaka",
+    "category": "bags-cases",
+    "subcategory": "Protective Device Cases",
+    "description": "Ultra-slim, lightweight aerospace-grade aramid fiber case with Amber Magnet Film MagSafe integration. Zero signal interference, tactile 3D grip, and raised titanium camera ring protection.",
+    "features": [
+      "Aerospace-grade 100% 1500D Aramid Fiber woven texture",
+      "Amber Magnet Film seamlessly built into the shell for full 15W MagSafe compatibility",
+      "Ultra-thin 0.75mm and featherlight 13g profile",
+      "Recycled aluminum camera ring bezel for superior lens drop protection",
+      "Chamfered smooth edges for comfortable swipe-from-edge gestures"
+    ],
+    "specs": {
+      "Material": "1500D Aramid Fiber, Recycled Aluminum Lens Ring",
+      "Thickness": "0.75 mm",
+      "Weight": "13.2 grams",
+      "MagSafe": "Full MagSafe & Qi2 Wireless Charging Compatible",
+      "Compatibility": "Apple iPhone 16 Pro Max"
+    },
+    "image": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=1000&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1541877944-ac82a091518a?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "imageUrls": [
+      "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "image_urls": [
+      "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "basePriceUSD": 69,
+    "originalPriceUSD": 79,
+    "variants": [
+      {
+        "id": "pitaka-case-black-grey",
+        "name": "Black / Grey Twill",
+        "color": "Black / Grey",
+        "colorHex": "#222222",
+        "priceUSD": 69,
+        "inStock": true
+      },
+      {
+        "id": "pitaka-case-sunset",
+        "name": "Sunset Moonrise Weave",
+        "color": "Sunset Weave",
+        "colorHex": "#C76D38",
+        "priceUSD": 74,
+        "inStock": true
+      }
+    ],
+    "rating": 4.9,
+    "reviewCount": 42,
+    "condition": "Brand New (Sealed)",
+    "warranty": "1 Year Official Pitaka Warranty",
+    "inStock": true,
+    "stockCount": 15,
+    "isFeatured": true,
+    "isHotDeal": false,
+    "isNewArrival": true,
+    "tags": [
+      "Pitaka",
+      "MagSafe Case",
+      "Aramid Fiber",
+      "iPhone 16 Pro Max",
+      "bags-cases"
+    ],
+    "freeDelivery": true,
+    "sku": "OAS-PTK-IP16PM-CASE"
+  },
+  {
+    "id": "spigen-ultra-hybrid-s25u",
+    "name": "Spigen Ultra Hybrid MagFit Case for Galaxy S25 Ultra",
+    "brand": "Samsung",
+    "category": "bags-cases",
+    "subcategory": "Protective Device Cases",
+    "description": "Crystal clear hybrid protection featuring air cushion shock absorption technology, tactile button covers, and built-in MagFit magnetic ring compatible with all magnetic chargers and accessories.",
+    "features": [
+      "Air Cushion Technology for military-grade drop shock absorption",
+      "Crystal clear transparent anti-yellowing resin back panel",
+      "Integrated MagFit magnetic ring for fast MagSafe and Qi2 charging",
+      "Pronounced tactile button covers and precise S-Pen cutouts"
+    ],
+    "specs": {
+      "Material": "Polycarbonate back + Flexible TPU bumper frame",
+      "Drop Protection": "Air Cushion Mil-Grade Certified",
+      "Magnetic Ring": "MagFit Neo-magnet Array",
+      "Compatibility": "Samsung Galaxy S25 Ultra 5G"
+    },
+    "image": "https://images.unsplash.com/photo-1541877944-ac82a091518a?auto=format&fit=crop&w=1000&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1541877944-ac82a091518a?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "imageUrls": [
+      "https://images.unsplash.com/photo-1541877944-ac82a091518a?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "image_urls": [
+      "https://images.unsplash.com/photo-1541877944-ac82a091518a?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "basePriceUSD": 34,
+    "originalPriceUSD": 42,
+    "variants": [
+      {
+        "id": "spigen-s25u-clear",
+        "name": "Crystal Clear",
+        "color": "Crystal Clear",
+        "colorHex": "#EAEAEA",
+        "priceUSD": 34,
+        "inStock": true
+      },
+      {
+        "id": "spigen-s25u-matte-black",
+        "name": "Matte Black Bumper",
+        "color": "Matte Black",
+        "colorHex": "#1E1E1E",
+        "priceUSD": 36,
+        "inStock": true
+      }
+    ],
+    "rating": 4.8,
+    "reviewCount": 56,
+    "condition": "Brand New (Sealed)",
+    "warranty": "1 Year Official Spigen Agency Warranty",
+    "inStock": true,
+    "stockCount": 20,
+    "isFeatured": false,
+    "isHotDeal": true,
+    "isNewArrival": true,
+    "tags": [
+      "Spigen",
+      "MagSafe Case",
+      "Clear Case",
+      "Galaxy S25 Ultra",
+      "bags-cases"
+    ],
+    "freeDelivery": true,
+    "sku": "OAS-SPG-S25U-CASE"
+  },
+  {
+    "id": "tomtoc-defender-laptop-sleeve",
+    "name": "tomtoc 360 Defender Armor Laptop Sleeve (14\"-16\")",
+    "brand": "tomtoc",
+    "category": "bags-cases",
+    "subcategory": "Laptop Bags & Sleeves",
+    "description": "Military-grade 360-degree CornerArmor drop protection with ultra-thick plush fleece interior, water-resistant Cordura ballistic fabric, and dedicated accessory organizing pouch for chargers and cables.",
+    "features": [
+      "Patented CornerArmor technology protects against drops and bumps",
+      "Ultra-thick 3D foam cushioning and fleece interior lining",
+      "Heavy-duty water-resistant Cordura ballistic nylon exterior",
+      "Front zippered organizational pocket for chargers, cables, and hub"
+    ],
+    "specs": {
+      "Material": "Cordura Ballistic Fabric + YKK Zippers",
+      "Interior Dimensions": "35.8 x 24.8 x 2.2 cm",
+      "Protection": "CornerArmor Military-Grade Standard MIL-STD-810H",
+      "Compatibility": "MacBook Pro 14\" & 16\", ASUS Zephyrus G16, Dell XPS"
+    },
+    "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "imageUrls": [
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "image_urls": [
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "basePriceUSD": 45,
+    "originalPriceUSD": 55,
+    "variants": [
+      {
+        "id": "tomtoc-sleeve-space-gray",
+        "name": "14\" / 16\" Space Gray",
+        "color": "Space Gray",
+        "colorHex": "#3A3B3C",
+        "priceUSD": 45,
+        "inStock": true
+      },
+      {
+        "id": "tomtoc-sleeve-black",
+        "name": "14\" / 16\" Obsidian Black",
+        "color": "Obsidian Black",
+        "colorHex": "#1C1C1C",
+        "priceUSD": 45,
+        "inStock": true
+      }
+    ],
+    "rating": 4.9,
+    "reviewCount": 68,
+    "condition": "Brand New (Sealed)",
+    "warranty": "1 Year Official Agency Warranty",
+    "inStock": true,
+    "stockCount": 18,
+    "isFeatured": false,
+    "isHotDeal": false,
+    "isNewArrival": true,
+    "tags": [
+      "tomtoc",
+      "Laptop Sleeve",
+      "CornerArmor",
+      "bags-cases"
+    ],
+    "freeDelivery": true,
+    "sku": "OAS-TTC-DEFENDER-SLV"
+  },
+  {
+    "id": "apple-smart-folio-ipad",
+    "name": "Apple Smart Folio for iPad Pro 11-inch (M4)",
+    "brand": "Apple",
+    "category": "bags-cases",
+    "subcategory": "Tablet Folio & Cases",
+    "description": "Constructed from a single piece of polyurethane to protect the front and back of iPad Pro. Automatically wakes iPad when opened and puts it to sleep when closed. Folds into multiple stand angles for typing and viewing.",
+    "features": [
+      "Front and back edge-to-edge magnetic protection",
+      "Auto wake-on-open and sleep-on-close magnetic sensors",
+      "Foldable multi-angle stand for typing, reading, and FaceTime calls",
+      "Precision cutouts with unobstructed Apple Pencil magnetic charging"
+    ],
+    "specs": {
+      "Material": "Polyurethane Soft-touch with Microfiber Lining",
+      "Closure": "Magnetic snap alignment",
+      "Weight": "175 grams",
+      "Compatibility": "Apple iPad Pro 11-inch (M4 Ultra Retina OLED)"
+    },
+    "image": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=1000&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "imageUrls": [
+      "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "image_urls": [
+      "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "basePriceUSD": 79,
+    "originalPriceUSD": 89,
+    "variants": [
+      {
+        "id": "apple-folio-charcoal",
+        "name": "Charcoal Gray",
+        "color": "Charcoal Gray",
+        "colorHex": "#2C2D30",
+        "priceUSD": 79,
+        "inStock": true
+      },
+      {
+        "id": "apple-folio-denim",
+        "name": "Denim Blue",
+        "color": "Denim Blue",
+        "colorHex": "#394E68",
+        "priceUSD": 79,
+        "inStock": true
+      }
+    ],
+    "rating": 4.8,
+    "reviewCount": 39,
+    "condition": "Brand New (Sealed)",
+    "warranty": "1 Year Apple Official Agency Warranty",
+    "inStock": true,
+    "stockCount": 14,
+    "isFeatured": false,
+    "isHotDeal": false,
+    "isNewArrival": true,
+    "tags": [
+      "Apple",
+      "Smart Folio",
+      "iPad Pro M4",
+      "bags-cases"
+    ],
+    "freeDelivery": true,
+    "sku": "OAS-APL-FOLIO-IP11M4"
+  },
+  {
+    "id": "anker-3in1-cube-magsafe",
+    "name": "Anker 3-in-1 Cube with Official MagSafe 15W Fast Charger",
+    "brand": "Anker",
+    "category": "power",
+    "subcategory": "High-Power GaN Chargers",
+    "description": "Official Made for MagSafe 15W ultra-fast wireless charging station for iPhone, Apple Watch fast charging puck, and AirPods pad. Compact foldable travel form factor with adjustable 60° viewing angle.",
+    "features": [
+      "Official Apple Made for MagSafe 15W certified ultra-fast charging",
+      "Charges iPhone, Apple Watch Series/Ultra, and AirPods simultaneously",
+      "Foldable ultra-compact cube design, perfect for travel or bedside desk",
+      "Adjustable tilt up to 60° for portrait or landscape StandBy mode"
+    ],
+    "specs": {
+      "Input": "30W USB-C PD Charger Included",
+      "Wireless Output": "15W iPhone MagSafe + 5W Apple Watch Fast Charge + 5W AirPods",
+      "Dimensions": "6.3 x 6.0 x 6.0 cm (Folded Cube)",
+      "Weight": "410 grams",
+      "Safety": "ActiveShield 2.0 Temperature Monitoring"
+    },
+    "image": "https://images.unsplash.com/photo-1622445262464-84b1456045b6?auto=format&fit=crop&w=1000&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1622445262464-84b1456045b6?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "imageUrls": [
+      "https://images.unsplash.com/photo-1622445262464-84b1456045b6?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "image_urls": [
+      "https://images.unsplash.com/photo-1622445262464-84b1456045b6?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "basePriceUSD": 135,
+    "originalPriceUSD": 149,
+    "variants": [
+      {
+        "id": "anker-cube-space-gray",
+        "name": "Space Gray Cube",
+        "color": "Space Gray",
+        "colorHex": "#35363A",
+        "priceUSD": 135,
+        "inStock": true
+      }
+    ],
+    "rating": 4.9,
+    "reviewCount": 51,
+    "condition": "Brand New (Sealed)",
+    "warranty": "2 Years Anker Official Agency Warranty",
+    "inStock": true,
+    "stockCount": 11,
+    "isFeatured": true,
+    "isHotDeal": true,
+    "isNewArrival": true,
+    "tags": [
+      "Anker",
+      "MagSafe",
+      "3-in-1",
+      "Fast Charger",
+      "power"
+    ],
+    "freeDelivery": true,
+    "sku": "OAS-ANK-CUBE-3IN1"
+  },
+  {
+    "id": "apple-pencil-pro",
+    "name": "Apple Pencil Pro (Haptic Feedback & Squeeze Gesture)",
+    "brand": "Apple",
+    "category": "tablets",
+    "subcategory": "Creative Workstation Accessories",
+    "description": "Engineered for limitless creativity with advanced squeeze sensor, barrel roll gyroscopic rotation, custom haptics, Apple Pencil hover, magnetic pairing and wireless charging.",
+    "features": [
+      "Squeeze sensor brings up tool palette, line weights, and colors instantly",
+      "Barrel Roll gyroscope lets you rotate the barrel to change shaped pen and brush tools",
+      "Haptic feedback provides precise, light pulses when squeezing or double-tapping",
+      "Apple Pencil hover previews exact mark location before touching the glass",
+      "Magnetic attachment, wireless charging, and Find My support"
+    ],
+    "specs": {
+      "Connectivity": "Bluetooth, Magnetic Snap & Charge",
+      "Sensors": "Squeeze Force Sensor, Barrel Roll Gyroscope",
+      "Compatibility": "iPad Pro 11-inch & 13-inch (M4), iPad Air 11-inch & 13-inch (M2)",
+      "Dimensions": "166 x 8.9 mm",
+      "Weight": "19.15 grams"
+    },
+    "image": "https://images.unsplash.com/photo-1585770107532-3671895d305b?auto=format&fit=crop&w=1000&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1585770107532-3671895d305b?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "imageUrls": [
+      "https://images.unsplash.com/photo-1585770107532-3671895d305b?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "image_urls": [
+      "https://images.unsplash.com/photo-1585770107532-3671895d305b?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "basePriceUSD": 129,
+    "originalPriceUSD": 139,
+    "variants": [
+      {
+        "id": "apple-pencil-pro-white",
+        "name": "Matte White",
+        "color": "Matte White",
+        "colorHex": "#FFFFFF",
+        "priceUSD": 129,
+        "inStock": true
+      }
+    ],
+    "rating": 4.9,
+    "reviewCount": 77,
+    "condition": "Brand New (Sealed)",
+    "warranty": "1 Year Apple Official Agency Warranty",
+    "inStock": true,
+    "stockCount": 9,
+    "isFeatured": true,
+    "isHotDeal": false,
+    "isNewArrival": true,
+    "tags": [
+      "Apple",
+      "Apple Pencil Pro",
+      "Stylus",
+      "iPad Pro M4",
+      "tablets"
+    ],
+    "freeDelivery": true,
+    "sku": "OAS-APL-PENCIL-PRO"
+  },
+  {
+    "id": "ps5-dualsense-charging-station",
+    "name": "Sony PlayStation 5 DualSense Fast Charging Station",
+    "brand": "Sony",
+    "category": "gaming",
+    "subcategory": "Gaming Gear & Controllers",
+    "description": "Click-in design charges up to two DualSense wireless controllers simultaneously at full speed without needing to occupy console USB ports.",
+    "features": [
+      "Charge up to two DualSense or DualSense Edge wireless controllers at once",
+      "Click-in docking design locks controllers securely into place",
+      "Charges controllers as quickly as when connected directly to your PS5 console",
+      "Frees up your PS5 USB ports for headsets, VR, or external hard drives"
+    ],
+    "specs": {
+      "Input": "AC Adapter 5.3V",
+      "Slots": "2 DualSense Controller Docks",
+      "Color": "White / Black Console Finish",
+      "Compatibility": "PS5 DualSense & DualSense Edge Controllers"
+    },
+    "image": "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1000&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "imageUrls": [
+      "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "image_urls": [
+      "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=1000&q=80"
+    ],
+    "basePriceUSD": 35,
+    "originalPriceUSD": 45,
+    "variants": [
+      {
+        "id": "ps5-dock-white",
+        "name": "PlayStation White",
+        "color": "PlayStation White",
+        "colorHex": "#F2F2F2",
+        "priceUSD": 35,
+        "inStock": true
+      }
+    ],
+    "rating": 4.9,
+    "reviewCount": 64,
+    "condition": "Brand New (Sealed)",
+    "warranty": "1 Year Sony Official Agency Warranty",
+    "inStock": true,
+    "stockCount": 16,
+    "isFeatured": false,
+    "isHotDeal": true,
+    "isNewArrival": false,
+    "tags": [
+      "Sony",
+      "PS5",
+      "DualSense",
+      "Charging Station",
+      "gaming"
+    ],
+    "freeDelivery": true,
+    "sku": "OAS-SNY-PS5-CHG-STN"
   }
 ]

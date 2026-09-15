@@ -15,9 +15,10 @@ export const ProductCardSkeleton: React.FC<ProductCardSkeletonProps> = ({
     <div
       role="status"
       aria-label="Loading product details..."
-      className={`relative rounded-2xl border overflow-hidden transition-all duration-300 flex flex-col justify-between shadow-xs ${
+      data-testid="product-card-skeleton"
+      className={`relative rounded-xl border overflow-hidden transition-all duration-300 flex flex-col justify-between shadow-xs ${
         isDark
-          ? 'bg-zinc-900/40 border-zinc-800/80'
+          ? 'bg-zinc-900/60 border-zinc-800/80'
           : 'bg-white border-zinc-200/80'
       } ${className}`}
     >

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { 
   SlidersHorizontal, 
@@ -13,6 +13,7 @@ import { CATEGORIES } from './data/categories';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { ProductCard } from './components/ProductCard';
+import { ProductGridSkeleton } from './components/ProductGridSkeleton';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { RecentlyViewedSlider } from './components/RecentlyViewedSlider';
 import { CartDrawer } from './components/CartDrawer';
@@ -251,6 +252,26 @@ export function App() {
     sortBy: 'featured',
   });
 
+  // Skeleton loader states for product cards and grid transitions
+  const [isFetchingCatalog, setIsFetchingCatalog] = useState<boolean>(false);
+  const [isFiltering, setIsFiltering] = useState<boolean>(false);
+  const isFirstFilterMount = useRef<boolean>(true);
+
+  // Trigger smooth skeleton transition when user searches, switches categories, or adjusts filters
+  useEffect(() => {
+    if (isFirstFilterMount.current) {
+      isFirstFilterMount.current = false;
+      return;
+    }
+    setIsFiltering(true);
+    const filterTimer = setTimeout(() => {
+      setIsFiltering(false);
+    }, 220); // 220ms smooth skeleton shimmer transition
+    return () => clearTimeout(filterTimer);
+  }, [filterState]);
+
+  const isGridLoading = isFetchingCatalog || isFiltering;
+
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   // Mobile grid column layout state (1 column or 2 columns on mobile screens)
   const [mobileGridCols, setMobileGridCols] = useState<1 | 2>(2);
@@ -360,6 +381,7 @@ export function App() {
   useEffect(() => {
     let isMounted = true;
     async function syncRepoCatalog() {
+      setIsFetchingCatalog(true);
       try {
         const res = await fetchGitHubCatalog();
         if (res.success && res.products.length > 0 && isMounted) {
@@ -377,6 +399,10 @@ export function App() {
         }
       } catch (err) {
         console.warn('Repository catalog sync note:', err);
+      } finally {
+        if (isMounted) {
+          setIsFetchingCatalog(false);
+        }
       }
     }
     syncRepoCatalog();
@@ -1292,7 +1318,15 @@ export function App() {
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-zinc-500">
               <div className="flex items-center gap-2">
                 <span>
-                  SHOWING <strong className={theme === 'dark' ? 'text-zinc-200' : 'text-zinc-900'}>{filteredProducts.length}</strong> ITEMS IN CATALOG
+                  SHOWING{' '}
+                  <strong className={theme === 'dark' ? 'text-zinc-200' : 'text-zinc-900'}>
+                    {isGridLoading ? (
+                      <span className="inline-block w-5 h-3 rounded bg-zinc-700/50 animate-pulse align-middle mx-0.5" />
+                    ) : (
+                      filteredProducts.length
+                    )}
+                  </strong>{' '}
+                  ITEMS IN CATALOG
                 </span>
 
                 {/* Mobile 1-col vs 2-col toggle button */}
@@ -1428,7 +1462,22 @@ export function App() {
 
             {/* Products Grid */}
             <AnimatePresence mode="wait">
-              {filteredProducts.length === 0 ? (
+              {isGridLoading ? (
+                <motion.div
+                  key="products-grid-skeleton"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.16, ease: 'easeInOut' }}
+                  className="w-full"
+                >
+                  <ProductGridSkeleton
+                    count={8}
+                    mobileGridCols={mobileGridCols}
+                    theme={theme}
+                  />
+                </motion.div>
+              ) : filteredProducts.length === 0 ? (
                 <EmptyProductsState
                   key="empty-state"
                   filterState={filterState}
@@ -1447,11 +1496,11 @@ export function App() {
                 />
               ) : (
                 <motion.div
-                  key="products-grid"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  key={`products-grid-${filterState.category}-${filterState.brand}-${filterState.sortBy}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
                   className={`grid ${
                     mobileGridCols === 1 ? 'grid-cols-1' : 'grid-cols-2'
                   } sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6`}
@@ -1569,6 +1618,8 @@ export function App() {
             onToggleCompare={handleToggleCompare}
             onAddToCart={handleAddToCart}
             whatsappNumber={storeSettings.whatsappNumber}
+            allProducts={productsList}
+            onSelectProduct={handleOpenProductDetail}
           />
         )}
       </AnimatePresence>

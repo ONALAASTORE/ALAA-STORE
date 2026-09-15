@@ -103,7 +103,7 @@ export function removeRecentSearchQuery(queryToRemove: string): string[] {
 export function clearAllRecentSearches(): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem(RECENT_SEARCHES_STORAGE_KEY);
+    localStorage.setItem(RECENT_SEARCHES_STORAGE_KEY, JSON.stringify([]));
     window.dispatchEvent(new CustomEvent(RECENT_SEARCHES_UPDATED_EVENT, { detail: [] }));
   } catch (err) {
     console.error('[RecentSearches] Failed to clear recent searches from localStorage:', err);

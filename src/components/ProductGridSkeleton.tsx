@@ -21,6 +21,8 @@ export const ProductGridSkeleton: React.FC<ProductGridSkeletonProps> = ({
       role="status"
       aria-label="Loading products catalog..."
       aria-busy="true"
+      id="product-grid-skeleton"
+      data-testid="product-grid-skeleton"
       className={`w-full ${className}`}
     >
       <div
