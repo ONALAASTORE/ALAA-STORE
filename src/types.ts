@@ -190,3 +190,55 @@ export interface StockNotificationRequest {
   status: 'pending' | 'notified';
   requestedVia?: 'card' | 'modal';
 }
+
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'cancelled';
+
+export interface OrderTrackingEvent {
+  status: OrderStatus;
+  title: string;
+  description: string;
+  timestamp: string;
+  location?: string;
+  completed: boolean;
+}
+
+export interface OrderItemSummary {
+  productId: string;
+  productName: string;
+  variantName: string;
+  quantity: number;
+  unitPriceUSD: number;
+  totalUSD: number;
+  image?: string;
+}
+
+export interface FirestoreOrder {
+  id: string;
+  orderNumber: string; // e.g. "OAS-LB-10492"
+  customerName: string;
+  customerPhone: string;
+  deliveryRegion: string;
+  deliveryAddress: string;
+  deliveryType: 'delivery' | 'pickup';
+  paymentMethod: string;
+  items: OrderItemSummary[];
+  subtotalUSD: number;
+  deliveryFeeUSD: number;
+  totalUSD: number;
+  status: OrderStatus;
+  statusDescription?: string;
+  courier?: string;
+  trackingNumber?: string;
+  estimatedDelivery?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+  timeline?: OrderTrackingEvent[];
+}
+

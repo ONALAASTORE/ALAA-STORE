@@ -18,11 +18,12 @@ import {
   Tag,
   Sparkles
 } from 'lucide-react';
-import { CartItem, Currency } from '../types';
+import { CartItem, Currency, FirestoreOrder } from '../types';
 import { formatPrice } from '../utils/currency';
 import { buildWhatsAppLink } from '../utils/phone';
 import { formatWhatsAppCartSummary } from '../utils/whatsapp';
 import { getCartSavingsSummary } from '../utils/dealUtils';
+import { saveOrderToFirestore, buildOrderTimeline } from '../services/orderService';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -79,7 +80,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const deliveryFeeUSD = deliveryType === 'pickup' ? 0 : subtotalUSD >= 150 ? 0 : 3;
   const totalUSD = subtotalUSD + deliveryFeeUSD;
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !phone) {
       alert('Please provide your full name and Lebanese contact phone number.');
@@ -87,12 +88,50 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     setIsSubmitting(true);
+    const orderRef = `OAS-LB-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const newOrder: FirestoreOrder = {
+      id: orderRef,
+      orderNumber: orderRef,
+      customerName: fullName,
+      customerPhone: phone,
+      deliveryRegion: region,
+      deliveryAddress: address,
+      deliveryType,
+      paymentMethod,
+      items: items.map((item) => ({
+        productId: item.product.id,
+        productName: item.product.name,
+        variantName: item.selectedVariant.name,
+        quantity: item.quantity,
+        unitPriceUSD: item.selectedVariant.priceUSD,
+        totalUSD: item.selectedVariant.priceUSD * item.quantity,
+        image: item.product.image || item.product.galleryImages?.[0]
+      })),
+      subtotalUSD,
+      deliveryFeeUSD,
+      totalUSD,
+      status: 'confirmed',
+      statusDescription: 'Order confirmed and scheduled for express delivery.',
+      courier: deliveryType === 'pickup' ? 'Showroom Pickup (Beirut)' : 'Lebanon Express Courier Network',
+      estimatedDelivery: deliveryType === 'pickup' ? 'Ready Today at Beirut Showroom' : 'Within 24-48 Hours',
+      notes,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      timeline: buildOrderTimeline('confirmed', new Date().toISOString())
+    };
+
+    try {
+      await saveOrderToFirestore(newOrder);
+    } catch (err) {
+      console.warn('Note on saving order:', err);
+    }
+
     setTimeout(() => {
-      const orderRef = `OAS-LB-${Math.floor(10000 + Math.random() * 90000)}`;
       setOrderSuccess(orderRef);
       setIsSubmitting(false);
       onOrderCompleted();
-    }, 800);
+    }, 600);
   };
 
   const fastWhatsAppCartMessage = useMemo(() => {

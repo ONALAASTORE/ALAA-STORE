@@ -34,6 +34,36 @@
         "requestedVia": { "type": "string" }
       },
       "required": ["id", "productId", "productName", "contactType", "contactValue", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order placed for electronics in Lebanon with delivery and status tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "deliveryRegion": { "type": "string" },
+        "deliveryAddress": { "type": "string" },
+        "deliveryType": { "type": "string", "enum": ["delivery", "pickup"] },
+        "paymentMethod": { "type": "string" },
+        "totalUSD": { "type": "number" },
+        "deliveryFeeUSD": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "processing", "out_for_delivery", "delivered", "cancelled"]
+        },
+        "statusDescription": { "type": "string" },
+        "courier": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "estimatedDelivery": { "type": "string" },
+        "items": { "type": "array" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "orderNumber", "customerName", "customerPhone", "totalUSD", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -44,6 +74,10 @@
     "/stockNotifications/{notificationId}": {
       "schema": "StockNotification",
       "description": "Customer restock notification alerts"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Store customer orders and live dispatch tracking updates"
     }
   }
 }
