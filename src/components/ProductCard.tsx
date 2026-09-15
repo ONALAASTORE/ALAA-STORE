@@ -9,12 +9,14 @@ import {
   Images, 
   MessageCircle,
   Bell,
-  Flame
+  Flame,
+  Tag
 } from 'lucide-react';
 import { Product, Currency, ProductVariant } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
 import { buildWhatsAppLink } from '../utils/phone';
+import { getProductSku } from '../utils/sku';
 import { NotifyMeModal } from './NotifyMeModal';
 import { hasUserRequestedNotification } from '../services/notificationService';
 
@@ -115,14 +117,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ? basePrice
     : (originalPrice !== undefined && originalPrice > effectivePrice ? originalPrice : undefined);
 
+  const productSku = getProductSku(product, activeVariant);
+
   const whatsappBuyLink = buildWhatsAppLink(
     whatsappNumber || '+961 71 135 241',
-    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n• Product: ${product.name}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice}\n\nPlease confirm availability and dispatch details.`
+    `Hello On Alaa Store! 🇱🇧\nI would like to order:\n• Product: ${product.name}\n• SKU: ${productSku}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice}\n\nPlease confirm availability and dispatch details.`
   );
 
   const whatsappInquiryLink = buildWhatsAppLink(
     whatsappNumber || '+961 71 135 241',
-    `Hello On Alaa Store! 🇱🇧\n\nI have a quick inquiry about this product:\n• Product: ${product.name}\n• Brand: ${product.brand}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice} USD (${formatPrice(effectivePrice, 'LBP')})\n• Warranty: ${product.warranty || 'Agency Sealed'}\n\nCould you please confirm if it is currently in stock at the warehouse and available for fast dispatch to my area? Thank you!`
+    `Hello On Alaa Store! 🇱🇧\n\nI have a quick inquiry about this product:\n• Product: ${product.name}\n• SKU: ${productSku}\n• Brand: ${product.brand}\n• Variant: ${activeVariant.name}\n• Price: $${effectivePrice} USD (${formatPrice(effectivePrice, 'LBP')})\n• Warranty: ${product.warranty || 'Agency Sealed'}\n\nCould you please confirm if it is currently in stock at the warehouse and available for fast dispatch to my area? Thank you!`
   );
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -334,8 +338,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.name}
           </h3>
 
+          {/* Model SKU Identifier */}
+          <div className="flex items-center gap-1.5 mt-1">
+            <span 
+              id={`product-card-sku-${product.id}`}
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${
+                isDark 
+                  ? 'bg-zinc-800/80 border-zinc-700/60 text-zinc-300' 
+                  : 'bg-slate-100/90 border-slate-200 text-slate-700'
+              }`}
+              title={`Unique Model SKU: ${productSku}`}
+            >
+              <Tag className="w-2.5 h-2.5 text-blue-500 shrink-0" />
+              <span className="opacity-60 text-[9px] uppercase font-bold tracking-tight">SKU:</span>
+              <span className="font-semibold tracking-tight">{productSku}</span>
+            </span>
+          </div>
+
           {/* Warranty / Specs Subtitle */}
-          <div className={`flex items-center gap-1.5 mt-1 text-[10px] font-mono ${isDark ? 'text-zinc-400' : 'text-[#555555]'}`}>
+          <div className={`flex items-center gap-1.5 mt-1.5 text-[10px] font-mono ${isDark ? 'text-zinc-400' : 'text-[#555555]'}`}>
             <ShieldCheck className={`w-3 h-3 shrink-0 ${isDark ? 'text-zinc-400' : 'text-[#0052CC]'}`} />
             <span className="truncate">{product.warranty}</span>
           </div>

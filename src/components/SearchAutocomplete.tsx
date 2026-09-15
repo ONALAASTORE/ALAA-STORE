@@ -21,13 +21,24 @@ import {
   Mic,
   AlertCircle,
   ShoppingCart,
-  Check
+  Check,
+  History,
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import { Product, Currency } from '../types';
 import { CATEGORIES } from '../data/categories';
 import { formatPrice } from '../utils/currency';
 import { debounce } from '../utils/debounce';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
+import {
+  getSavedRecentSearches,
+  saveRecentSearchQuery,
+  removeRecentSearchQuery,
+  clearAllRecentSearches,
+  RECENT_SEARCHES_UPDATED_EVENT,
+  MAX_RECENT_SEARCHES,
+} from '../utils/recentSearches';
 
 interface SearchAutocompleteProps {
   searchQuery: string;
@@ -43,7 +54,6 @@ interface SearchAutocompleteProps {
   idPrefix?: string;
 }
 
-const RECENT_SEARCHES_KEY = 'on_alaa_recent_searches';
 const POPULAR_SEARCHES = [
   'iPhone 16 Pro Max',
   'Samsung Galaxy S25 Ultra',
@@ -83,14 +93,24 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const [focusedViaSlash, setFocusedViaSlash] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
+  
+  // Last 5 search queries saved in localStorage
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(RECENT_SEARCHES_KEY);
-      return saved ? JSON.parse(saved) : ['iPhone 16 Pro', 'PS5 Pro', 'Galaxy S25'];
-    } catch {
-      return ['iPhone 16 Pro', 'PS5 Pro', 'Galaxy S25'];
-    }
+    return getSavedRecentSearches();
   });
+
+  // Keep recent searches synchronized across multiple search instances & browser storage events
+  useEffect(() => {
+    const handleUpdate = () => {
+      setRecentSearches(getSavedRecentSearches());
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener(RECENT_SEARCHES_UPDATED_EVENT, handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener(RECENT_SEARCHES_UPDATED_EVENT, handleUpdate);
+    };
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,10 +156,42 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
   };
 
+  // Auto-scroll smooth helper to catalog section
+  const scrollToCatalog = () => {
+    setTimeout(() => {
+      const catalogEl = document.getElementById('catalog-section') || document.querySelector('main');
+      if (catalogEl) {
+        catalogEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
+
+  // Save query to recent searches (keeps last 5 in localStorage)
+  const saveRecentSearch = (term: string) => {
+    const updated = saveRecentSearchQuery(term);
+    setRecentSearches(updated);
+  };
+
+  const removeRecentSearch = (termToRemove: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const updated = removeRecentSearchQuery(termToRemove);
+    setRecentSearches(updated);
+  };
+
+  const clearAllRecent = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    clearAllRecentSearches();
+    setRecentSearches([]);
+  };
+
   // Web Speech API Voice-to-Text State
   const [isListening, setIsListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceSuccessQuery, setVoiceSuccessQuery] = useState<string | null>(null);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const latestVoiceTranscriptRef = useRef('');
+  const voiceFinalizedRef = useRef(false);
   const isSpeechSupported = useMemo(() => Boolean(getSpeechRecognitionClass()), []);
 
   // Cleanup speech recognition session on component unmount
@@ -165,6 +217,40 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
   }, [speechError]);
 
+  // Auto-dismiss voice search success notification after 3.5 seconds
+  useEffect(() => {
+    if (voiceSuccessQuery) {
+      const timer = setTimeout(() => {
+        setVoiceSuccessQuery(null);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [voiceSuccessQuery]);
+
+  // Execute Voice Search: automatically performs search from transcribed text
+  const executeVoiceSearch = (transcribedQuery: string) => {
+    const cleanText = transcribedQuery.trim();
+    if (!cleanText || voiceFinalizedRef.current) return;
+
+    voiceFinalizedRef.current = true;
+    setIsListening(false);
+
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // ignore
+    }
+
+    debouncedSearch.cancel();
+    setIsSearching(false);
+    setInputValue(cleanText);
+    onSearchChange(cleanText);
+    saveRecentSearch(cleanText);
+    setVoiceSuccessQuery(cleanText);
+    setIsOpen(false);
+    scrollToCatalog();
+  };
+
   // Web Speech API Microphone Toggle Handler
   const handleToggleVoice = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -177,12 +263,17 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
 
     if (isListening) {
+      // User clicked while listening: stop and execute search on current voice transcript if available
       try {
         recognitionRef.current?.stop();
       } catch (err) {
         console.warn('Speech recognition stop warning:', err);
       }
       setIsListening(false);
+
+      if (latestVoiceTranscriptRef.current.trim()) {
+        executeVoiceSearch(latestVoiceTranscriptRef.current.trim());
+      }
       return;
     }
 
@@ -194,28 +285,50 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       recognition.maxAlternatives = 1;
       recognition.lang = navigator.language || 'en-US';
 
+      voiceFinalizedRef.current = false;
+      latestVoiceTranscriptRef.current = '';
+      setVoiceTranscript('');
+      setSpeechError(null);
+
       recognition.onstart = () => {
         setIsListening(true);
         setSpeechError(null);
+        setIsOpen(true);
       };
 
       recognition.onresult = (event: any) => {
-        let transcript = '';
+        let interim = '';
+        let final = '';
+
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          const chunk = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += chunk;
+          } else {
+            interim += chunk;
+          }
         }
-        if (transcript.trim()) {
-          setInputValue(transcript);
+
+        const currentText = (final || interim || latestVoiceTranscriptRef.current).trim();
+        if (currentText) {
+          latestVoiceTranscriptRef.current = currentText;
+          setVoiceTranscript(currentText);
+          setInputValue(currentText);
           setIsSearching(true);
-          debouncedSearch(transcript);
+          debouncedSearch(currentText);
           if (!isOpen) setIsOpen(true);
+        }
+
+        // When SpeechRecognition delivers a final transcript result, automatically perform the search!
+        if (final.trim() && !voiceFinalizedRef.current) {
+          executeVoiceSearch(final.trim());
         }
       };
 
       recognition.onerror = (event: any) => {
         console.warn('Web Speech API event error:', event.error);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          setSpeechError('Microphone permission blocked. Please allow mic access in your browser.');
+          setSpeechError('Microphone permission blocked. Please allow mic access in your browser settings.');
         } else if (event.error === 'no-speech') {
           setSpeechError('No speech detected. Please speak closer to your microphone.');
         } else if (event.error === 'audio-capture') {
@@ -228,8 +341,12 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 
       recognition.onend = () => {
         setIsListening(false);
-        debouncedSearch.flush();
-        inputRef.current?.focus();
+        // If speech ended and wasn't finalized yet, perform search with latest captured voice transcript!
+        if (!voiceFinalizedRef.current && latestVoiceTranscriptRef.current.trim()) {
+          executeVoiceSearch(latestVoiceTranscriptRef.current.trim());
+        } else {
+          debouncedSearch.flush();
+        }
       };
 
       recognition.start();
@@ -237,40 +354,6 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       console.error('Failed to start Web Speech API:', err);
       setIsListening(false);
       setSpeechError('Could not activate microphone voice input.');
-    }
-  };
-
-  // Save query to recent searches
-  const saveRecentSearch = (term: string) => {
-    const cleanTerm = term.trim();
-    if (!cleanTerm || cleanTerm.length < 2) return;
-    try {
-      const updated = [cleanTerm, ...recentSearches.filter((s) => s.toLowerCase() !== cleanTerm.toLowerCase())].slice(0, 6);
-      setRecentSearches(updated);
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to save recent search', e);
-    }
-  };
-
-  const removeRecentSearch = (termToRemove: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const updated = recentSearches.filter((s) => s !== termToRemove);
-    setRecentSearches(updated);
-    try {
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const clearAllRecent = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setRecentSearches([]);
-    try {
-      localStorage.removeItem(RECENT_SEARCHES_KEY);
-    } catch (e) {
-      console.error(e);
     }
   };
 
@@ -367,13 +450,26 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     return brands.filter((b) => b.toLowerCase().includes(queryTrimmed)).slice(0, 4);
   }, [products, queryTrimmed]);
 
+  // Matching recent search queries saved in localStorage
+  const matchingRecentSearches = useMemo(() => {
+    if (!queryTrimmed) return [];
+    return recentSearches.filter((term) =>
+      term.toLowerCase().includes(queryTrimmed)
+    );
+  }, [recentSearches, queryTrimmed]);
+
   // Total selectable items for keyboard navigation
   const selectableItemsCount = useMemo(() => {
     if (queryTrimmed) {
-      return matchingCategories.length + matchingBrands.length + matchingProducts.length;
+      return (
+        matchingRecentSearches.length +
+        matchingCategories.length +
+        matchingBrands.length +
+        matchingProducts.length
+      );
     }
     return recentSearches.length + POPULAR_SEARCHES.length;
-  }, [queryTrimmed, matchingCategories, matchingBrands, matchingProducts, recentSearches]);
+  }, [queryTrimmed, matchingRecentSearches, matchingCategories, matchingBrands, matchingProducts, recentSearches]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
@@ -388,33 +484,50 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       debouncedSearch.cancel();
       setIsSearching(false);
 
-      if (selectedIndex >= 0 && (queryTrimmed || inputValue.trim())) {
-        // Find which item was selected
-        let currentIndex = 0;
-        // Check categories
-        if (selectedIndex < matchingCategories.length) {
-          const cat = matchingCategories[selectedIndex];
-          onSelectCategory?.(cat.id);
-          saveRecentSearch(cat.name);
-          setIsOpen(false);
-          return;
-        }
-        currentIndex += matchingCategories.length;
-        // Check brands
-        if (selectedIndex < currentIndex + matchingBrands.length) {
-          const brand = matchingBrands[selectedIndex - currentIndex];
-          setInputValue(brand);
-          onSearchChange(brand);
-          saveRecentSearch(brand);
-          setIsOpen(false);
-          return;
-        }
-        currentIndex += matchingBrands.length;
-        // Check products
-        if (selectedIndex < currentIndex + matchingProducts.length) {
-          const prod = matchingProducts[selectedIndex - currentIndex];
-          handleProductClick(prod);
-          return;
+      if (selectedIndex >= 0) {
+        // Selection when input is empty (Recent Searches & Popular list)
+        if (!queryTrimmed) {
+          if (selectedIndex < recentSearches.length) {
+            handleSuggestionClick(recentSearches[selectedIndex]);
+            return;
+          } else if (selectedIndex - recentSearches.length < POPULAR_SEARCHES.length) {
+            handleSuggestionClick(POPULAR_SEARCHES[selectedIndex - recentSearches.length]);
+            return;
+          }
+        } else {
+          // Selection when query is present
+          let currentIndex = 0;
+          // Check matching recent searches
+          if (selectedIndex < matchingRecentSearches.length) {
+            handleSuggestionClick(matchingRecentSearches[selectedIndex]);
+            return;
+          }
+          currentIndex += matchingRecentSearches.length;
+          // Check categories
+          if (selectedIndex < currentIndex + matchingCategories.length) {
+            const cat = matchingCategories[selectedIndex - currentIndex];
+            onSelectCategory?.(cat.id);
+            saveRecentSearch(cat.name);
+            setIsOpen(false);
+            return;
+          }
+          currentIndex += matchingCategories.length;
+          // Check brands
+          if (selectedIndex < currentIndex + matchingBrands.length) {
+            const brand = matchingBrands[selectedIndex - currentIndex];
+            setInputValue(brand);
+            onSearchChange(brand);
+            saveRecentSearch(brand);
+            setIsOpen(false);
+            return;
+          }
+          currentIndex += matchingBrands.length;
+          // Check products
+          if (selectedIndex < currentIndex + matchingProducts.length) {
+            const prod = matchingProducts[selectedIndex - currentIndex];
+            handleProductClick(prod);
+            return;
+          }
         }
       }
 
@@ -475,15 +588,6 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     scrollToCatalog();
   };
 
-  const scrollToCatalog = () => {
-    setTimeout(() => {
-      const catalogEl = document.getElementById('catalog-section') || document.querySelector('main');
-      if (catalogEl) {
-        catalogEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50);
-  };
-
   // Helper to highlight matching characters in real-time with modern vibrant electric blue
   const highlightMatch = (text: string, query: string) => {
     if (!query.trim()) return text;
@@ -528,7 +632,28 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             : 'border-slate-200/90'
         }`}
       >
-        <div className="absolute left-3.5 flex items-center pointer-events-none">
+        {/* Interactive Left Search / Action Trigger Button */}
+        <button
+          type="button"
+          id={`${idPrefix}-search-submit-btn`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (inputValue.trim()) {
+              debouncedSearch.cancel();
+              setIsSearching(false);
+              onSearchChange(inputValue.trim());
+              saveRecentSearch(inputValue.trim());
+              setIsOpen(false);
+              scrollToCatalog();
+            } else {
+              setIsOpen((prev) => !prev);
+              inputRef.current?.focus();
+            }
+          }}
+          className="absolute left-3 flex items-center justify-center p-1 rounded-lg text-slate-400 hover:text-blue-600 transition cursor-pointer"
+          title={inputValue.trim() ? `Search for "${inputValue.trim()}"` : 'Recent searches & suggestions'}
+          aria-label="Submit search query or toggle dropdown"
+        >
           <AnimatePresence mode="wait">
             {isSearching ? (
               <motion.div
@@ -563,7 +688,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </button>
 
         <input
           ref={inputRef}
@@ -576,14 +701,44 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             setSelectedIndex(-1);
           }}
           onKeyDown={handleKeyDown}
-          placeholder={isListening ? 'Listening... Speak now 🎙️' : placeholder}
+          placeholder={
+            isListening 
+              ? (voiceTranscript ? `Hearing: "${voiceTranscript}"` : 'Listening... Speak now 🎙️') 
+              : placeholder
+          }
           autoComplete="off"
           spellCheck={false}
-          className="w-full pl-10 pr-28 sm:pr-32 py-2 sm:py-2.5 text-xs sm:text-sm bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-medium"
+          className="w-full pl-10 pr-36 sm:pr-44 py-2 sm:py-2.5 text-xs sm:text-sm bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-medium"
         />
 
-        {/* Right Action Icons: Loading Spinner + Voice Mic Button + Clear Button with fade & rotate + Keyboard Shortcut Badge */}
-        <div className="absolute right-2.5 flex items-center gap-1 sm:gap-1.5">
+        {/* Right Action Icons: Recent Searches Button + Loading Spinner + Voice Search Button + Clear Button + Keyboard Shortcut Badge */}
+        <div className="absolute right-2 flex items-center gap-1 sm:gap-1.5">
+          {/* Recent Searches Dropdown Trigger Button */}
+          <button
+            type="button"
+            id={`${idPrefix}-recent-searches-btn`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsOpen((prev) => !prev);
+              inputRef.current?.focus();
+            }}
+            className={`p-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center relative ${
+              isOpen && !queryTrimmed
+                ? 'bg-blue-600 text-white shadow-xs'
+                : recentSearches.length > 0
+                ? 'text-slate-600 hover:text-blue-600 hover:bg-slate-200/70'
+                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'
+            }`}
+            title={`Recent Searches (${recentSearches.length}/5 saved in localStorage)`}
+            aria-label="Recent Searches dropdown"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            {recentSearches.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
+            )}
+          </button>
+
           {/* Subtle loading spinner during search execution */}
           <AnimatePresence>
             {isSearching && (
@@ -606,40 +761,57 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             )}
           </AnimatePresence>
 
-          {/* Web Speech API Microphone Voice Input Button */}
+          {/* Web Speech API Voice Search Button */}
           <button
             type="button"
             id={idPrefix === 'header-desktop' ? 'header-voice-search-btn' : `${idPrefix}-voice-search-btn`}
+            data-testid="voice-search-btn"
             onClick={handleToggleVoice}
-            className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center relative ${
+            className={`px-2 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 relative border text-xs font-semibold select-none ${
               isListening
-                ? 'bg-red-500 text-white shadow-md shadow-red-500/40 ring-2 ring-red-400 animate-pulse'
-                : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/70'
+                ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-500/30 ring-2 ring-red-400 animate-pulse'
+                : 'bg-slate-100/90 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border-slate-200 hover:border-blue-300 shadow-2xs'
             }`}
             title={
               isListening
-                ? 'Listening... Click to stop voice search'
+                ? 'Listening... Click to search now or stop'
                 : isSpeechSupported
-                ? 'Voice search (Web Speech API) - click and speak'
+                ? 'Voice Search: Click to speak and automatically search'
                 : 'Voice search not supported in this browser'
             }
-            aria-label={isListening ? 'Stop voice search' : 'Search by voice'}
+            aria-label={isListening ? 'Stop voice recording' : 'Voice Search'}
           >
             {isListening ? (
-              <motion.div
-                animate={{ scale: [1, 1.25, 1] }}
-                transition={{ repeat: Infinity, duration: 0.8 }}
-                className="flex items-center justify-center"
-              >
-                <Mic className="w-3.5 h-3.5 text-white" />
-              </motion.div>
+              <>
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1] }}
+                  transition={{ repeat: Infinity, duration: 0.7 }}
+                  className="flex items-center justify-center text-white"
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                </motion.div>
+                <span className="text-[11px] font-bold text-white tracking-tight hidden sm:inline">
+                  Listening...
+                </span>
+                {/* Mini Wave Bars */}
+                <span className="flex items-center gap-0.5 h-3">
+                  <span className="w-0.5 bg-white rounded-full animate-bounce h-2" style={{ animationDelay: '0ms' }} />
+                  <span className="w-0.5 bg-white rounded-full animate-bounce h-3" style={{ animationDelay: '150ms' }} />
+                  <span className="w-0.5 bg-white rounded-full animate-bounce h-2" style={{ animationDelay: '300ms' }} />
+                </span>
+              </>
             ) : (
-              <Mic className="w-3.5 h-3.5" />
+              <>
+                <Mic className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-600" />
+                <span className="text-[11px] font-bold tracking-tight hidden sm:inline">
+                  Voice
+                </span>
+              </>
             )}
 
             {/* Pulsing listening indicator ping dot */}
             {isListening && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-600 ring-2 ring-white animate-ping" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white animate-ping" />
             )}
           </button>
 
@@ -687,6 +859,31 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         </div>
       </div>
 
+      {/* Voice Search Success Feedback Notification */}
+      <AnimatePresence>
+        {voiceSuccessQuery && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-full left-0 right-0 mt-2 p-2.5 rounded-xl bg-slate-900/95 text-white text-xs font-semibold flex items-center justify-between gap-2 shadow-2xl border border-emerald-500/40 z-50 backdrop-blur-md"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Voice search completed for: <strong className="text-emerald-300">&ldquo;{voiceSuccessQuery}&rdquo;</strong></span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVoiceSuccessQuery(null)}
+              className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Voice Status / Error Alert Notification */}
       <AnimatePresence>
         {speechError && (
@@ -718,6 +915,90 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           id={`${idPrefix}-suggestions-dropdown`}
           className="absolute left-0 right-0 top-full mt-2 bg-white/98 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 max-h-[80vh] sm:max-h-[500px] overflow-y-auto"
         >
+          {/* Active Voice Search Recording Banner */}
+          {isListening && (
+            <div 
+              id={`${idPrefix}-voice-search-listening-panel`}
+              className="p-3.5 sm:p-4 bg-gradient-to-r from-red-50 via-rose-50 to-blue-50 border-b border-red-200/80 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+                  </span>
+                  <span className="text-xs font-bold text-red-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Voice Search Active</span>
+                    <span className="text-[10px] font-mono bg-red-100 text-red-700 px-1.5 py-0.2 rounded font-semibold">
+                      Web Speech API
+                    </span>
+                  </span>
+                </div>
+
+                {/* Animated Equalizer Waveform */}
+                <div className="flex items-center gap-1 h-4 px-2 py-0.5 rounded-full bg-red-100/80">
+                  {[0, 150, 75, 225, 120].map((delay, idx) => (
+                    <motion.span
+                      key={idx}
+                      animate={{ height: ['4px', '14px', '4px'] }}
+                      transition={{ repeat: Infinity, duration: 0.6, delay: delay / 1000, ease: 'easeInOut' }}
+                      className="w-1 bg-red-600 rounded-full"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Live Voice Transcription Box */}
+              <div className="p-3 rounded-xl bg-white border border-red-200 shadow-2xs space-y-1">
+                <p className="text-[11px] font-semibold text-slate-500">
+                  {voiceTranscript ? 'Transcribed text (searches automatically on speech pause):' : 'Listening for your voice...'}
+                </p>
+                <div className="min-h-[28px] flex items-center">
+                  {voiceTranscript ? (
+                    <p className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+                      &ldquo;{voiceTranscript}&rdquo;
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">
+                      Speak a product or model name (e.g. &quot;iPhone 16 Pro&quot;, &quot;PlayStation 5&quot;, &quot;Galaxy S25&quot;)...
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <p className="text-[11px] text-slate-500 hidden sm:block">
+                  Transcribes in real-time and automatically executes search.
+                </p>
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        recognitionRef.current?.abort();
+                      } catch {}
+                      setIsListening(false);
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  {voiceTranscript && (
+                    <button
+                      type="button"
+                      onClick={() => executeVoiceSearch(voiceTranscript)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition cursor-pointer"
+                    >
+                      <span>Search Now</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Subtle Top Loading Line indicator when processing */}
           {isSearching && (
             <div className="h-0.5 w-full bg-blue-100 overflow-hidden relative">
@@ -732,6 +1013,36 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           {/* STATE A: User has entered a search query */}
           {queryTrimmed ? (
             <div>
+              {/* Matching Recent Searches from localStorage (Faster Navigation) */}
+              {matchingRecentSearches.length > 0 && (
+                <div className="p-2.5 bg-blue-50/70 border-b border-blue-100 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-blue-900 tracking-tight px-1">
+                    <span className="flex items-center gap-1.5">
+                      <History className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Recent Searches Matching &quot;{inputValue}&quot;</span>
+                    </span>
+                    <span className="text-[10px] text-blue-600 font-mono bg-blue-100/70 px-1.5 py-0.2 rounded font-semibold">
+                      from localStorage
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {matchingRecentSearches.map((term, idx) => (
+                      <button
+                        key={`${term}-${idx}`}
+                        type="button"
+                        id={`${idPrefix}-matching-recent-${idx}`}
+                        onClick={() => handleSuggestionClick(term)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-blue-600 hover:text-white text-slate-800 border border-blue-200/80 hover:border-blue-600 transition shadow-2xs cursor-pointer group"
+                      >
+                        <Clock className="w-3 h-3 text-blue-500 group-hover:text-white" />
+                        <span>{highlightMatch(term, queryTrimmed)}</span>
+                        <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Category & Brand Quick Chips */}
               {(matchingCategories.length > 0 || matchingBrands.length > 0) && (
                 <div className="p-3 bg-slate-50/80 border-b border-slate-100 space-y-2">
@@ -942,45 +1253,163 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
               </div>
             </div>
           ) : (
-            /* STATE B: Empty query / Focused state with Recent & Trending searches */
+            /* STATE B: Empty query / Focused state with Recent Searches dropdown & Trending searches */
             <div className="p-3 sm:p-4 space-y-4">
               
-              {/* Recent Searches */}
-              {recentSearches.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      <span>Recent Searches</span>
+              {/* Recent Searches Section (Last 5 queries saved in localStorage) */}
+              <div 
+                id={`${idPrefix}-recent-searches-container`}
+                className="space-y-2.5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-md bg-blue-50 flex items-center justify-center text-blue-600">
+                      <Clock className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Recent Searches
                     </span>
-                    <button
-                      onClick={clearAllRecent}
-                      className="text-[10px] text-slate-400 hover:text-red-500 font-semibold transition cursor-pointer"
-                    >
-                      Clear All
-                    </button>
+                    <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
+                      {recentSearches.length}/{MAX_RECENT_SEARCHES} saved in localStorage
+                    </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5">
-                    {recentSearches.map((term) => (
-                      <span
-                        key={term}
-                        onClick={() => handleSuggestionClick(term)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer group"
-                      >
-                        <span>{term}</span>
-                        <button
-                          onClick={(e) => removeRecentSearch(term, e)}
-                          className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full hover:bg-slate-300/60"
-                          title="Remove from history"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
+                  {recentSearches.length > 0 && (
+                    <button
+                      type="button"
+                      id={`${idPrefix}-clear-all-recent-btn`}
+                      onClick={(e) => clearAllRecent(e)}
+                      className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-red-600 font-semibold transition px-2 py-1 rounded-md hover:bg-red-50 cursor-pointer"
+                      title="Clear all saved search queries from localStorage"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Clear All</span>
+                    </button>
+                  )}
                 </div>
-              )}
+
+                {recentSearches.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {/* Quick Re-trigger Pill Buttons */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-0.5">
+                        <span>Click any button below to re-trigger previous searches:</span>
+                        <span className="text-[10px] font-mono text-slate-400">1-click re-search</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {recentSearches.slice(0, 5).map((term, index) => (
+                          <button
+                            key={`quick-pill-${term}-${index}`}
+                            type="button"
+                            id={`${idPrefix}-quick-recent-pill-${index}`}
+                            onClick={() => handleSuggestionClick(term)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-blue-600 hover:text-white text-slate-800 border border-slate-200 hover:border-blue-600 shadow-2xs hover:shadow-xs transition-all cursor-pointer group active:scale-95"
+                            title={`Click to re-trigger search for "${term}"`}
+                            aria-label={`Quick search button for ${term}`}
+                          >
+                            <RotateCcw className="w-3 h-3 text-blue-600 group-hover:text-white transition-transform group-hover:-rotate-45" />
+                            <span className="truncate max-w-[150px]">{term}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* List of 5 Most Recent Searches as Interactive Action Buttons */}
+                    <div className="space-y-1 rounded-xl bg-slate-50/70 p-1.5 border border-slate-200/70">
+                      {recentSearches.slice(0, 5).map((term, index) => {
+                        const isHighlighted = selectedIndex === index;
+                        return (
+                          <div
+                            key={`${term}-${index}`}
+                            className="flex items-center gap-1.5 group/row"
+                          >
+                            {/* Clickable Re-trigger Button */}
+                            <button
+                              type="button"
+                              id={`${idPrefix}-recent-search-btn-${index}`}
+                              onClick={() => handleSuggestionClick(term)}
+                              className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all cursor-pointer border text-left outline-none ${
+                                isHighlighted
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs ring-2 ring-blue-400/50'
+                                  : 'bg-white hover:bg-blue-50/80 text-slate-700 hover:text-blue-800 border-slate-200/80 hover:border-blue-300 shadow-2xs hover:shadow-xs'
+                              }`}
+                              title={`Click to re-trigger search for "${term}"`}
+                              aria-label={`Re-trigger search: ${term}`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <span className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 text-xs font-bold transition ${
+                                  isHighlighted
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-slate-100 text-slate-600 group-hover/row:bg-blue-100 group-hover/row:text-blue-600 border border-slate-200/70'
+                                }`}>
+                                  <RotateCcw className="w-3.5 h-3.5 transition-transform group-hover/row:-rotate-45" />
+                                </span>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-semibold truncate tracking-tight text-sm">
+                                    {term}
+                                  </span>
+                                  <span className={`text-[10px] hidden sm:block ${
+                                    isHighlighted ? 'text-blue-100' : 'text-slate-400 group-hover/row:text-blue-600'
+                                  }`}>
+                                    Click button to re-run query
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md transition ${
+                                  isHighlighted
+                                    ? 'bg-blue-700 text-white'
+                                    : 'bg-blue-50 text-blue-700 group-hover/row:bg-blue-600 group-hover/row:text-white'
+                                }`}>
+                                  <span>Re-trigger</span>
+                                  <ArrowRight className="w-3 h-3 group-hover/row:translate-x-0.5 transition-transform" />
+                                </span>
+                              </div>
+                            </button>
+
+                            {/* Remove button to delete specific query from history */}
+                            <button
+                              type="button"
+                              id={`${idPrefix}-remove-recent-${index}`}
+                              onClick={(e) => removeRecentSearch(term, e)}
+                              className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition cursor-pointer shrink-0"
+                              title={`Remove "${term}" from history`}
+                              aria-label={`Remove ${term} from recent searches`}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50/80 border border-dashed border-slate-200 text-center space-y-2">
+                    <div className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-400 mx-auto flex items-center justify-center">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold text-slate-700">No search history yet</p>
+                      <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                        Your last 5 searches will be saved in localStorage for quick 1-click navigation.
+                      </p>
+                    </div>
+                    <div className="pt-1 flex items-center justify-center gap-1.5 flex-wrap">
+                      {['iPhone 16 Pro', 'PS5 Pro', 'Galaxy S25 Ultra'].map((quickTerm) => (
+                        <button
+                          key={quickTerm}
+                          type="button"
+                          onClick={() => handleSuggestionClick(quickTerm)}
+                          className="text-[10px] font-semibold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2 py-1 rounded-lg border border-slate-200 transition cursor-pointer"
+                        >
+                          + {quickTerm}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Popular / Trending Lebanese Tech Searches */}
               <div className="space-y-2">
@@ -993,6 +1422,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                   {POPULAR_SEARCHES.map((query) => (
                     <button
                       key={query}
+                      type="button"
                       onClick={() => handleSuggestionClick(query)}
                       className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-600 bg-slate-50 hover:bg-blue-50/70 border border-slate-100 hover:border-blue-200 transition text-left cursor-pointer group"
                     >

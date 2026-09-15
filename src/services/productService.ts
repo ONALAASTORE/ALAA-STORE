@@ -12,6 +12,7 @@ import {
 import { db, PRODUCTS_COLLECTION } from './firebase';
 import { Product } from '../types';
 import { PRODUCTS } from '../data/products';
+import { generateProductSku } from '../utils/sku';
 import {
   safeSaveProducts,
   safeGetProductsFromLocalStorage,
@@ -113,6 +114,7 @@ export function mapDocToProduct(id: string, data: any): Product {
 
   return {
     id: id || data.id,
+    sku: data.sku || generateProductSku({ id: id || data.id, name: data.name, brand: data.brand, category: data.category }),
     name: data.name || 'Untitled Product',
     brand: data.brand || 'Other',
     category: data.category || 'smartphones',

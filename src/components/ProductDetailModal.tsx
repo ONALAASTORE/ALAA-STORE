@@ -26,13 +26,18 @@ import {
   Bell,
   Loader2,
   Send,
-  Copy
+  Copy,
+  RotateCcw,
+  ZoomOut,
+  Tag,
+  Move
 } from 'lucide-react';
 import { Product, Currency, ProductVariant, ProductReview } from '../types';
 import { formatPrice } from '../utils/currency';
 import { getProductImages, DEFAULT_PRODUCT_IMAGE } from '../utils/productImages';
 import { buildWhatsAppLink } from '../utils/phone';
 import { extractProductVariantConfig, findBestMatchingVariant } from '../utils/variantUtils';
+import { getProductSku } from '../utils/sku';
 import { VisualStarRating } from './VisualStarRating';
 import { CustomerReviews } from './CustomerReviews';
 import { SpecsAccordion } from './SpecsAccordion';
@@ -310,16 +315,45 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [isTouchDragging, setIsTouchDragging] = useState(false);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
+  // Pinch-to-zoom & pan interactive states for main product display
+  const [stageZoom, setStageZoom] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isMouseDragging, setIsMouseDragging] = useState<boolean>(false);
+  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const panStartOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pinchInitialDistRef = useRef<number | null>(null);
+  const pinchInitialScaleRef = useRef<number>(1);
+  const lastTapTimeRef = useRef<number>(0);
+
+  const isZoomed = stageZoom > 1.05;
+
+  const clampPan = (pan: { x: number; y: number }, scale: number) => {
+    if (!imageContainerRef.current || scale <= 1.05) return { x: 0, y: 0 };
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const maxPanX = Math.max(0, (rect.width * (scale - 1)) / 2);
+    const maxPanY = Math.max(0, (rect.height * (scale - 1)) / 2);
+    return {
+      x: Math.max(-maxPanX, Math.min(maxPanX, pan.x)),
+      y: Math.max(-maxPanY, Math.min(maxPanY, pan.y)),
+    };
+  };
+
+  const resetZoom = () => {
+    setStageZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+    setIsLensActive(false);
+    setIsTouchDragging(false);
+    setIsMouseDragging(false);
+  };
+
   // Reset active image and lens state when product or image changes
   useEffect(() => {
     setActiveImageIndex(0);
-    setIsLensActive(false);
-    setIsTouchDragging(false);
+    resetZoom();
   }, [product?.id]);
 
   useEffect(() => {
-    setIsLensActive(false);
-    setIsTouchDragging(false);
+    resetZoom();
   }, [activeImageIndex]);
 
   const updateLensCoordinates = (clientX: number, clientY: number, isTouch = false) => {
@@ -439,6 +473,154 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     handleTouchEnd();
   };
 
+  // Pinch-to-zoom and pan gesture handlers for the main product image stage
+  const handleStageTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      // Pinch-to-zoom initialization
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchInitialDistRef.current = dist;
+      pinchInitialScaleRef.current = stageZoom;
+      setIsLensActive(false);
+      setIsTouchDragging(false);
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      // Double tap detection
+      const now = Date.now();
+      if (now - lastTapTimeRef.current < 300) {
+        lastTapTimeRef.current = 0;
+        if (stageZoom > 1.05) {
+          resetZoom();
+        } else {
+          setStageZoom(2.5);
+          setLensMode('zoom');
+        }
+        return;
+      }
+      lastTapTimeRef.current = now;
+
+      if (stageZoom > 1.05) {
+        // Pan gesture when already zoomed in
+        setIsTouchDragging(true);
+        dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        panStartOffsetRef.current = { ...panOffset };
+        setIsLensActive(false);
+      } else {
+        handleTouchStartLens(e);
+      }
+    }
+  };
+
+  const handleStageTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && pinchInitialDistRef.current !== null) {
+      // Pinching gesture
+      e.preventDefault();
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scaleFactor = currentDist / pinchInitialDistRef.current;
+      const nextScale = Math.min(4, Math.max(1, pinchInitialScaleRef.current * scaleFactor));
+      setStageZoom(nextScale);
+      if (nextScale <= 1.05) {
+        setPanOffset({ x: 0, y: 0 });
+      } else {
+        setPanOffset((prev) => clampPan(prev, nextScale));
+        if (lensMode !== 'zoom') setLensMode('zoom');
+      }
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      if (stageZoom > 1.05 && isTouchDragging) {
+        // Panning gesture
+        e.preventDefault();
+        const dx = e.touches[0].clientX - dragStartRef.current.x;
+        const dy = e.touches[0].clientY - dragStartRef.current.y;
+        setPanOffset(clampPan({
+          x: panStartOffsetRef.current.x + dx,
+          y: panStartOffsetRef.current.y + dy
+        }, stageZoom));
+      } else if (stageZoom <= 1.05) {
+        handleTouchMoveLens(e);
+      }
+    }
+  };
+
+  const handleStageTouchEnd = (_e: React.TouchEvent<HTMLDivElement>) => {
+    if (pinchInitialDistRef.current !== null) {
+      pinchInitialDistRef.current = null;
+      if (stageZoom <= 1.05) {
+        resetZoom();
+      }
+      return;
+    }
+
+    if (stageZoom > 1.05) {
+      setIsTouchDragging(false);
+    } else {
+      handleTouchEndLens();
+    }
+  };
+
+  const handleStageMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (stageZoom > 1.05) {
+      e.preventDefault();
+      setIsMouseDragging(true);
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+      panStartOffsetRef.current = { ...panOffset };
+    }
+  };
+
+  const handleStageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMouseDragging && stageZoom > 1.05) {
+      e.preventDefault();
+      const dx = e.clientX - dragStartRef.current.x;
+      const dy = e.clientY - dragStartRef.current.y;
+      setPanOffset(clampPan({
+        x: panStartOffsetRef.current.x + dx,
+        y: panStartOffsetRef.current.y + dy
+      }, stageZoom));
+    } else {
+      handleMouseMove(e);
+    }
+  };
+
+  const handleStageMouseUp = () => {
+    setIsMouseDragging(false);
+  };
+
+  const handleStageDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (stageZoom > 1.05) {
+      resetZoom();
+    } else {
+      setStageZoom(2.5);
+      setLensMode('zoom');
+    }
+  };
+
+  const handleStageWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || Math.abs(e.deltaY) > 0) {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.005;
+      setStageZoom((prev) => {
+        const next = Math.min(4, Math.max(1, prev + delta));
+        if (next <= 1.05) {
+          setPanOffset({ x: 0, y: 0 });
+        } else {
+          setPanOffset((p) => clampPan(p, next));
+          if (lensMode !== 'zoom') setLensMode('zoom');
+        }
+        return next;
+      });
+    }
+  };
+
   const currentVariant = useMemo(() => {
     if (!product.variants || product.variants.length === 0) {
       return {
@@ -450,6 +632,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }
     return product.variants[selectedVariantIndex] || product.variants[0];
   }, [product, selectedVariantIndex]);
+
+  const activeSku = useMemo(() => {
+    return getProductSku(product, currentVariant);
+  }, [product, currentVariant]);
+
+  const [copiedSku, setCopiedSku] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -549,11 +737,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       `Hello ON-ALAA-STORE! 🇱🇧\n` +
       `I would like to purchase this product directly (skipping cart):\n\n` +
       `📦 *Product:* ${product.name}\n` +
+      `🏷️ *Product SKU:* ${activeSku}\n` +
       `🎯 *Selected Variant:* ${variantSummary}\n` +
       `🔢 *Quantity:* ${quantity}\n` +
       `💵 *Unit Price:* $${unitPrice}\n` +
       `💰 *Total Amount:* $${totalPrice} (≈ ${lbpEstimate} L.L.)\n` +
-      `🏷️ *Product SKU/ID:* ${product.id} / ${currentVariant.id}\n` +
       `🚚 *Delivery Estimate:* ${estimatedDeliveryTime} (Lebanon Nationwide Express)\n` +
       `💳 *Payment Method:* Cash on Delivery (COD in USD or L.L.)\n\n` +
       `📍 *My Delivery Details:*\n` +
@@ -597,11 +785,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       `Hello ON-ALAA-STORE! 🇱🇧\n` +
       `I would like to purchase this product directly (skipping cart):\n\n` +
       `📦 *Product:* ${product.name}\n` +
+      `🏷️ *Product SKU:* ${activeSku}\n` +
       `🎯 *Selected Variant:* ${variantSummary}\n` +
       `🔢 *Quantity:* ${quantity}\n` +
       `💵 *Unit Price:* $${unitPrice}\n` +
       `💰 *Total Amount:* $${totalPrice} (≈ ${lbpEstimate} L.L.)\n` +
-      `🏷️ *Product SKU/ID:* ${product.id} / ${currentVariant.id}\n` +
       `🚚 *Delivery Estimate:* ${estimatedDeliveryTime} (Lebanon Nationwide Express)\n` +
       `💳 *Payment Method:* Cash on Delivery (COD in USD or L.L.)\n\n` +
       `📍 *My Delivery Details:*\n` +
@@ -612,7 +800,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       `Please confirm stock availability and proceed with express delivery!`;
 
     return buildWhatsAppLink(whatsappNumber, directBuyMessage);
-  }, [product, currentVariant, quantity, whatsappNumber, estimatedDeliveryTime]);
+  }, [product, currentVariant, activeSku, quantity, whatsappNumber, estimatedDeliveryTime]);
 
   const socialLinks = useMemo(() => {
     if (!product) {
@@ -851,37 +1039,53 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Slider / Carousel View Mode */}
             {galleryViewMode === 'slider' ? (
               <div className="space-y-2.5">
-                {/* Main Featured Stage with Hover-to-Magnify Lens */}
+                {/* Main Featured Stage with Hover-to-Magnify Lens & Pinch-to-Zoom / Pan */}
                 <div 
                   ref={imageContainerRef}
                   id="main-product-image-stage"
                   className={`relative aspect-square rounded-2xl bg-slate-50 border border-slate-200/80 p-6 flex items-center justify-center overflow-hidden group select-none transition-colors ${
-                    isLensActive ? 'cursor-crosshair bg-slate-100/70' : 'cursor-zoom-in'
+                    isZoomed 
+                      ? 'cursor-grab active:cursor-grabbing bg-slate-100/50' 
+                      : isLensActive 
+                        ? 'cursor-crosshair bg-slate-100/70' 
+                        : 'cursor-zoom-in'
                   }`}
-                  onClick={() => setIsLightboxOpen(true)}
-                  onMouseMove={handleMouseMove}
+                  onClick={() => {
+                    if (isZoomed || isMouseDragging) return;
+                    setIsLightboxOpen(true);
+                  }}
+                  onMouseDown={handleStageMouseDown}
+                  onMouseMove={handleStageMouseMove}
+                  onMouseUp={handleStageMouseUp}
+                  onDoubleClick={handleStageDoubleClick}
+                  onWheel={handleStageWheel}
                   onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                  onTouchStart={handleTouchStartLens}
-                  onTouchMove={handleTouchMoveLens}
-                  onTouchEnd={handleTouchEndLens}
+                  onMouseLeave={() => {
+                    handleMouseLeave();
+                    setIsMouseDragging(false);
+                  }}
+                  onTouchStart={handleStageTouchStart}
+                  onTouchMove={handleStageTouchMove}
+                  onTouchEnd={handleStageTouchEnd}
                 >
-                  {/* Base Product Image */}
+                  {/* Base Product Image with Pinch, Pan & Zoom */}
                   <img
                     src={allImages[activeImageIndex] || DEFAULT_PRODUCT_IMAGE}
                     alt={`${product.name} - View ${activeImageIndex + 1}`}
-                    className="w-full h-full object-contain object-center will-change-transform pointer-events-none transition-transform duration-200"
-                    style={
-                      lensMode === 'zoom'
-                        ? {
-                            transform: isLensActive ? `scale(${zoomLevel})` : 'scale(1)',
-                            transformOrigin: `${(lensCoords.x / (stageWidth || 1)) * 100}% ${(lensCoords.y / (stageHeight || 1)) * 100}%`,
-                            transition: isLensActive ? 'transform 0.08s ease-out' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                          }
-                        : {
-                            transform: 'scale(1)',
-                          }
-                    }
+                    className="w-full h-full object-contain object-center will-change-transform pointer-events-none select-none"
+                    style={{
+                      transform: isZoomed
+                        ? `translate3d(${panOffset.x}px, ${panOffset.y}px, 0) scale(${stageZoom})`
+                        : lensMode === 'zoom' && isLensActive
+                          ? `scale(${zoomLevel})`
+                          : 'scale(1)',
+                      transformOrigin: isZoomed
+                        ? 'center center'
+                        : `${(lensCoords.x / (stageWidth || 1)) * 100}% ${(lensCoords.y / (stageHeight || 1)) * 100}%`,
+                      transition: (isTouchDragging || isMouseDragging)
+                        ? 'none'
+                        : 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = DEFAULT_PRODUCT_IMAGE;
@@ -889,7 +1093,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   />
 
                   {/* Focus Target Crop Box on Base Image (shows what is inside the magnifying lens) */}
-                  {isLensActive && lensMode === 'lens' && (
+                  {!isZoomed && isLensActive && lensMode === 'lens' && (
                     <div
                       id="lens-focus-crop-box"
                       className="absolute pointer-events-none rounded-lg border-2 border-blue-500/70 bg-blue-500/10 shadow-[0_0_12px_rgba(59,130,246,0.25)] z-10 transition-[width,height] duration-150"
@@ -909,7 +1113,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   )}
 
                   {/* Optical Magnifying Lens Loupe */}
-                  {isLensActive && lensMode === 'lens' && (
+                  {!isZoomed && isLensActive && lensMode === 'lens' && (
                     <div
                       id="product-magnifier-lens"
                       className="absolute pointer-events-none z-30 rounded-full overflow-hidden border-2 border-white shadow-[0_16px_40px_rgba(0,0,0,0.38),0_0_0_1px_rgba(0,0,0,0.12)] ring-4 ring-blue-500/25 bg-white will-change-transform animate-in fade-in zoom-in-95 duration-100"
@@ -980,20 +1184,42 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     )}
                   </div>
 
-                  {/* Lens Controls Toolbar (Zoom Power Selector, Lens Mode Toggle & Lightbox) */}
+                  {/* Lens & Zoom Controls Toolbar */}
                   <div 
                     className="absolute top-3 right-3 z-20 flex items-center gap-1.5"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Zoom Multipliers */}
-                    <div className="hidden sm:flex items-center bg-white/90 backdrop-blur-xs rounded-full p-0.5 border border-slate-200 shadow-xs">
-                      {[2, 2.5, 3.5].map((lvl) => (
+                    {/* Zoom Multipliers & Steppers */}
+                    <div className="flex items-center bg-white/90 backdrop-blur-xs rounded-full p-0.5 border border-slate-200 shadow-xs">
+                      <button
+                        type="button"
+                        id="zoom-out-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const next = Math.max(1, (isZoomed ? stageZoom : 1) - 0.5);
+                          setStageZoom(next);
+                          if (next <= 1.05) setPanOffset({ x: 0, y: 0 });
+                          else setPanOffset((p) => clampPan(p, next));
+                        }}
+                        disabled={!isZoomed}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                        title="Zoom Out"
+                      >
+                        <ZoomOut className="w-3 h-3" />
+                      </button>
+
+                      {[1.5, 2.5, 3.5].map((lvl) => (
                         <button
                           key={lvl}
                           type="button"
-                          onClick={() => setZoomLevel(lvl)}
-                          className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
-                            zoomLevel === lvl
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setZoomLevel(lvl);
+                            setStageZoom(lvl);
+                            setLensMode('zoom');
+                          }}
+                          className={`hidden sm:inline-block px-1.5 py-0.5 rounded-full text-[10px] font-extrabold transition cursor-pointer ${
+                            Math.abs(stageZoom - lvl) < 0.2 && isZoomed
                               ? 'bg-blue-600 text-white shadow-xs'
                               : 'text-slate-600 hover:text-slate-900'
                           }`}
@@ -1002,6 +1228,22 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                           {lvl}x
                         </button>
                       ))}
+
+                      <button
+                        type="button"
+                        id="zoom-in-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const next = Math.min(4, (isZoomed ? stageZoom : 1) + 0.5);
+                          setStageZoom(next);
+                          setLensMode('zoom');
+                        }}
+                        disabled={stageZoom >= 4}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                        title="Zoom In"
+                      >
+                        <ZoomIn className="w-3 h-3" />
+                      </button>
                     </div>
 
                     {/* Lens vs Stage Mode Toggle */}
@@ -1047,16 +1289,51 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     </button>
                   </div>
 
-                  {/* Hover-to-Magnify Visual Feedback Indicator Pill */}
+                  {/* Floating Reset Zoom Button - Appears ONLY when image is zoomed in */}
+                  <AnimatePresence>
+                    {isZoomed && (
+                      <motion.button
+                        key="floating-reset-zoom-button"
+                        id="modal-reset-zoom-button"
+                        type="button"
+                        initial={{ opacity: 0, y: 14, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resetZoom();
+                        }}
+                        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/95 hover:bg-slate-900 text-white text-xs font-bold shadow-2xl backdrop-blur-md border border-white/20 hover:border-white/40 cursor-pointer transition-all hover:scale-105 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        title="Reset zoom to original view"
+                        aria-label="Reset zoom to original view"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-blue-400 group-hover:-rotate-90 transition-transform duration-200" />
+                        <span>Reset Zoom</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-blue-500/30 text-[10px] font-mono text-blue-200 font-bold border border-blue-400/30">
+                          {stageZoom.toFixed(1)}x
+                        </span>
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Visual Feedback Indicator Pill */}
                   <div 
                     id="zoom-indicator-pill"
                     className={`absolute bottom-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none transition-all duration-200 ${
-                      isLensActive 
-                        ? 'bg-blue-600 text-white shadow-md scale-105' 
-                        : 'bg-white/90 backdrop-blur-xs text-slate-700 border border-slate-200 shadow-2xs opacity-0 group-hover:opacity-100'
+                      isZoomed
+                        ? 'bg-blue-600 text-white shadow-md scale-105 opacity-100'
+                        : isLensActive 
+                          ? 'bg-blue-600 text-white shadow-md scale-105 opacity-100' 
+                          : 'bg-white/90 backdrop-blur-xs text-slate-700 border border-slate-200 shadow-2xs opacity-0 group-hover:opacity-100'
                     }`}
                   >
-                    {isLensActive ? (
+                    {isZoomed ? (
+                      <>
+                        <Move className="w-3 h-3 text-white animate-pulse" />
+                        <span>{stageZoom.toFixed(1)}x Zoom • Drag to pan • Pinch to zoom</span>
+                      </>
+                    ) : isLensActive ? (
                       <>
                         <CircleDot className="w-3 h-3 text-white animate-pulse" />
                         <span>{zoomLevel}x Lens Active • Move to inspect</span>
@@ -1064,7 +1341,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     ) : (
                       <>
                         <ZoomIn className="w-3 h-3 text-blue-600" />
-                        <span>Hover to magnify lens • Click for fullscreen</span>
+                        <span>Pinch or double-tap to zoom • Hover lens</span>
                       </>
                     )}
                   </div>
@@ -1293,6 +1570,35 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display leading-snug">
                 {product.name}
               </h2>
+
+              {/* SKU Identifier */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  id="modal-product-sku-badge"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(activeSku);
+                    setCopiedSku(true);
+                    setTimeout(() => setCopiedSku(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 border border-slate-200/80 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-mono text-xs font-semibold transition cursor-pointer group shadow-2xs"
+                  title="Click to copy exact SKU for WhatsApp orders"
+                >
+                  <Tag className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span className="text-slate-500 font-sans text-[11px] font-bold">SKU:</span>
+                  <span className="text-slate-900 group-hover:text-blue-900 font-bold tracking-wide">{activeSku}</span>
+                  {copiedSku ? (
+                    <span className="text-[10px] text-emerald-600 font-sans font-bold flex items-center gap-0.5 ml-1">
+                      <Check className="w-3 h-3 text-emerald-600" /> Copied!
+                    </span>
+                  ) : (
+                    <Copy className="w-3 h-3 text-slate-400 group-hover:text-blue-600 ml-0.5 transition" />
+                  )}
+                </button>
+                <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                  Quote SKU on WhatsApp for fast order confirmation
+                </span>
+              </div>
 
               {/* Reviews & Condition */}
               <div className="flex items-center gap-3 text-xs flex-wrap">
@@ -1625,7 +1931,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       id="modal-inquire-restock-whatsapp-btn"
                       href={buildWhatsAppLink(
                         whatsappNumber,
-                        `Hello On Alaa Store! 🇱🇧\nI want to inquire about restocking for:\n• ${product.name}\n• Variant: ${currentVariant.name}\n\nCould you please share the expected arrival date? Thank you!`
+                        `Hello On Alaa Store! 🇱🇧\nI want to inquire about restocking for:\n• SKU: ${activeSku}\n• ${product.name}\n• Variant: ${currentVariant.name}\n\nCould you please share the expected arrival date? Thank you!`
                       )}
                       target="_blank"
                       rel="noopener noreferrer"

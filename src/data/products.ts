@@ -1,5 +1,6 @@
 import { Product } from '../types';
 import githubProductsJson from './products.json';
+import { generateProductSku } from '../utils/sku';
 
 const INITIAL_PRODUCTS: Product[] = [
   {
@@ -659,6 +660,7 @@ export const PRODUCTS: Product[] = rawProductList.map((p: any) => {
     : [p.image];
   return {
     ...p,
+    sku: p.sku || generateProductSku(p),
     galleryImages: images,
     imageUrls: p.imageUrls || images,
     image_urls: p.image_urls || images,
