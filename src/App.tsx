@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, type Variants } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { 
   SlidersHorizontal, 
   ArrowUpDown, 
@@ -1719,6 +1720,9 @@ export function App() {
         onClose={() => setIsAccountOpen(false)}
         whatsappNumber={storeSettings.whatsappNumber}
       />
+
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
     </div>
   );
 }
